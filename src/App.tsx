@@ -11,6 +11,12 @@ import About from "./pages/About";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import DigitalMenu from "./pages/DigitalMenu";
+import QRCodePage from "./pages/QRCode";
+import EditMenu from "./pages/EditMenu";
+import CustomBranding from "./pages/CustomBranding";
+import EnablePayments from "./pages/EnablePayments";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +36,12 @@ const App = () => (
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/digital-menu" element={<DigitalMenu />} />
+          <Route path="/qr-code" element={<QRCodePage />} />
+          <Route path="/edit-menu" element={<EditMenu />} />
+          <Route path="/custom-branding" element={<CustomBranding />} />
+          <Route path="/enable-payments" element={<EnablePayments />} />
+          <Route path="/analytics" element={<Analytics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

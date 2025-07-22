@@ -217,10 +217,36 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {dashboardCards.map((card, index) => {
             const Icon = card.icon;
+            
+            const getRouteForCard = (title: string) => {
+              switch (title) {
+                case "Your Digital Menu":
+                  return "/digital-menu";
+                case "QR Code":
+                  return "/qr-code";
+                case "Edit Menu Items":
+                  return "/edit-menu";
+                case "Customize Branding":
+                  return "/custom-branding";
+                case "Enable Payments":
+                  return "/enable-payments";
+                case "Analytics":
+                  return "/analytics";
+                default:
+                  return "#";
+              }
+            };
+
             return (
               <Card 
                 key={index}
                 className="hover:shadow-warm transition-all duration-300 hover:scale-105 cursor-pointer group"
+                onClick={() => {
+                  const route = getRouteForCard(card.title);
+                  if (route !== "#") {
+                    navigate(route);
+                  }
+                }}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
