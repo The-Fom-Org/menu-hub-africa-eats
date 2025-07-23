@@ -1,45 +1,24 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Menu, Eye } from "lucide-react";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/hooks/useAuth";
+import { useMenuData } from "@/hooks/useMenuData";
+import { AddCategoryDialog } from "@/components/dialogs/AddCategoryDialog";
 
 const DigitalMenu = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { user, loading } = useAuth();
+  const { categories, addCategory } = useMenuData();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/login");
-        return;
-      }
-      
-      setUser(session.user);
-      setIsLoading(false);
-    };
+    if (!loading && !user) {
+      navigate("/login");
+    }
+  }, [user, loading, navigate]);
 
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        navigate("/login");
-      } else if (session) {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -92,7 +71,10 @@ const DigitalMenu = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="hover:shadow-warm transition-all duration-300 cursor-pointer group">
+          <Card 
+            className="hover:shadow-warm transition-all duration-300 cursor-pointer group"
+            onClick={() => {}}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -107,16 +89,24 @@ const DigitalMenu = () => {
               <CardDescription className="text-sm">
                 Create categories like Appetizers, Main Dishes, Drinks
               </CardDescription>
-              <Button 
-                variant="ghost" 
-                className="w-full mt-4 group-hover:bg-primary/10 group-hover:text-primary"
-              >
-                Create Category
-              </Button>
+              <AddCategoryDialog 
+                onAddCategory={addCategory}
+                trigger={
+                  <Button 
+                    variant="ghost" 
+                    className="w-full mt-4 group-hover:bg-primary/10 group-hover:text-primary"
+                  >
+                    Create Category
+                  </Button>
+                }
+              />
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-warm transition-all duration-300 cursor-pointer group">
+          <Card 
+            className="hover:shadow-warm transition-all duration-300 cursor-pointer group"
+            onClick={() => navigate("/edit-menu")}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="p-2 rounded-lg bg-secondary/10">
@@ -124,7 +114,7 @@ const DigitalMenu = () => {
                 </div>
               </div>
               <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                Add Menu Items
+                Edit Menu Items
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -135,12 +125,15 @@ const DigitalMenu = () => {
                 variant="ghost" 
                 className="w-full mt-4 group-hover:bg-primary/10 group-hover:text-primary"
               >
-                Add Items
+                Manage Items
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-warm transition-all duration-300 cursor-pointer group">
+          <Card 
+            className="hover:shadow-warm transition-all duration-300 cursor-pointer group"
+            onClick={() => navigate("/qr-code")}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="p-2 rounded-lg bg-accent/10">
@@ -148,7 +141,7 @@ const DigitalMenu = () => {
                 </div>
               </div>
               <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                Preview Menu
+                Preview & QR Code
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -168,18 +161,28 @@ const DigitalMenu = () => {
         {/* Menu Status */}
         <Card className="bg-gradient-hero text-primary-foreground">
           <CardContent className="p-8 text-center">
-            <h3 className="text-2xl font-bold mb-4">Ready to Build Your Menu?</h3>
+            <h3 className="text-2xl font-bold mb-4">
+              {categories.length === 0 ? "Ready to Build Your Menu?" : `You have ${categories.length} categories`}
+            </h3>
             <p className="text-lg mb-6 text-primary-foreground/90">
-              Start by creating your first menu category and adding delicious items
+              {categories.length === 0 
+                ? "Start by creating your first menu category and adding delicious items"
+                : "Continue building your menu or generate QR codes for your tables"
+              }
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                variant="secondary" 
-                size="lg"
-                className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-              >
-                Get Started
-              </Button>
+              <AddCategoryDialog 
+                onAddCategory={addCategory}
+                trigger={
+                  <Button 
+                    variant="secondary" 
+                    size="lg"
+                    className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                  >
+                    {categories.length === 0 ? "Get Started" : "Add Category"}
+                  </Button>
+                }
+              />
               <Button 
                 variant="outline" 
                 size="lg"

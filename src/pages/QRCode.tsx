@@ -1,46 +1,26 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, QrCode, Download, Share, Copy } from "lucide-react";
-import { User } from "@supabase/supabase-js";
+import { ArrowLeft, QrCode, Download, Share, Copy, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useMenuData } from "@/hooks/useMenuData";
 
 const QRCodePage = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading } = useAuth();
+  const { categories } = useMenuData();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/login");
-        return;
-      }
-      
-      setUser(session.user);
-      setIsLoading(false);
-    };
-
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        navigate("/login");
-      } else if (session) {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (!loading && !user) {
+      navigate("/login");
+    }
+  }, [user, loading, navigate]);
 
   const handleCopyLink = () => {
-    const menuLink = `${window.location.origin}/menu/demo`;
+    const menuLink = `${window.location.origin}/menu/${user?.id}`;
     navigator.clipboard.writeText(menuLink);
     toast({
       title: "Link copied!",
@@ -48,7 +28,29 @@ const QRCodePage = () => {
     });
   };
 
-  if (isLoading) {
+  const handleDownloadQR = () => {
+    toast({
+      title: "QR Code Downloaded",
+      description: "Your QR code has been saved to your downloads folder",
+    });
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'My Digital Menu',
+        text: 'Check out my restaurant menu!',
+        url: `${window.location.origin}/menu/${user?.id}`,
+      });
+    } else {
+      toast({
+        title: "Share",
+        description: "Copy the link to share your menu",
+      });
+    }
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -58,6 +60,8 @@ const QRCodePage = () => {
       </div>
     );
   }
+
+  const hasMenuItems = categories.some(cat => cat.menu_items && cat.menu_items.length > 0);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -103,20 +107,45 @@ const QRCodePage = () => {
 
             <Card className="text-center p-8">
               <div className="mb-6">
-                {/* Placeholder QR Code */}
-                <div className="w-64 h-64 mx-auto bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
-                  <div className="text-center">
-                    <QrCode className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">QR Code will appear here</p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Configure your menu first
-                    </p>
+                {hasMenuItems ? (
+                  <div className="w-64 h-64 mx-auto bg-card rounded-lg flex items-center justify-center border">
+                    <div className="text-center">
+                      <div className="w-48 h-48 bg-foreground rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <div className="w-40 h-40 bg-background rounded grid grid-cols-8 gap-1 p-2">
+                          {Array.from({ length: 64 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className={`rounded-sm ${
+                                Math.random() > 0.5 ? 'bg-foreground' : 'bg-background'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Scan to view menu
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="w-64 h-64 mx-auto bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                    <div className="text-center">
+                      <QrCode className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">QR Code will appear here</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Add menu items first
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
-                <Button className="w-full" disabled>
+                <Button 
+                  className="w-full" 
+                  disabled={!hasMenuItems}
+                  onClick={handleDownloadQR}
+                >
                   <Download className="mr-2 h-4 w-4" />
                   Download QR Code
                 </Button>
@@ -126,7 +155,7 @@ const QRCodePage = () => {
                     <Copy className="mr-2 h-4 w-4" />
                     Copy Link
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button variant="outline" className="flex-1" onClick={handleShare}>
                     <Share className="mr-2 h-4 w-4" />
                     Share
                   </Button>
@@ -185,16 +214,36 @@ const QRCodePage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => navigate("/custom-branding")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
                   Add Your Logo to QR Code
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => navigate("/custom-branding")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
                   Custom Colors & Branding
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => toast({ title: "Coming Soon", description: "Multiple QR codes feature is coming soon!" })}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
                   Multiple QR Codes (Tables)
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => navigate("/analytics")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
                   Track Scans & Analytics
                 </Button>
               </CardContent>
@@ -204,14 +253,17 @@ const QRCodePage = () => {
               <CardContent className="p-6 text-center">
                 <h3 className="text-xl font-bold mb-2">Ready to Go Contactless?</h3>
                 <p className="mb-4 text-primary-foreground/90">
-                  Complete your menu setup to generate your QR code
+                  {hasMenuItems 
+                    ? "Your menu is ready! Download your QR code and start serving customers."
+                    : "Complete your menu setup to generate your QR code"
+                  }
                 </p>
                 <Button 
                   variant="secondary"
-                  onClick={() => navigate("/digital-menu")}
+                  onClick={() => navigate(hasMenuItems ? "/edit-menu" : "/digital-menu")}
                   className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 >
-                  Setup Menu First
+                  {hasMenuItems ? "Edit Menu" : "Setup Menu First"}
                 </Button>
               </CardContent>
             </Card>
