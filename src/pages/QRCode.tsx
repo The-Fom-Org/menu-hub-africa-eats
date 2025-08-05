@@ -258,13 +258,24 @@ const QRCodePage = () => {
                     : "Complete your menu setup to generate your QR code"
                   }
                 </p>
-                <Button 
-                  variant="secondary"
-                  onClick={() => navigate(hasMenuItems ? "/edit-menu" : "/digital-menu")}
-                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                >
-                  {hasMenuItems ? "Edit Menu" : "Setup Menu First"}
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    variant="secondary"
+                    onClick={() => navigate(hasMenuItems ? "/edit-menu" : "/digital-menu")}
+                    className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 w-full"
+                  >
+                    {hasMenuItems ? "Edit Menu" : "Setup Menu First"}
+                  </Button>
+                  {hasMenuItems && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => window.open(`/menu/${user?.id}?qr=true`, '_blank')}
+                      className="w-full border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
+                    >
+                      Preview Customer Menu
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>

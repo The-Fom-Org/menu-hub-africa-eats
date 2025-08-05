@@ -17,6 +17,9 @@ import EditMenu from "./pages/EditMenu";
 import CustomBranding from "./pages/CustomBranding";
 import EnablePayments from "./pages/EnablePayments";
 import Analytics from "./pages/Analytics";
+import CustomerMenu from "./pages/CustomerMenu";
+import Checkout from "./pages/Checkout";
+import OrderSuccess from "./pages/OrderSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +45,9 @@ const App = () => (
           <Route path="/custom-branding" element={<CustomBranding />} />
           <Route path="/enable-payments" element={<EnablePayments />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order-success" element={<OrderSuccess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
