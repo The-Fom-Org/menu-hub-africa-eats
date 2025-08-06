@@ -330,6 +330,7 @@ const EnablePayments = () => {
                 </p>
                 <Button 
                   variant="secondary"
+                  onClick={() => window.open('https://docs.stripe.com/security', '_blank')}
                   className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 >
                   View Security Details

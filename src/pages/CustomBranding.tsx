@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Palette, Upload, Eye, Save } from "lucide-react";
@@ -23,7 +24,8 @@ const CustomBranding = () => {
     description: "",
     primaryColor: "#059669",
     secondaryColor: "#dc2626",
-    logoUrl: ""
+    logoUrl: "",
+    coverImageUrl: ""
   });
 
   useEffect(() => {
@@ -52,11 +54,36 @@ const CustomBranding = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSave = () => {
-    toast({
-      title: "Branding saved!",
-      description: "Your custom branding has been updated successfully.",
-    });
+  const handleSave = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          restaurant_name: branding.restaurantName,
+          tagline: branding.tagline,
+          description: branding.description,
+          primary_color: branding.primaryColor,
+          secondary_color: branding.secondaryColor,
+          logo_url: branding.logoUrl,
+          cover_image_url: branding.coverImageUrl
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Branding saved!",
+        description: "Your custom branding has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save branding",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -169,20 +196,24 @@ const CustomBranding = () => {
               <CardContent className="space-y-4">
                 <div>
                   <Label>Restaurant Logo</Label>
-                  <div className="mt-2 border-2 border-dashed border-muted-foreground/20 rounded-lg p-8 text-center hover:border-muted-foreground/40 transition-colors cursor-pointer">
-                    <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Click to upload your logo</p>
-                    <p className="text-sm text-muted-foreground mt-2">PNG, JPG up to 2MB</p>
-                  </div>
+                  <ImageUpload
+                    bucket="menu-images"
+                    path="logos/"
+                    value={branding.logoUrl}
+                    onChange={(url) => setBranding({...branding, logoUrl: url})}
+                    placeholder="Upload your restaurant logo"
+                  />
                 </div>
                 
                 <div>
                   <Label>Cover Image</Label>
-                  <div className="mt-2 border-2 border-dashed border-muted-foreground/20 rounded-lg p-8 text-center hover:border-muted-foreground/40 transition-colors cursor-pointer">
-                    <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Upload a cover image</p>
-                    <p className="text-sm text-muted-foreground mt-2">Recommended: 1200x400px</p>
-                  </div>
+                  <ImageUpload
+                    bucket="menu-images"
+                    path="covers/"
+                    value={branding.coverImageUrl}
+                    onChange={(url) => setBranding({...branding, coverImageUrl: url})}
+                    placeholder="Upload a cover image"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -320,6 +351,7 @@ const CustomBranding = () => {
                 </p>
                 <Button 
                   variant="secondary"
+                  onClick={handleSave}
                   className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 >
                   Apply Branding

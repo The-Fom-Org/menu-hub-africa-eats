@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { ArrowLeft, BarChart3, TrendingUp, Users, DollarSign, ShoppingCart, Eye } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 
@@ -13,6 +14,7 @@ const Analytics = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { analytics, loading: analyticsLoading } = useAnalytics();
 
   // Demo analytics data
   const analyticsData = {
@@ -58,7 +60,7 @@ const Analytics = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  if (isLoading) {
+  if (isLoading || analyticsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +28,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [isAvailable, setIsAvailable] = useState(true);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -41,6 +43,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
         name: name.trim(),
         description: description.trim(),
         price: parseFloat(price),
+        image_url: imageUrl || null,
         is_available: isAvailable,
       });
       
@@ -52,6 +55,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
         setName("");
         setDescription("");
         setPrice("");
+        setImageUrl("");
         setIsAvailable(true);
         setOpen(false);
       } else {
@@ -117,6 +121,16 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
               required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Item Image</Label>
+            <ImageUpload
+              bucket="menu-images"
+              path="items/"
+              value={imageUrl}
+              onChange={setImageUrl}
+              placeholder="Upload menu item image"
             />
           </div>
           <div className="flex items-center space-x-2">
