@@ -37,9 +37,6 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center space-x-2 mb-6">
-              <div className="bg-gradient-hero p-2 rounded-lg">
-                <Smartphone className="h-6 w-6 text-primary-foreground" />
-              </div>
               <div>
                 <span className="text-xl font-bold">MenuHub</span>
                 <span className="text-xl font-bold text-primary">Africa</span>

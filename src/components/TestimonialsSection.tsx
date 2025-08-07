@@ -90,7 +90,7 @@ const TestimonialsSection = () => {
           <p className="text-muted-foreground mb-6">
             Ready to be featured in our success stories?
           </p>
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-hero text-primary-foreground text-sm font-medium">
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-hero text-secondary-foreground text-sm font-medium">
             🚀 Early adopter benefits available
           </div>
         </div>

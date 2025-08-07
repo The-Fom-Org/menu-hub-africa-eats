@@ -6,7 +6,7 @@ const HowItWorks = () => {
       icon: QrCode,
       title: "1. Setup Digital Menu",
       description: "Upload menu items, set prices, add photos. Generate QR codes for tables. Takes 10 minutes.",
-      color: "bg-primary/10 text-primary",
+      color: "bg-secondary/10 text-secondary",
     },
     {
       icon: Smartphone,
@@ -18,7 +18,7 @@ const HowItWorks = () => {
       icon: CreditCard,
       title: "3. Manage Orders",
       description: "Receive orders on WhatsApp or dashboard. Track sales, update inventory, analyze performance daily.",
-      color: "bg-accent/10 text-accent",
+      color: "bg-secondary/10 text-secondary",
     },
   ];
 
@@ -68,7 +68,7 @@ const HowItWorks = () => {
 
         {/* Integration Benefits */}
         <div className="text-center mt-16">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-hero text-primary-foreground text-sm font-medium mb-4">
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-hero text-secondary-foreground text-sm font-medium mb-4">
             ⚡ Integrates with your existing workflow
           </div>
           <p className="text-muted-foreground mb-6">

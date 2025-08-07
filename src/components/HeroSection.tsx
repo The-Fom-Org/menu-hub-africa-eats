@@ -20,13 +20,13 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
           <div className="text-center lg:text-left animate-fade-in">
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-secondary text-sm font-medium mb-6">
               🇰🇪 Built for African Restaurants
             </div>
             
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
               Digital Menus &{" "}
-              <span className="text-primary">QR Ordering</span> for Modern
+              <span className="text-secondary">QR Ordering</span> for Modern
               African Restaurants
             </h1>
             
@@ -66,48 +66,8 @@ const HeroSection = () => {
               </div>
             </div>
           </div>
-
-          {/* Hero Image/Demo */}
-          <div className="relative lg:pl-8 animate-scale-in">
-            <div className="relative bg-card rounded-2xl shadow-warm p-8 border border-border/50">
-              <div className="aspect-[3/4] bg-gradient-hero rounded-xl p-6 flex flex-col justify-between text-primary-foreground">
-                {/* Mock Phone Interface */}
-                <div className="text-center">
-                  <div className="bg-white/20 rounded-lg p-4 mb-4">
-                    <div className="w-20 h-20 mx-auto bg-white/30 rounded-lg flex items-center justify-center mb-2">
-                      <div className="w-12 h-12 bg-foreground/20 rounded" />
-                    </div>
-                    <p className="text-sm">Scan QR Code</p>
-                  </div>
-                  <h3 className="font-semibold mb-2">Mama Njeri's Kitchen</h3>
-                  <p className="text-sm opacity-90">Traditional Kenyan Cuisine</p>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="bg-white/10 rounded-lg p-3">
-                    <p className="text-sm font-medium">Nyama Choma</p>
-                    <p className="text-xs opacity-75">KSh 800</p>
-                  </div>
-                  <div className="bg-white/10 rounded-lg p-3">
-                    <p className="text-sm font-medium">Ugali & Sukuma</p>
-                    <p className="text-xs opacity-75">KSh 300</p>
-                  </div>
-                  <Button variant="secondary" size="sm" className="w-full">
-                    Order via WhatsApp
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Floating elements */}
-            <div className="absolute -top-4 -right-4 bg-accent text-accent-foreground px-3 py-2 rounded-lg shadow-soft text-sm font-medium">
-              No Commission!
-            </div>
-            <div className="absolute -bottom-4 -left-4 bg-secondary text-secondary-foreground px-3 py-2 rounded-lg shadow-soft text-sm font-medium">
-              M-Pesa Ready
-            </div>
-          </div>
         </div>
+          
       </div>
     </section>
   );

@@ -102,7 +102,7 @@ const FeaturesPreview = () => {
           
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">0%</div>
+              <div className="text-3xl font-bold text-secondary mb-2">0%</div>
               <p className="text-muted-foreground">Commission fees<br/>Keep all your earnings</p>
             </div>
             <div className="text-center">
@@ -110,7 +110,7 @@ const FeaturesPreview = () => {
               <p className="text-muted-foreground">Languages supported<br/>English & Swahili</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-accent mb-2">10min</div>
+              <div className="text-3xl font-bold text-secondary mb-2">10min</div>
               <p className="text-muted-foreground">Setup time<br/>Start serving today</p>
             </div>
           </div>

@@ -13,7 +13,7 @@ const FloatingCTA = () => {
         variant="hero"
         size="lg"
         className="rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 group"
-        onClick={() => window.open('https://wa.me/254700000000', '_blank')}
+        onClick={() => window.open('https://wa.me/254791829358', '_blank')}
       >
         <MessageCircle className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
         Talk to Sales
