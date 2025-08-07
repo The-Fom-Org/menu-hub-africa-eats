@@ -4,20 +4,20 @@ const HowItWorks = () => {
   const steps = [
     {
       icon: QrCode,
-      title: "Generate QR Menu",
-      description: "Create beautiful digital menus with photos, prices in KSh, and descriptions in English & Swahili.",
+      title: "1. Setup Digital Menu",
+      description: "Upload menu items, set prices, add photos. Generate QR codes for tables. Takes 10 minutes.",
       color: "bg-primary/10 text-primary",
     },
     {
       icon: Smartphone,
-      title: "Customers Scan & Order",
-      description: "Diners scan QR codes at tables, browse your menu on their phones, and place orders instantly.",
+      title: "2. Customers Order",
+      description: "Customers scan QR codes, browse menu on their phones, customize orders, and pay via M-Pesa or cash.",
       color: "bg-secondary/10 text-secondary",
     },
     {
       icon: CreditCard,
-      title: "Get Paid Instantly",
-      description: "Accept M-Pesa payments or cash. Orders come to your WhatsApp or dashboard. No commission fees.",
+      title: "3. Manage Orders",
+      description: "Receive orders on WhatsApp or dashboard. Track sales, update inventory, analyze performance daily.",
       color: "bg-accent/10 text-accent",
     },
   ];
@@ -27,10 +27,10 @@ const HowItWorks = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            How MenuHub Works
+            How MenuHub Integrates Into Your Daily Operations
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Get your restaurant online in minutes with our simple 3-step process designed for African businesses.
+            Seamlessly fits into your restaurant workflow - from setup to daily operations, orders, and payments.
           </p>
         </div>
 
@@ -66,13 +66,13 @@ const HowItWorks = () => {
           ))}
         </div>
 
-        {/* Call to Action */}
+        {/* Integration Benefits */}
         <div className="text-center mt-16">
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-hero text-primary-foreground text-sm font-medium mb-4">
-            ⚡ Setup takes less than 10 minutes
+            ⚡ Integrates with your existing workflow
           </div>
           <p className="text-muted-foreground mb-6">
-            Start serving customers digitally today, no technical knowledge required.
+            No disruption to your kitchen operations. Orders flow naturally through your preferred channels.
           </p>
         </div>
       </div>

@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import FloatingCTA from "@/components/FloatingCTA";
+import ExitIntentPopup from "@/components/ExitIntentPopup";
 import Index from "./pages/Index";
 import Features from "./pages/Features";
 import Contact from "./pages/Contact";
@@ -21,6 +23,7 @@ import CustomerMenu from "./pages/CustomerMenu";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import NotFound from "./pages/NotFound";
+import LeadCaptureFunnel from "./components/LeadCaptureFunnel";
 
 const queryClient = new QueryClient();
 
@@ -48,9 +51,12 @@ const App = () => (
           <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-success" element={<OrderSuccess />} />
+          <Route path="/lead-funnel" element={<LeadCaptureFunnel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <FloatingCTA />
+        <ExitIntentPopup />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

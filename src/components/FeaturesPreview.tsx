@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import InlineDemoCTA from "@/components/InlineDemoCTA";
 
 const FeaturesPreview = () => {
   const features = [
@@ -114,17 +115,11 @@ const FeaturesPreview = () => {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="hero" size="lg" asChild>
-              <Link to="/features">
-                Explore All Features
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/pricing">View Pricing</Link>
-            </Button>
-          </div>
+          <InlineDemoCTA 
+            title="Ready to Transform Your Restaurant?"
+            description="Join the digital revolution and give your customers the modern dining experience they expect while reducing your operational costs."
+            variant="compact"
+          />
         </div>
       </div>
     </section>

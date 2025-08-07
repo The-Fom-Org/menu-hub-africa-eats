@@ -64,113 +64,216 @@ const Pricing = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Simple, Transparent Pricing
+            Custom Pricing for Your Restaurant
           </h1>
           <p className="text-xl text-foreground/80 max-w-2xl mx-auto">
-            Start free, scale as you grow. No setup fees, no hidden costs.
-            <span className="text-primary font-semibold"> Zero commission</span> on orders.
+            Get a tailored solution that fits your restaurant size, needs, and budget.
+            <span className="text-primary font-semibold"> No hidden fees, no commissions.</span>
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
-          {plans.map((plan, index) => (
-            <Card 
-              key={index} 
-              className={`relative ${plan.popular ? 'border-primary shadow-elegant scale-105' : 'border-border'}`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-                    <Star className="h-3 w-3" />
-                    Most Popular
+        {/* Contact Sales Form */}
+        <div className="max-w-2xl mx-auto mb-16">
+          <Card className="border-border/50">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">Contact Sales for Pricing</CardTitle>
+              <CardDescription>
+                Tell us about your restaurant and we'll create a custom quote within 24 hours.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="restaurant-name" className="block text-sm font-medium text-foreground mb-2">
+                      Restaurant Name *
+                    </label>
+                    <input 
+                      id="restaurant-name" 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="e.g., Mama Njeri's Kitchen"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="contact-person" className="block text-sm font-medium text-foreground mb-2">
+                      Contact Person *
+                    </label>
+                    <input 
+                      id="contact-person" 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="Your name"
+                      required
+                    />
                   </div>
                 </div>
-              )}
-              
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-2xl font-bold text-foreground">
-                  {plan.name}
-                </CardTitle>
-                <div className="flex items-baseline justify-center gap-1 mt-4">
-                  <span className="text-4xl font-bold text-primary">
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-foreground/60">{plan.period}</span>
-                  )}
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+                      Email Address *
+                    </label>
+                    <input 
+                      id="email" 
+                      type="email"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="your.email@example.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
+                      Phone Number *
+                    </label>
+                    <input 
+                      id="phone" 
+                      type="tel"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="+254 700 000 000"
+                      required
+                    />
+                  </div>
                 </div>
-                <CardDescription className="text-foreground/70 mt-2">
-                  {plan.description}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-3">
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span className="text-foreground/80">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <Button 
-                  className="w-full" 
-                  variant={plan.popular ? "hero" : "outline"}
-                  size="lg"
-                >
-                  {plan.cta}
+
+                <div>
+                  <label htmlFor="restaurant-type" className="block text-sm font-medium text-foreground mb-2">
+                    Restaurant Type *
+                  </label>
+                  <select 
+                    id="restaurant-type"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                  >
+                    <option value="">Select restaurant type</option>
+                    <option value="small-cafe">Small Café (1-20 tables)</option>
+                    <option value="restaurant">Restaurant (20-50 tables)</option>
+                    <option value="chain">Restaurant Chain (Multiple locations)</option>
+                    <option value="food-court">Food Court Stall</option>
+                    <option value="hotel">Hotel Restaurant</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-3">
+                    Interest Areas (Select all that apply) *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                      <span className="text-sm">Digital Menu & QR Codes</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                      <span className="text-sm">QR Ordering System</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                      <span className="text-sm">M-Pesa Integration</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                      <span className="text-sm">Analytics Dashboard</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                      <span className="text-sm">Multi-location Support</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                      <span className="text-sm">Staff Management</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
+                    Additional Requirements
+                  </label>
+                  <textarea 
+                    id="message"
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Tell us about your specific needs, number of locations, peak hours, etc."
+                    rows={4}
+                  />
+                </div>
+
+                <Button variant="hero" size="lg" className="w-full">
+                  Get Custom Quote
                 </Button>
-              </CardContent>
-            </Card>
-          ))}
+
+                <p className="text-sm text-muted-foreground text-center">
+                  Our team will contact you within 24 hours with a tailored solution and pricing.
+                </p>
+              </form>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* FAQ Section */}
+        {/* Pricing FAQ Section */}
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-foreground mb-12">
-            Frequently Asked Questions
+            Pricing FAQ
           </h2>
           
           <div className="space-y-8">
             <div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                Why no commission fees?
+                What are the setup costs?
               </h3>
               <p className="text-foreground/80">
-                We believe restaurants should keep 100% of their revenue. Our subscription model 
-                ensures predictable costs while you focus on serving great food.
+                Setup is completely free. We provide onboarding, menu digitization, staff training, 
+                and QR code generation at no extra cost. You only pay your monthly subscription.
               </p>
             </div>
             
             <div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                Is M-Pesa integration included?
+                How does M-Pesa integration work?
               </h3>
               <p className="text-foreground/80">
-                Yes! M-Pesa integration is included in the Professional plan, making it easy 
-                for customers to pay directly through their mobile phones.
+                We handle all M-Pesa integration through Safaricom's API. Payments go directly to your 
+                business M-Pesa account within minutes. We don't hold your money or charge transaction fees.
               </p>
             </div>
             
             <div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                Can I switch plans anytime?
+                Do you support multiple restaurant branches?
               </h3>
               <p className="text-foreground/80">
-                Absolutely. You can upgrade, downgrade, or cancel your subscription at any time. 
-                Changes take effect at your next billing cycle.
+                Yes! Our Enterprise solution supports multiple locations with centralized management, 
+                individual branch analytics, and unified reporting across all your restaurants.
               </p>
             </div>
             
             <div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                Do you offer support in Swahili?
+                What's included in the custom quote?
               </h3>
               <p className="text-foreground/80">
-                Yes! Our platform and support are available in both English and Swahili 
-                to serve restaurants across East Africa.
+                Your custom quote includes platform access, M-Pesa integration, unlimited menu updates, 
+                analytics dashboard, multilingual support, training, and ongoing technical support.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                Is there a minimum contract period?
+              </h3>
+              <p className="text-foreground/80">
+                No long-term contracts required. We offer month-to-month subscriptions. 
+                However, annual payments receive significant discounts and priority support.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                What if I need custom features?
+              </h3>
+              <p className="text-foreground/80">
+                We can develop custom features for your specific needs. Integration with existing 
+                POS systems, custom reporting, and specialized workflows are available for Enterprise clients.
               </p>
             </div>
           </div>
