@@ -13,23 +13,23 @@ const Contact = () => {
       title: "WhatsApp Support",
       description: "Get instant help via WhatsApp",
       action: "Message us now",
-      link: "https://wa.me/254700000000",
+      link: "https://wa.me/254791829358",
       available: "24/7 Support"
     },
     {
       icon: Mail,
       title: "Email Support",
       description: "Send us detailed questions",
-      action: "hello@menuhub.africa",
-      link: "mailto:hello@menuhub.africa",
+      action: "hello MenuHubAfrica",
+      link: "mailto:menuhubafrica@gmail.com",
       available: "Response within 2 hours"
     },
     {
       icon: Phone,
       title: "Phone Support",
       description: "Speak directly with our team",
-      action: "+254 700 000 000",
-      link: "tel:+254700000000",
+      action: "+254 115888525",
+      link: "tel:+254115888525",
       available: "Mon-Fri 8AM-6PM EAT"
     }
   ];
@@ -212,7 +212,7 @@ const Contact = () => {
                       </div>
 
                       <Button variant="outline" className="mt-6" asChild>
-                        <a href="https://wa.me/254700000000" target="_blank" rel="noopener noreferrer">
+                        <a href="https://wa.me/254791829358" target="_blank" rel="noopener noreferrer">
                           <MessageCircle className="h-4 w-4 mr-2" />
                           WhatsApp us now
                         </a>

@@ -23,8 +23,8 @@ const Footer = () => {
     ],
     support: [
       { name: "Help Center", href: "/help" },
-      { name: "WhatsApp Support", href: "https://wa.me/254700000000" },
-      { name: "Email Support", href: "mailto:support@menuhub.africa" },
+      { name: "WhatsApp Support", href: "https://wa.me/254791829358" },
+      { name: "Email Support", href: "mailto:menuhubafrica@gmail.com" },
       { name: "Setup Guide", href: "/setup" },
     ],
   };
@@ -60,13 +60,13 @@ const Footer = () => {
               <div className="flex items-center gap-3 text-background/80">
                 <Mail className="h-4 w-4" />
                 <a href="mailto:hello@menuhub.africa" className="hover:text-primary transition-colors">
-                  hello@menuhub.africa
+                  menuhubafrica@gmail.com
                 </a>
               </div>
               <div className="flex items-center gap-3 text-background/80">
                 <MessageCircle className="h-4 w-4" />
-                <a href="https://wa.me/254700000000" className="hover:text-primary transition-colors">
-                  +254 700 000 000
+                <a href="https://wa.me/254791829358" className="hover:text-primary transition-colors">
+                  +254 791829358
                 </a>
               </div>
             </div>

@@ -23,13 +23,11 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <div className="bg-gradient-hero p-2 rounded-lg group-hover:scale-105 transition-transform">
-              <Smartphone className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div className="hidden sm:block">
-              <span className="text-xl font-bold text-foreground">MenuHub</span>
-              <span className="text-xl font-bold text-primary">Africa</span>
-            </div>
+            <img
+              src="/menuhub.png"
+              alt="MenuHub Africa Logo"
+              className="h-10 w-auto group-hover:scale-105 transition-transform"
+            />
           </Link>
 
           {/* Desktop Navigation */}
