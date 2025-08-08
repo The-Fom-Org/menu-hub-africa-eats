@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,18 +6,36 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, QrCode, Download, Share, Copy, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMenuData } from "@/hooks/useMenuData";
+import QRCodeLib from 'qrcode';
 
 const QRCodePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const { categories } = useMenuData();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const hasMenuItems = categories.some(cat => cat.menu_items && cat.menu_items.length > 0);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/login");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (user && hasMenuItems && canvasRef.current) {
+      const menuUrl = `${window.location.origin}/menu/${user.id}?qr=true`;
+      QRCodeLib.toCanvas(canvasRef.current, menuUrl, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000',
+          light: '#fff'
+        }
+      });
+    }
+  }, [user, hasMenuItems]);
 
   const handleCopyLink = () => {
     const menuLink = `${window.location.origin}/menu/${user?.id}`;
@@ -29,10 +47,16 @@ const QRCodePage = () => {
   };
 
   const handleDownloadQR = () => {
-    toast({
-      title: "QR Code Downloaded",
-      description: "Your QR code has been saved to your downloads folder",
-    });
+    if (canvasRef.current) {
+      const link = document.createElement('a');
+      link.download = 'menu-qr-code.png';
+      link.href = canvasRef.current.toDataURL();
+      link.click();
+      toast({
+        title: "QR Code Downloaded",
+        description: "Your QR code has been saved to your downloads folder",
+      });
+    }
   };
 
   const handleShare = () => {
@@ -60,8 +84,6 @@ const QRCodePage = () => {
       </div>
     );
   }
-
-  const hasMenuItems = categories.some(cat => cat.menu_items && cat.menu_items.length > 0);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -110,18 +132,10 @@ const QRCodePage = () => {
                 {hasMenuItems ? (
                   <div className="w-64 h-64 mx-auto bg-card rounded-lg flex items-center justify-center border">
                     <div className="text-center">
-                      <div className="w-48 h-48 bg-foreground rounded-lg flex items-center justify-center mx-auto mb-4">
-                        <div className="w-40 h-40 bg-background rounded grid grid-cols-8 gap-1 p-2">
-                          {Array.from({ length: 64 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className={`rounded-sm ${
-                                Math.random() > 0.5 ? 'bg-foreground' : 'bg-background'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
+                      <canvas 
+                        ref={canvasRef}
+                        className="rounded-lg mx-auto mb-4"
+                      />
                       <p className="text-sm text-muted-foreground">
                         Scan to view menu
                       </p>

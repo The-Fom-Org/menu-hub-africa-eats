@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Edit3, Trash2, Image, DollarSign, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMenuData } from "@/hooks/useMenuData";
 import { AddCategoryDialog } from "@/components/dialogs/AddCategoryDialog";
 import { AddMenuItemDialog } from "@/components/dialogs/AddMenuItemDialog";
+import { EditMenuItemDialog } from "@/components/dialogs/EditMenuItemDialog";
 
 const EditMenu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const { categories, loading: menuLoading, addCategory, addMenuItem, updateMenuItem, deleteMenuItem } = useMenuData();
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -178,12 +180,24 @@ const EditMenu = () => {
                             </div>
                             
                             <div className="flex items-center gap-4">
-                              <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
-                                <Image className="h-8 w-8 text-muted-foreground" />
+                              <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                                {item.image_url ? (
+                                  <img 
+                                    src={item.image_url} 
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <Image className="h-8 w-8 text-muted-foreground" />
+                                )}
                               </div>
                               
                               <div className="flex flex-col gap-2">
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setEditingItem(item)}
+                                >
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
                                 <Button 
@@ -257,6 +271,15 @@ const EditMenu = () => {
           </Card>
         )}
       </main>
+      
+      {editingItem && (
+        <EditMenuItemDialog
+          item={editingItem}
+          open={!!editingItem}
+          onOpenChange={(open) => !open && setEditingItem(null)}
+          onUpdateItem={updateMenuItem}
+        />
+      )}
     </div>
   );
 };

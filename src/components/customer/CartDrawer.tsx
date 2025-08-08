@@ -23,7 +23,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
 
   const handleCheckout = () => {
-    navigate('/checkout');
+    navigate(`/checkout?restaurantId=${restaurantId}`);
   };
 
   const cartCount = getCartCount();

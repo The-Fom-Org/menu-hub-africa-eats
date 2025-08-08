@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { QrCode, Clock, MapPin } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { QrCode, Clock, MapPin, Search } from 'lucide-react';
 import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import { useCart } from '@/hooks/useCart';
 import { MenuItemCard } from '@/components/customer/MenuItemCard';
@@ -17,6 +18,7 @@ const CustomerMenu = () => {
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId!);
   const { setOrderType } = useCart(restaurantId!);
   const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     // Detect customer flow based on URL parameters or referrer
@@ -31,6 +33,15 @@ const CustomerMenu = () => {
       setOrderType('later');
     }
   }, [searchParams, setOrderType]);
+
+  // Filter items based on search term
+  const filteredCategories = categories.map(category => ({
+    ...category,
+    menu_items: category.menu_items?.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || []
+  })).filter(category => category.menu_items.length > 0);
 
   if (loading) {
     return (
@@ -65,26 +76,45 @@ const CustomerMenu = () => {
       {/* Header */}
       <header className="bg-card border-b shadow-sm sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                {customerFlow === 'qr' ? (
-                  <QrCode className="h-5 w-5 text-primary" />
-                ) : (
-                  <Clock className="h-5 w-5 text-primary" />
-                )}
-              </div>
+              {restaurantInfo?.logo_url ? (
+                <img 
+                  src={restaurantInfo.logo_url} 
+                  alt={restaurantInfo.name}
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  {customerFlow === 'qr' ? (
+                    <QrCode className="h-6 w-6 text-primary" />
+                  ) : (
+                    <Clock className="h-6 w-6 text-primary" />
+                  )}
+                </div>
+              )}
               <div>
-                <h1 className="font-bold text-lg text-foreground">
+                <h1 className="font-bold text-xl text-foreground">
                   {restaurantInfo?.name}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later'}
+                  {restaurantInfo?.tagline || (customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later')}
                 </p>
               </div>
             </div>
             
             <CartDrawer restaurantId={restaurantId!} />
+          </div>
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search menu items..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </div>
       </header>
@@ -120,23 +150,29 @@ const CustomerMenu = () => {
 
       {/* Menu Content */}
       <main className="max-w-4xl mx-auto px-4 pb-8">
-        {categories.length === 0 ? (
+        {searchTerm && filteredCategories.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">No items found matching "{searchTerm}"</p>
+            </CardContent>
+          </Card>
+        ) : categories.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground">No menu items available at the moment.</p>
             </CardContent>
           </Card>
         ) : (
-          <Tabs defaultValue={categories[0]?.id} className="space-y-6">
+          <Tabs defaultValue={filteredCategories[0]?.id || categories[0]?.id} className="space-y-6">
             <TabsList className="w-full justify-start overflow-x-auto">
-              {categories.map((category) => (
+              {(searchTerm ? filteredCategories : categories).map((category) => (
                 <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap">
                   {category.name}
                 </TabsTrigger>
               ))}
             </TabsList>
 
-            {categories.map((category) => (
+            {(searchTerm ? filteredCategories : categories).map((category) => (
               <TabsContent key={category.id} value={category.id} className="space-y-4">
                 <Card>
                   <CardHeader>

@@ -9,6 +9,7 @@ export interface MenuItem {
   price: number;
   is_available: boolean;
   category_id: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
 }

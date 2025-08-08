@@ -151,8 +151,9 @@ const DigitalMenu = () => {
               <Button 
                 variant="ghost" 
                 className="w-full mt-4 group-hover:bg-primary/10 group-hover:text-primary"
+                onClick={() => user && window.open(`/menu/${user.id}`, '_blank')}
               >
-                Preview
+                Preview Menu
               </Button>
             </CardContent>
           </Card>
@@ -187,9 +188,9 @@ const DigitalMenu = () => {
                 variant="outline" 
                 size="lg"
                 className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
-                onClick={() => navigate("/edit-menu")}
+                onClick={() => user && window.open(`/menu/${user.id}`, '_blank')}
               >
-                Go to Menu Editor
+                Preview Menu
               </Button>
             </div>
           </CardContent>

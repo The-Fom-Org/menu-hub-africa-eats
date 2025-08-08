@@ -157,7 +157,10 @@ const EnablePayments = () => {
                     <span>Popular with Kenyan customers</span>
                   </div>
                   {!paymentSettings.mpesa && (
-                    <Button className="w-full mt-4">
+                    <Button 
+                      className="w-full mt-4"
+                      onClick={() => window.open('https://docs.stripe.com/payments/payment-methods/m-pesa', '_blank')}
+                    >
                       Setup M-Pesa Integration
                     </Button>
                   )}
@@ -207,7 +210,11 @@ const EnablePayments = () => {
                     <span>3.5% transaction fee</span>
                   </div>
                   {!paymentSettings.cards && (
-                    <Button variant="outline" className="w-full mt-4">
+                    <Button 
+                      variant="outline" 
+                      className="w-full mt-4"
+                      onClick={() => window.open('https://docs.stripe.com/payments/accept-a-payment', '_blank')}
+                    >
                       Setup Card Payments
                     </Button>
                   )}
@@ -343,13 +350,25 @@ const EnablePayments = () => {
                 <CardTitle>Need Help?</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => window.open('https://docs.stripe.com/payments/quickstart', '_blank')}
+                >
                   Payment Setup Guide
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => window.open('https://docs.stripe.com/pricing', '_blank')}
+                >
                   Transaction Fees
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => window.open('mailto:support@menuhub.app', '_blank')}
+                >
                   Contact Support
                 </Button>
               </CardContent>
