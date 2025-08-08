@@ -294,7 +294,7 @@ const Analytics = () => {
               <Button 
                 variant="outline" 
                 size="lg"
-                className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
+                className="border-primary-foreground text-secondary hover:bg-primary-foreground/10"
               >
                 Setup Alerts
               </Button>

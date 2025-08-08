@@ -57,7 +57,7 @@ const About = () => {
             Empowering African Restaurants
           </h1>
           <p className="text-xl text-foreground/80 max-w-3xl mx-auto leading-relaxed">
-            <span className="text-secoondary font-semibold"> MenuHub Africa</span>
+            <span className="text-secondary font-semibold"> MenuHub Africa </span>
             was born from a simple observation: African restaurants needed 
             digital solutions built for Africa, not adapted from elsewhere. We're here to 
             bridge that gap with technology that understands our markets, our languages, 
