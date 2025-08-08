@@ -187,7 +187,7 @@ const Features = () => {
               <Button variant="secondary" size="xl">
                 Get Started Free
               </Button>
-              <Button variant="outline" size="xl" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+              <Button variant="outline" size="xl" className="border-primary-foreground text-primary hover:bg-primary-foreground hover:text-primary">
                 Schedule Demo
               </Button>
             </div>

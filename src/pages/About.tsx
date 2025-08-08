@@ -57,7 +57,8 @@ const About = () => {
             Empowering African Restaurants
           </h1>
           <p className="text-xl text-foreground/80 max-w-3xl mx-auto leading-relaxed">
-            MenuHub Africa was born from a simple observation: African restaurants needed 
+            <span className="text-secoondary font-semibold"> MenuHub Africa</span>
+            was born from a simple observation: African restaurants needed 
             digital solutions built for Africa, not adapted from elsewhere. We're here to 
             bridge that gap with technology that understands our markets, our languages, 
             and our way of doing business.
@@ -106,33 +107,6 @@ const About = () => {
                   </h3>
                   <p className="text-foreground/70 leading-relaxed">
                     {value.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Team Section */}
-        <div className="mb-20">
-          <h2 className="text-3xl font-bold text-center text-foreground mb-12">
-            Meet the Team
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {team.map((member, index) => (
-              <Card key={index} className="text-center border-border">
-                <CardContent className="pt-8 pb-6">
-                  <div className="bg-gradient-subtle rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl font-bold text-primary">
-                      {member.name.split(' ').map(n => n[0]).join('')}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-1">
-                    {member.name}
-                  </h3>
-                  <p className="text-primary font-medium mb-3">{member.role}</p>
-                  <p className="text-foreground/70 leading-relaxed">
-                    {member.description}
                   </p>
                 </CardContent>
               </Card>

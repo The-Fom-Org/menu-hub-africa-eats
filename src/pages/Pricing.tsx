@@ -68,7 +68,7 @@ const Pricing = () => {
           </h1>
           <p className="text-xl text-foreground/80 max-w-2xl mx-auto">
             Get a tailored solution that fits your restaurant size, needs, and budget.
-            <span className="text-primary font-semibold"> No hidden fees, no commissions.</span>
+            <span className="text-secoondary font-semibold"> No hidden fees, no commissions.</span>
           </p>
         </div>
 

@@ -130,6 +130,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
             >
               Proceed to Checkout
             </Button>
+            <Plus className="h-3 w-3" />
           </div>
         </div>
       </SheetContent>

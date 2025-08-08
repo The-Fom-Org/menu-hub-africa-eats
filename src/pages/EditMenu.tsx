@@ -175,7 +175,7 @@ const EditMenu = () => {
                               <p className="text-muted-foreground mb-2">{item.description}</p>
                               <div className="flex items-center gap-2">
                                 <DollarSign className="h-4 w-4 text-primary" />
-                                <span className="font-medium text-primary">KSH {item.price}</span>
+                                <span className="font-medium text-secondary">KSH {item.price}</span>
                               </div>
                             </div>
                             
@@ -261,7 +261,7 @@ const EditMenu = () => {
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
+                  className="border-primary-foreground text-secondary hover:bg-primary-foreground/10"
                   onClick={() => navigate("/digital-menu")}
                 >
                   Preview Menu
