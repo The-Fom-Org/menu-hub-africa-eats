@@ -1,9 +1,21 @@
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useParams } from "react-router-dom";
+import { useCustomerMenuData } from "@/hooks/useCustomerMenuData";
 
 const FloatingCTA = () => {
   const [isVisible, setIsVisible] = useState(true);
+  const location = useLocation();
+  const { restaurantId } = useParams();
+  
+  // Check if we're on customer-side pages
+  const isCustomerPage = location.pathname.includes('/menu/') || location.pathname === '/checkout';
+  const { restaurantInfo } = useCustomerMenuData(restaurantId || '');
+  
+  // Use restaurant contact for customer pages, or default MenuHub contact for other pages
+  const contactNumber = isCustomerPage ? restaurantInfo?.primary_color : '254791829358';
+  const contactText = isCustomerPage ? 'Contact Restaurant' : 'Talk to Sales';
 
   if (!isVisible) return null;
 
@@ -13,10 +25,10 @@ const FloatingCTA = () => {
         variant="hero"
         size="lg"
         className="rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 group"
-        onClick={() => window.open('https://wa.me/254791829358', '_blank')}
+        onClick={() => window.open(`https://wa.me/${contactNumber}`, '_blank')}
       >
         <MessageCircle className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-        Talk to Sales
+        {contactText}
       </Button>
       
       {/* Close button */}

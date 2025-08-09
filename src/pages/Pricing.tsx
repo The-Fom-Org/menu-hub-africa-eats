@@ -3,8 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Pricing = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  
   const plans = [
     {
       name: "Starter",
@@ -56,6 +62,64 @@ const Pricing = () => {
     }
   ];
 
+  const handleSubmitQuote = async () => {
+    const form = document.querySelector('form') as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const restaurantName = formData.get('restaurant-name') as string;
+    const contactPerson = formData.get('contact-person') as string;
+    const email = formData.get('email') as string;
+    const phone = formData.get('phone') as string;
+    const restaurantType = formData.get('restaurant-type') as string;
+    const message = formData.get('message') as string;
+    
+    // Get selected interest areas
+    const checkboxes = form.querySelectorAll('input[type="checkbox"]:checked');
+    const interestAreas = Array.from(checkboxes).map(cb => cb.nextElementSibling?.textContent || '');
+
+    if (!restaurantName || !contactPerson || !email || !phone || !restaurantType) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-custom-quote', {
+        body: {
+          restaurantName,
+          contactPerson,
+          email,
+          phone,
+          restaurantType,
+          interestAreas,
+          message,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Quote Request Sent!",
+        description: "We'll get back to you within 24 hours with a custom quote.",
+      });
+
+      // Reset form
+      form.reset();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send quote request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -89,7 +153,8 @@ const Pricing = () => {
                       Restaurant Name *
                     </label>
                     <input 
-                      id="restaurant-name" 
+                      id="restaurant-name"
+                      name="restaurant-name"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="e.g., Mama Njeri's Kitchen"
                       required
@@ -100,7 +165,8 @@ const Pricing = () => {
                       Contact Person *
                     </label>
                     <input 
-                      id="contact-person" 
+                      id="contact-person"
+                      name="contact-person" 
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Your name"
                       required
@@ -114,7 +180,8 @@ const Pricing = () => {
                       Email Address *
                     </label>
                     <input 
-                      id="email" 
+                      id="email"
+                      name="email" 
                       type="email"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="your.email@example.com"
@@ -126,7 +193,8 @@ const Pricing = () => {
                       Phone Number *
                     </label>
                     <input 
-                      id="phone" 
+                      id="phone"
+                      name="phone" 
                       type="tel"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="+254 700 000 000"
@@ -141,6 +209,7 @@ const Pricing = () => {
                   </label>
                   <select 
                     id="restaurant-type"
+                    name="restaurant-type"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     required
                   >
@@ -192,14 +261,21 @@ const Pricing = () => {
                   </label>
                   <textarea 
                     id="message"
+                    name="message"
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Tell us about your specific needs, number of locations, peak hours, etc."
                     rows={4}
                   />
                 </div>
 
-                <Button variant="hero" size="lg" className="w-full">
-                  Get Custom Quote
+                <Button 
+                  variant="hero" 
+                  size="lg" 
+                  className="w-full"
+                  onClick={handleSubmitQuote}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Sending..." : "Get Custom Quote"}
                 </Button>
 
                 <p className="text-sm text-muted-foreground text-center">

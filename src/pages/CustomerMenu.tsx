@@ -41,7 +41,10 @@ const CustomerMenu = () => {
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.description?.toLowerCase().includes(searchTerm.toLowerCase())
     ) || []
-  })).filter(category => category.menu_items.length > 0);
+  })).filter(category => 
+    // Show category if it has matching items OR if no search term
+    !searchTerm || category.menu_items.length > 0
+  );
 
   if (loading) {
     return (

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import FloatingCTA from "@/components/FloatingCTA";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import Index from "./pages/Index";
@@ -27,36 +27,51 @@ import LeadCaptureFunnel from "./components/LeadCaptureFunnel";
 
 const queryClient = new QueryClient();
 
+const AppContent = () => {
+  const location = useLocation();
+  
+  // Don't show exit popup on customer-side pages
+  const isCustomerPage = location.pathname.includes('/menu/') || 
+                        location.pathname === '/checkout' || 
+                        location.pathname === '/order-success';
+
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/digital-menu" element={<DigitalMenu />} />
+        <Route path="/qr-code" element={<QRCodePage />} />
+        <Route path="/edit-menu" element={<EditMenu />} />
+        <Route path="/custom-branding" element={<CustomBranding />} />
+        <Route path="/enable-payments" element={<EnablePayments />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/lead-funnel" element={<LeadCaptureFunnel />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <FloatingCTA />
+      {!isCustomerPage && <ExitIntentPopup />}
+    </>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/digital-menu" element={<DigitalMenu />} />
-          <Route path="/qr-code" element={<QRCodePage />} />
-          <Route path="/edit-menu" element={<EditMenu />} />
-          <Route path="/custom-branding" element={<CustomBranding />} />
-          <Route path="/enable-payments" element={<EnablePayments />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/order-success" element={<OrderSuccess />} />
-          <Route path="/lead-funnel" element={<LeadCaptureFunnel />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <FloatingCTA />
-        <ExitIntentPopup />
+        <AppContent />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

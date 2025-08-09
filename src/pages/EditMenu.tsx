@@ -10,13 +10,15 @@ import { useMenuData } from "@/hooks/useMenuData";
 import { AddCategoryDialog } from "@/components/dialogs/AddCategoryDialog";
 import { AddMenuItemDialog } from "@/components/dialogs/AddMenuItemDialog";
 import { EditMenuItemDialog } from "@/components/dialogs/EditMenuItemDialog";
+import { EditCategoryDialog } from "@/components/dialogs/EditCategoryDialog";
 
 const EditMenu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading } = useAuth();
-  const { categories, loading: menuLoading, addCategory, addMenuItem, updateMenuItem, deleteMenuItem } = useMenuData();
+  const { categories, loading: menuLoading, addCategory, addMenuItem, updateMenuItem, deleteMenuItem, refetch } = useMenuData();
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -137,7 +139,11 @@ const EditMenu = () => {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setEditingCategory(category)}
+                      >
                         <Settings className="h-4 w-4" />
                       </Button>
                       <AddMenuItemDialog 
@@ -278,6 +284,15 @@ const EditMenu = () => {
           open={!!editingItem}
           onOpenChange={(open) => !open && setEditingItem(null)}
           onUpdateItem={updateMenuItem}
+        />
+      )}
+
+      {editingCategory && (
+        <EditCategoryDialog
+          category={editingCategory}
+          open={!!editingCategory}
+          onOpenChange={(open) => !open && setEditingCategory(null)}
+          onSuccess={refetch}
         />
       )}
     </div>
