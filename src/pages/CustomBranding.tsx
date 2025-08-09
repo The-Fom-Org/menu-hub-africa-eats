@@ -14,6 +14,7 @@ import { User } from "@supabase/supabase-js";
 const CustomBranding = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -38,25 +39,57 @@ const CustomBranding = () => {
       }
       
       setUser(session.user);
+      await loadExistingBranding(session.user.id);
       setIsLoading(false);
     };
 
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
         navigate("/login");
       } else if (session) {
         setUser(session.user);
+        await loadExistingBranding(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const loadExistingBranding = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading profile:', error);
+        return;
+      }
+
+      if (profile) {
+        setBranding({
+          restaurantName: profile.restaurant_name || "",
+          tagline: profile.tagline || "",
+          description: profile.description || "",
+          primaryColor: profile.primary_color || "#059669",
+          secondaryColor: profile.secondary_color || "#dc2626",
+          logoUrl: profile.logo_url || "",
+          coverImageUrl: profile.cover_image_url || ""
+        });
+      }
+    } catch (error) {
+      console.error('Error loading existing branding:', error);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
+    setIsSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
@@ -69,6 +102,8 @@ const CustomBranding = () => {
           secondary_color: branding.secondaryColor,
           logo_url: branding.logoUrl,
           cover_image_url: branding.coverImageUrl
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) throw error;
@@ -78,11 +113,14 @@ const CustomBranding = () => {
         description: "Your custom branding has been updated successfully.",
       });
     } catch (error: any) {
+      console.error('Error saving branding:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to save branding",
+        title: "Error saving branding",
+        description: error.message || "Please try again or contact support if the issue persists.",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -117,9 +155,13 @@ const CustomBranding = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+              <Button 
+                onClick={handleSave} 
+                disabled={isSaving}
+                className="bg-primary hover:bg-primary/90 disabled:opacity-50"
+              >
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {isSaving ? "Saving..." : "Save Changes"}
               </Button>
               <span className="text-sm text-muted-foreground">
                 {user?.email}
@@ -352,9 +394,10 @@ const CustomBranding = () => {
                 <Button 
                   variant="secondary"
                   onClick={handleSave}
-                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                  disabled={isSaving}
+                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 disabled:opacity-50"
                 >
-                  Apply Branding
+                  {isSaving ? "Saving..." : "Apply Branding"}
                 </Button>
               </CardContent>
             </Card>
