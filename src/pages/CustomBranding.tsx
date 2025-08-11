@@ -26,7 +26,8 @@ const CustomBranding = () => {
     primaryColor: "#059669",
     secondaryColor: "#dc2626",
     logoUrl: "",
-    coverImageUrl: ""
+    coverImageUrl: "",
+    phoneNumber: ""
   });
 
   useEffect(() => {
@@ -78,7 +79,8 @@ const CustomBranding = () => {
           primaryColor: profile.primary_color || "#059669",
           secondaryColor: profile.secondary_color || "#dc2626",
           logoUrl: profile.logo_url || "",
-          coverImageUrl: profile.cover_image_url || ""
+          coverImageUrl: profile.cover_image_url || "",
+          phoneNumber: profile.phone_number || ""
         });
       }
     } catch (error) {
@@ -101,7 +103,8 @@ const CustomBranding = () => {
           primary_color: branding.primaryColor,
           secondary_color: branding.secondaryColor,
           logo_url: branding.logoUrl,
-          cover_image_url: branding.coverImageUrl
+          cover_image_url: branding.coverImageUrl,
+          phone_number: branding.phoneNumber
         }, {
           onConflict: 'user_id'
         });
@@ -223,6 +226,20 @@ const CustomBranding = () => {
                     placeholder="Tell customers about your restaurant..."
                     rows={3}
                   />
+                </div>
+                
+                <div>
+                  <Label htmlFor="phoneNumber">Contact Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    value={branding.phoneNumber}
+                    onChange={(e) => setBranding({...branding, phoneNumber: e.target.value})}
+                    placeholder="e.g., 254700000000 (for WhatsApp contact)"
+                    type="tel"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Customers will see this number in the "Contact Restaurant" button
+                  </p>
                 </div>
               </CardContent>
             </Card>

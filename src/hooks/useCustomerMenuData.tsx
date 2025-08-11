@@ -27,6 +27,7 @@ export interface RestaurantInfo {
   tagline?: string;
   primary_color?: string;
   secondary_color?: string;
+  phone_number?: string;
 }
 
 export const useCustomerMenuData = (restaurantId: string) => {
@@ -78,6 +79,7 @@ export const useCustomerMenuData = (restaurantId: string) => {
           tagline: profileData.tagline,
           primary_color: profileData.primary_color,
           secondary_color: profileData.secondary_color,
+          phone_number: profileData.phone_number,
         });
       } else {
         setRestaurantInfo({

@@ -185,6 +185,7 @@ export type Database = {
           description: string | null
           id: string
           logo_url: string | null
+          phone_number: string | null
           primary_color: string | null
           restaurant_name: string | null
           secondary_color: string | null
@@ -198,6 +199,7 @@ export type Database = {
           description?: string | null
           id?: string
           logo_url?: string | null
+          phone_number?: string | null
           primary_color?: string | null
           restaurant_name?: string | null
           secondary_color?: string | null
@@ -211,6 +213,7 @@ export type Database = {
           description?: string | null
           id?: string
           logo_url?: string | null
+          phone_number?: string | null
           primary_color?: string | null
           restaurant_name?: string | null
           secondary_color?: string | null

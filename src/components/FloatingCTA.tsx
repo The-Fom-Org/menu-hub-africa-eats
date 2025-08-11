@@ -14,7 +14,7 @@ const FloatingCTA = () => {
   const { restaurantInfo } = useCustomerMenuData(restaurantId || '');
   
   // Use restaurant contact for customer pages, or default MenuHub contact for other pages
-  const contactNumber = isCustomerPage ? restaurantInfo?.primary_color : '254791829358';
+  const contactNumber = isCustomerPage && restaurantInfo?.phone_number ? restaurantInfo.phone_number : '254791829358';
   const contactText = isCustomerPage ? 'Contact Restaurant' : 'Talk to Sales';
 
   if (!isVisible) return null;

@@ -13,7 +13,7 @@ interface MenuItemCardProps {
 }
 
 export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
-  const { addToCart, cartItems, updateQuantity } = useCart(restaurantId);
+  const { addToCart, cartItems, updateQuantity, getCartCount } = useCart(restaurantId);
   const [showCustomization, setShowCustomization] = useState(false);
 
   const cartItem = cartItems.find(cartItem => cartItem.id === item.id);
