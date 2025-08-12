@@ -5,23 +5,48 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, Smartphone, Shield, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, Smartphone, Shield, CheckCircle, AlertCircle, Building, Banknote } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+
+interface PaymentSettings {
+  pesapal?: {
+    enabled: boolean;
+    consumer_key?: string;
+    consumer_secret?: string;
+  };
+  mpesa_manual?: {
+    enabled: boolean;
+    till_number?: string;
+    paybill_number?: string;
+    account_number?: string;
+  };
+  bank_transfer?: {
+    enabled: boolean;
+    bank_name?: string;
+    account_number?: string;
+    account_name?: string;
+  };
+  cash?: {
+    enabled: boolean;
+  };
+}
 
 const EnablePayments = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Payment settings state
-  const [paymentSettings, setPaymentSettings] = useState({
-    mpesa: false,
-    cards: false,
-    cash: true,
-    bankTransfer: false
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
+    pesapal: { enabled: false },
+    mpesa_manual: { enabled: false },
+    bank_transfer: { enabled: false },
+    cash: { enabled: true }
   });
 
   useEffect(() => {
@@ -34,6 +59,7 @@ const EnablePayments = () => {
       }
       
       setUser(session.user);
+      await loadPaymentSettings(session.user.id);
       setIsLoading(false);
     };
 
@@ -50,16 +76,59 @@ const EnablePayments = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSettingChange = (setting: keyof typeof paymentSettings) => {
+  const loadPaymentSettings = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('get_payment_settings_by_user', { user_id: userId });
+
+      if (error) {
+        console.error('Error loading payment settings:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setPaymentSettings(data[0].payment_methods || paymentSettings);
+      }
+    } catch (error) {
+      console.error('Error loading payment settings:', error);
+    }
+  };
+
+  const handleSettingChange = (gateway: keyof PaymentSettings, field: string, value: any) => {
     setPaymentSettings(prev => ({
       ...prev,
-      [setting]: !prev[setting]
+      [gateway]: {
+        ...prev[gateway],
+        [field]: value
+      }
     }));
-    
-    toast({
-      title: "Settings updated",
-      description: "Payment method settings have been saved.",
-    });
+  };
+
+  const savePaymentSettings = async () => {
+    if (!user) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.rpc('upsert_payment_settings', {
+        user_id: user.id,
+        settings: paymentSettings
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Settings saved",
+        description: "Payment method settings have been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving payment settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save payment settings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -93,6 +162,13 @@ const EnablePayments = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <Button 
+                onClick={savePaymentSettings}
+                disabled={isSaving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isSaving ? "Saving..." : "Save Settings"}
+              </Button>
               <span className="text-sm text-muted-foreground">
                 {user?.email}
               </span>
@@ -115,7 +191,7 @@ const EnablePayments = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Payment Methods */}
           <div className="lg:col-span-2 space-y-6">
-            {/* M-Pesa */}
+            {/* Pesapal Integration */}
             <Card className="border-l-4 border-l-primary">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -124,17 +200,17 @@ const EnablePayments = () => {
                       <Smartphone className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle>M-Pesa Integration</CardTitle>
-                      <CardDescription>Accept mobile money payments</CardDescription>
+                      <CardTitle>Pesapal Integration</CardTitle>
+                      <CardDescription>Accept M-Pesa, cards & bank payments</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={paymentSettings.mpesa ? "default" : "secondary"}>
-                      {paymentSettings.mpesa ? "Active" : "Inactive"}
+                    <Badge variant={paymentSettings.pesapal?.enabled ? "default" : "secondary"}>
+                      {paymentSettings.pesapal?.enabled ? "Active" : "Inactive"}
                     </Badge>
                     <Switch
-                      checked={paymentSettings.mpesa}
-                      onCheckedChange={() => handleSettingChange('mpesa')}
+                      checked={paymentSettings.pesapal?.enabled || false}
+                      onCheckedChange={(checked) => handleSettingChange('pesapal', 'enabled', checked)}
                     />
                   </div>
                 </div>
@@ -142,7 +218,7 @@ const EnablePayments = () => {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-muted-foreground">
-                    Enable customers to pay directly through M-Pesa STK Push. Instant, secure, and convenient.
+                    Enable automated payments through Pesapal. Accept M-Pesa, cards, and bank transfers with instant confirmation.
                   </p>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -150,44 +226,73 @@ const EnablePayments = () => {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>No card details required</span>
+                    <span>M-Pesa, Cards & Bank transfers</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Popular with Kenyan customers</span>
+                    <AlertCircle className="h-4 w-4 text-orange-600" />
+                    <span>Requires Pesapal business account</span>
                   </div>
-                  {!paymentSettings.mpesa && (
+                  
+                  {paymentSettings.pesapal?.enabled && (
+                    <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg">
+                      <h4 className="font-medium">Pesapal Credentials</h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <Label htmlFor="consumer_key">Consumer Key</Label>
+                          <Input
+                            id="consumer_key"
+                            type="text"
+                            value={paymentSettings.pesapal?.consumer_key || ''}
+                            onChange={(e) => handleSettingChange('pesapal', 'consumer_key', e.target.value)}
+                            placeholder="Your Pesapal Consumer Key"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="consumer_secret">Consumer Secret</Label>
+                          <Input
+                            id="consumer_secret"
+                            type="password"
+                            value={paymentSettings.pesapal?.consumer_secret || ''}
+                            onChange={(e) => handleSettingChange('pesapal', 'consumer_secret', e.target.value)}
+                            placeholder="Your Pesapal Consumer Secret"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!paymentSettings.pesapal?.enabled && (
                     <Button 
                       className="w-full mt-4"
-                      onClick={() => window.open('https://docs.stripe.com/payments/payment-methods/m-pesa', '_blank')}
+                      onClick={() => window.open('https://www.pesapal.com/business', '_blank')}
                     >
-                      Setup M-Pesa Integration
+                      Setup Pesapal Account
                     </Button>
                   )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Credit Cards */}
+            {/* M-Pesa Manual */}
             <Card className="border-l-4 border-l-secondary">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-secondary/10 rounded-lg">
-                      <CreditCard className="h-6 w-6 text-secondary" />
+                      <Smartphone className="h-6 w-6 text-secondary" />
                     </div>
                     <div>
-                      <CardTitle>Credit & Debit Cards</CardTitle>
-                      <CardDescription>Visa, Mastercard, and local cards</CardDescription>
+                      <CardTitle>M-Pesa Till/Paybill</CardTitle>
+                      <CardDescription>Manual M-Pesa payments</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={paymentSettings.cards ? "default" : "secondary"}>
-                      {paymentSettings.cards ? "Active" : "Inactive"}
+                    <Badge variant={paymentSettings.mpesa_manual?.enabled ? "default" : "secondary"}>
+                      {paymentSettings.mpesa_manual?.enabled ? "Active" : "Inactive"}
                     </Badge>
                     <Switch
-                      checked={paymentSettings.cards}
-                      onCheckedChange={() => handleSettingChange('cards')}
+                      checked={paymentSettings.mpesa_manual?.enabled || false}
+                      onCheckedChange={(checked) => handleSettingChange('mpesa_manual', 'enabled', checked)}
                     />
                   </div>
                 </div>
@@ -195,40 +300,146 @@ const EnablePayments = () => {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-muted-foreground">
-                    Accept all major credit and debit cards with secure payment processing.
+                    Accept M-Pesa payments through your Till number or Paybill. Requires manual verification.
                   </p>
                   <div className="flex items-center gap-2 text-sm">
-                    <Shield className="h-4 w-4 text-blue-600" />
-                    <span>PCI DSS compliant</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>International cards accepted</span>
+                    <span>No setup fees</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <AlertCircle className="h-4 w-4 text-orange-600" />
-                    <span>3.5% transaction fee</span>
+                    <span>Manual payment verification required</span>
                   </div>
-                  {!paymentSettings.cards && (
-                    <Button 
-                      variant="outline" 
-                      className="w-full mt-4"
-                      onClick={() => window.open('https://docs.stripe.com/payments/accept-a-payment', '_blank')}
-                    >
-                      Setup Card Payments
-                    </Button>
+                  
+                  {paymentSettings.mpesa_manual?.enabled && (
+                    <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg">
+                      <h4 className="font-medium">M-Pesa Details</h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <Label htmlFor="till_number">Till Number (optional)</Label>
+                          <Input
+                            id="till_number"
+                            type="text"
+                            value={paymentSettings.mpesa_manual?.till_number || ''}
+                            onChange={(e) => handleSettingChange('mpesa_manual', 'till_number', e.target.value)}
+                            placeholder="e.g., 123456"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="paybill_number">Paybill Number (optional)</Label>
+                          <Input
+                            id="paybill_number"
+                            type="text"
+                            value={paymentSettings.mpesa_manual?.paybill_number || ''}
+                            onChange={(e) => handleSettingChange('mpesa_manual', 'paybill_number', e.target.value)}
+                            placeholder="e.g., 400200"
+                          />
+                        </div>
+                        {paymentSettings.mpesa_manual?.paybill_number && (
+                          <div>
+                            <Label htmlFor="account_number">Account Number</Label>
+                            <Input
+                              id="account_number"
+                              type="text"
+                              value={paymentSettings.mpesa_manual?.account_number || ''}
+                              onChange={(e) => handleSettingChange('mpesa_manual', 'account_number', e.target.value)}
+                              placeholder="Account number for Paybill"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bank Transfer */}
+            <Card className="border-l-4 border-l-accent">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-accent/10 rounded-lg">
+                      <Building className="h-6 w-6 text-accent" />
+                    </div>
+                    <div>
+                      <CardTitle>Bank Transfer</CardTitle>
+                      <CardDescription>Direct bank account transfers</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={paymentSettings.bank_transfer?.enabled ? "default" : "secondary"}>
+                      {paymentSettings.bank_transfer?.enabled ? "Active" : "Inactive"}
+                    </Badge>
+                    <Switch
+                      checked={paymentSettings.bank_transfer?.enabled || false}
+                      onCheckedChange={(checked) => handleSettingChange('bank_transfer', 'enabled', checked)}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Accept payments via bank transfer for larger orders. Requires manual verification.
+                  </p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Low transaction fees</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-4 w-4 text-orange-600" />
+                    <span>Manual verification required</span>
+                  </div>
+                  
+                  {paymentSettings.bank_transfer?.enabled && (
+                    <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg">
+                      <h4 className="font-medium">Bank Account Details</h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <Label htmlFor="bank_name">Bank Name</Label>
+                          <Input
+                            id="bank_name"
+                            type="text"
+                            value={paymentSettings.bank_transfer?.bank_name || ''}
+                            onChange={(e) => handleSettingChange('bank_transfer', 'bank_name', e.target.value)}
+                            placeholder="e.g., Equity Bank"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="bank_account_number">Account Number</Label>
+                          <Input
+                            id="bank_account_number"
+                            type="text"
+                            value={paymentSettings.bank_transfer?.account_number || ''}
+                            onChange={(e) => handleSettingChange('bank_transfer', 'account_number', e.target.value)}
+                            placeholder="Your bank account number"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="account_name">Account Name</Label>
+                          <Input
+                            id="account_name"
+                            type="text"
+                            value={paymentSettings.bank_transfer?.account_name || ''}
+                            onChange={(e) => handleSettingChange('bank_transfer', 'account_name', e.target.value)}
+                            placeholder="Account holder name"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Cash Payments */}
-            <Card className="border-l-4 border-l-accent">
+            <Card className="border-l-4 border-l-muted">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-accent/10 rounded-lg">
-                      <CreditCard className="h-6 w-6 text-accent" />
+                    <div className="p-2 bg-muted/10 rounded-lg">
+                      <Banknote className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <div>
                       <CardTitle>Cash Payments</CardTitle>
@@ -236,12 +447,12 @@ const EnablePayments = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={paymentSettings.cash ? "default" : "secondary"}>
-                      {paymentSettings.cash ? "Active" : "Inactive"}
+                    <Badge variant={paymentSettings.cash?.enabled ? "default" : "secondary"}>
+                      {paymentSettings.cash?.enabled ? "Active" : "Inactive"}
                     </Badge>
                     <Switch
-                      checked={paymentSettings.cash}
-                      onCheckedChange={() => handleSettingChange('cash')}
+                      checked={paymentSettings.cash?.enabled || false}
+                      onCheckedChange={(checked) => handleSettingChange('cash', 'enabled', checked)}
                     />
                   </div>
                 </div>
@@ -262,47 +473,6 @@ const EnablePayments = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Bank Transfer */}
-            <Card className="border-l-4 border-l-muted">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-muted/10 rounded-lg">
-                      <CreditCard className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <CardTitle>Bank Transfer</CardTitle>
-                      <CardDescription>Direct bank account transfers</CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={paymentSettings.bankTransfer ? "default" : "secondary"}>
-                      {paymentSettings.bankTransfer ? "Active" : "Inactive"}
-                    </Badge>
-                    <Switch
-                      checked={paymentSettings.bankTransfer}
-                      onCheckedChange={() => handleSettingChange('bankTransfer')}
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">
-                    Accept payments via bank transfer for larger orders.
-                  </p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Low transaction fees</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <AlertCircle className="h-4 w-4 text-orange-600" />
-                    <span>Manual verification required</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Sidebar */}
@@ -314,13 +484,17 @@ const EnablePayments = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {Object.entries(paymentSettings).map(([key, enabled]) => (
+                  {Object.entries(paymentSettings).map(([key, settings]) => (
                     <div key={key} className="flex items-center justify-between">
                       <span className="text-sm capitalize">
-                        {key === 'mpesa' ? 'M-Pesa' : key.replace(/([A-Z])/g, ' $1')}
+                        {key === 'pesapal' ? 'Pesapal' : 
+                         key === 'mpesa_manual' ? 'M-Pesa Manual' :
+                         key === 'bank_transfer' ? 'Bank Transfer' :
+                         key === 'cash' ? 'Cash' : 
+                         key.replace(/_/g, ' ')}
                       </span>
-                      <Badge variant={enabled ? "default" : "secondary"} className="text-xs">
-                        {enabled ? "On" : "Off"}
+                      <Badge variant={settings?.enabled ? "default" : "secondary"} className="text-xs">
+                        {settings?.enabled ? "On" : "Off"}
                       </Badge>
                     </div>
                   ))}
@@ -337,7 +511,7 @@ const EnablePayments = () => {
                 </p>
                 <Button 
                   variant="secondary"
-                  onClick={() => window.open('https://docs.stripe.com/security', '_blank')}
+                  onClick={() => window.open('https://www.pesapal.com/security', '_blank')}
                   className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 >
                   View Security Details
@@ -353,21 +527,21 @@ const EnablePayments = () => {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start"
-                  onClick={() => window.open('https://docs.stripe.com/payments/quickstart', '_blank')}
+                  onClick={() => window.open('https://www.pesapal.com/developers', '_blank')}
                 >
                   Payment Setup Guide
                 </Button>
                 <Button 
                   variant="outline" 
                   className="w-full justify-start"
-                  onClick={() => window.open('https://docs.stripe.com/pricing', '_blank')}
+                  onClick={() => window.open('https://www.pesapal.com/pricing', '_blank')}
                 >
                   Transaction Fees
                 </Button>
                 <Button 
                   variant="outline" 
                   className="w-full justify-start"
-                  onClick={() => window.open('mailto:support@menuhub.app', '_blank')}
+                  onClick={() => window.open('mailto:menuhubafrica@gmail.com', '_blank')}
                 >
                   Contact Support
                 </Button>
