@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, Smartphone, Shield, CheckCircle, AlertCircle, Building, Banknote } from "lucide-react";
+import { ArrowLeft, CreditCard, Smartphone, Shield, CheckCircle, AlertCircle, Building, Banknote, ExternalLink, Info } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PaymentSettings {
   pesapal?: {
@@ -244,6 +245,23 @@ const EnablePayments = () => {
                     <span>Requires Pesapal business account</span>
                   </div>
                   
+                  {!paymentSettings.pesapal?.enabled && (
+                    <Alert className="mt-4">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>How to get Pesapal credentials:</strong>
+                        <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+                          <li>Visit <a href="https://www.pesapal.com/business" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">pesapal.com/business</a> and create a business account</li>
+                          <li>Complete your business verification (usually takes 1-2 business days)</li>
+                          <li>Once approved, log into your Pesapal dashboard</li>
+                          <li>Go to "API Keys" or "Integration" section</li>
+                          <li>Generate your Consumer Key and Consumer Secret</li>
+                          <li>Copy these credentials and paste them below</li>
+                        </ol>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
                   {paymentSettings.pesapal?.enabled && (
                     <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg">
                       <h4 className="font-medium">Pesapal Credentials</h4>
@@ -269,6 +287,9 @@ const EnablePayments = () => {
                           />
                         </div>
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        💡 Don't forget to click "Save Settings" after entering your credentials
+                      </p>
                     </div>
                   )}
                   
@@ -277,6 +298,7 @@ const EnablePayments = () => {
                       className="w-full mt-4"
                       onClick={() => window.open('https://www.pesapal.com/business', '_blank')}
                     >
+                      <ExternalLink className="h-4 w-4 mr-2" />
                       Setup Pesapal Account
                     </Button>
                   )}
@@ -359,6 +381,9 @@ const EnablePayments = () => {
                           </div>
                         )}
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        💡 These details will be shown to customers at checkout. Don't forget to click "Save Settings"
+                      </p>
                     </div>
                   )}
                 </div>
@@ -438,6 +463,9 @@ const EnablePayments = () => {
                           />
                         </div>
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        💡 These details will be shown to customers at checkout. Don't forget to click "Save Settings"
+                      </p>
                     </div>
                   )}
                 </div>

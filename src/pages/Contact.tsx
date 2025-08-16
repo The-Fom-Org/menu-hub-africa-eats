@@ -1,3 +1,4 @@
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { MessageCircle, Mail, MapPin, Phone, Clock } from "lucide-react";
@@ -5,8 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    restaurantName: '',
+    contactPerson: '',
+    email: '',
+    phone: '',
+    location: '',
+    message: ''
+  });
+  const { toast } = useToast();
+
   const contactMethods = [
     {
       icon: MessageCircle,
@@ -33,6 +48,61 @@ const Contact = () => {
       available: "Mon-Fri 8AM-6PM EAT"
     }
   ];
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.restaurantName || !formData.contactPerson || !formData.email || !formData.message) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const { error } = await supabase.functions.invoke('send-contact-email', {
+        body: formData
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for contacting us. We'll get back to you within 2 hours.",
+      });
+
+      // Reset form
+      setFormData({
+        restaurantName: '',
+        contactPerson: '',
+        email: '',
+        phone: '',
+        location: '',
+        message: ''
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again or contact us directly via WhatsApp.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,25 +162,29 @@ const Contact = () => {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <form className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
+                        <label htmlFor="restaurantName" className="block text-sm font-medium text-foreground mb-2">
                           Restaurant Name *
                         </label>
                         <Input 
-                          id="name" 
+                          id="restaurantName" 
                           placeholder="e.g., Mama Njeri's Kitchen"
+                          value={formData.restaurantName}
+                          onChange={handleInputChange}
                           required
                         />
                       </div>
                       <div>
-                        <label htmlFor="contact" className="block text-sm font-medium text-foreground mb-2">
+                        <label htmlFor="contactPerson" className="block text-sm font-medium text-foreground mb-2">
                           Contact Person *
                         </label>
                         <Input 
-                          id="contact" 
+                          id="contactPerson" 
                           placeholder="Your name"
+                          value={formData.contactPerson}
+                          onChange={handleInputChange}
                           required
                         />
                       </div>
@@ -125,6 +199,8 @@ const Contact = () => {
                           id="email" 
                           type="email"
                           placeholder="your.email@example.com"
+                          value={formData.email}
+                          onChange={handleInputChange}
                           required
                         />
                       </div>
@@ -136,6 +212,8 @@ const Contact = () => {
                           id="phone" 
                           type="tel"
                           placeholder="+254 700 000 000"
+                          value={formData.phone}
+                          onChange={handleInputChange}
                         />
                       </div>
                     </div>
@@ -147,6 +225,8 @@ const Contact = () => {
                       <Input 
                         id="location" 
                         placeholder="e.g., Westlands, Nairobi"
+                        value={formData.location}
+                        onChange={handleInputChange}
                       />
                     </div>
 
@@ -158,12 +238,20 @@ const Contact = () => {
                         id="message"
                         placeholder="Tell us about your restaurant and what you're looking for..."
                         rows={5}
+                        value={formData.message}
+                        onChange={handleInputChange}
                         required
                       />
                     </div>
 
-                    <Button variant="hero" size="lg" className="w-full">
-                      Send Message
+                    <Button 
+                      variant="hero" 
+                      size="lg" 
+                      className="w-full"
+                      type="submit"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Sending..." : "Send Message"}
                     </Button>
 
                     <p className="text-sm text-muted-foreground text-center">
