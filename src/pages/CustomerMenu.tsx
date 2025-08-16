@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +46,9 @@ const CustomerMenu = () => {
     // Show category if it has matching items OR if no search term
     !searchTerm || category.menu_items.length > 0
   );
+
+  // Use filtered categories for display
+  const categoriesToShow = searchTerm ? filteredCategories : categories;
 
   if (loading) {
     return (
@@ -153,7 +157,7 @@ const CustomerMenu = () => {
 
       {/* Menu Content */}
       <main className="max-w-4xl mx-auto px-4 pb-8">
-        {searchTerm && filteredCategories.length === 0 ? (
+        {searchTerm && categoriesToShow.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground">No items found matching "{searchTerm}"</p>
@@ -166,16 +170,16 @@ const CustomerMenu = () => {
             </CardContent>
           </Card>
         ) : (
-          <Tabs defaultValue={filteredCategories[0]?.id || categories[0]?.id} className="space-y-6">
+          <Tabs defaultValue={categoriesToShow[0]?.id} className="space-y-6">
             <TabsList className="w-full justify-start overflow-x-auto">
-              {(searchTerm ? filteredCategories : categories).map((category) => (
+              {categoriesToShow.map((category) => (
                 <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap">
                   {category.name}
                 </TabsTrigger>
               ))}
             </TabsList>
 
-            {(searchTerm ? filteredCategories : categories).map((category) => (
+            {categoriesToShow.map((category) => (
               <TabsContent key={category.id} value={category.id} className="space-y-4">
                 <Card>
                   <CardHeader>
