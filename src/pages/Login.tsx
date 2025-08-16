@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { cleanupAuthState } from "@/lib/auth/cleanup";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -14,7 +16,6 @@ const Login = () => {
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,6 +28,14 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Proactively clean up any stale auth state to prevent limbo
+    cleanupAuthState();
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (err) {
+      console.warn('[Auth] Pre-login global signOut error ignored:', err);
+    }
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -42,8 +51,8 @@ const Login = () => {
           description: "Successfully logged in. Redirecting to your dashboard...",
         });
         
-        // Redirect to dashboard
-        navigate("/dashboard");
+        // Force a full reload after auth to ensure a clean state
+        window.location.href = "/dashboard";
       }
     } catch (error: any) {
       toast({

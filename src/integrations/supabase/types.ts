@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -220,6 +220,78 @@ export type Database = {
           tagline?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      restaurant_payment_settings: {
+        Row: {
+          created_at: string
+          id: string
+          payment_methods: Json
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payment_methods?: Json
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payment_methods?: Json
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          gateway_reference: string | null
+          id: string
+          payment_method: string
+          payment_status: string
+          plan_type: string
+          restaurant_id: string
+          subscription_end_date: string | null
+          subscription_start_date: string | null
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          gateway_reference?: string | null
+          id?: string
+          payment_method: string
+          payment_status?: string
+          plan_type: string
+          restaurant_id: string
+          subscription_end_date?: string | null
+          subscription_start_date?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          gateway_reference?: string | null
+          id?: string
+          payment_method?: string
+          payment_status?: string
+          plan_type?: string
+          restaurant_id?: string
+          subscription_end_date?: string | null
+          subscription_start_date?: string | null
+          transaction_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
