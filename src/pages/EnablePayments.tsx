@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, Smartphone, Shield, CheckCircle, AlertCircle, Building, Banknote, ExternalLink, Info } from "lucide-react";
+import { ArrowLeft, CreditCard, Smartphone, Shield, CheckCircle, AlertCircle, Building, Banknote, ExternalLink, Info, Save } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -174,13 +173,6 @@ const EnablePayments = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <Button 
-                onClick={savePaymentSettings}
-                disabled={isSaving}
-                className="bg-primary hover:bg-primary/90"
-              >
-                {isSaving ? "Saving..." : "Save Settings"}
-              </Button>
               <span className="text-sm text-muted-foreground">
                 {user?.email}
               </span>
@@ -190,7 +182,7 @@ const EnablePayments = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-foreground mb-2">
             Payment Methods
@@ -589,6 +581,19 @@ const EnablePayments = () => {
           </div>
         </div>
       </main>
+
+      {/* Floating Save Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button 
+          onClick={savePaymentSettings}
+          disabled={isSaving}
+          className="bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl rounded-full px-6 py-3 h-auto"
+          size="lg"
+        >
+          <Save className="mr-2 h-5 w-5" />
+          {isSaving ? "Saving..." : "Save Settings"}
+        </Button>
+      </div>
     </div>
   );
 };
