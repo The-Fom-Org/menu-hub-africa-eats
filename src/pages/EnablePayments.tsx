@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -78,15 +79,20 @@ const EnablePayments = () => {
 
   const loadPaymentSettings = async (userId: string) => {
     try {
-      const { data, error } = await supabase.rpc('get_payment_settings_by_user', { user_id: userId });
+      // First try to get existing settings
+      const { data, error } = await supabase
+        .from('restaurant_payment_settings')
+        .select('payment_methods')
+        .eq('restaurant_id', userId)
+        .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error loading payment settings:', error);
         return;
       }
 
-      if (data && data.length > 0) {
-        setPaymentSettings(data[0].payment_methods || paymentSettings);
+      if (data?.payment_methods) {
+        setPaymentSettings(data.payment_methods as PaymentSettings);
       }
     } catch (error) {
       console.error('Error loading payment settings:', error);
@@ -108,10 +114,14 @@ const EnablePayments = () => {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase.rpc('upsert_payment_settings', {
-        user_id: user.id,
-        settings: paymentSettings
-      });
+      const { error } = await supabase
+        .from('restaurant_payment_settings')
+        .upsert({
+          restaurant_id: user.id,
+          payment_methods: paymentSettings
+        }, {
+          onConflict: 'restaurant_id'
+        });
 
       if (error) throw error;
 
