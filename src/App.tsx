@@ -1,21 +1,20 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import FloatingCTA from "@/components/FloatingCTA";
-import ExitIntentPopup from "@/components/ExitIntentPopup";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import Features from "./pages/Features";
-import Contact from "./pages/Contact";
-import Pricing from "./pages/Pricing";
 import About from "./pages/About";
-import Signup from "./pages/Signup";
+import Contact from "./pages/Contact";
+import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import DigitalMenu from "./pages/DigitalMenu";
-import QRCodePage from "./pages/QRCode";
 import EditMenu from "./pages/EditMenu";
+import QRCode from "./pages/QRCode";
 import CustomBranding from "./pages/CustomBranding";
 import EnablePayments from "./pages/EnablePayments";
 import Analytics from "./pages/Analytics";
@@ -23,58 +22,48 @@ import CustomerMenu from "./pages/CustomerMenu";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import NotFound from "./pages/NotFound";
-import LeadCaptureFunnel from "./components/LeadCaptureFunnel";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Cookies from "./pages/Cookies";
+import Refunds from "./pages/Refunds";
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
-  const location = useLocation();
-  
-  // Don't show exit popup on customer-side pages
-  const isCustomerPage = location.pathname.includes('/menu/') || 
-                        location.pathname === '/checkout' || 
-                        location.pathname === '/order-success';
-
+function App() {
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/features" element={<Features />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/digital-menu" element={<DigitalMenu />} />
-        <Route path="/qr-code" element={<QRCodePage />} />
-        <Route path="/edit-menu" element={<EditMenu />} />
-        <Route path="/custom-branding" element={<CustomBranding />} />
-        <Route path="/enable-payments" element={<EnablePayments />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/order-success" element={<OrderSuccess />} />
-        <Route path="/lead-funnel" element={<LeadCaptureFunnel />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <FloatingCTA />
-      {!isCustomerPage && <ExitIntentPopup />}
-    </>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/digital-menu" element={<DigitalMenu />} />
+            <Route path="/edit-menu" element={<EditMenu />} />
+            <Route path="/qr-code" element={<QRCode />} />
+            <Route path="/custom-branding" element={<CustomBranding />} />
+            <Route path="/enable-payments" element={<EnablePayments />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/menu/:userId" element={<CustomerMenu />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-success" element={<OrderSuccess />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/refunds" element={<Refunds />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
-};
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+}
 
 export default App;

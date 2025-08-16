@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Smartphone, Mail, MessageCircle, MapPin } from "lucide-react";
 
@@ -12,8 +13,6 @@ const Footer = () => {
     company: [
       { name: "About Us", href: "/about" },
       { name: "Contact", href: "/contact" },
-      { name: "Blog", href: "/blog" },
-      { name: "Careers", href: "/careers" },
     ],
     legal: [
       { name: "Terms of Service", href: "/terms" },
@@ -21,21 +20,15 @@ const Footer = () => {
       { name: "Cookie Policy", href: "/cookies" },
       { name: "Refund Policy", href: "/refunds" },
     ],
-    support: [
-      { name: "Help Center", href: "/help" },
-      { name: "WhatsApp Support", href: "https://wa.me/254791829358" },
-      { name: "Email Support", href: "mailto:menuhubafrica@gmail.com" },
-      { name: "Setup Guide", href: "/setup" },
-    ],
   };
 
   return (
     <footer className="bg-foreground text-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Brand Section */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <Link to="/" className="flex items-center space-x-2 mb-6">
               <div>
                 <span className="text-xl font-bold">MenuHub</span>
@@ -103,29 +96,18 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Support Links */}
+          {/* Legal Links */}
           <div>
-            <h3 className="font-semibold text-background mb-4">Support</h3>
+            <h3 className="font-semibold text-background mb-4">Legal</h3>
             <ul className="space-y-3">
-              {footerLinks.support.map((link) => (
+              {footerLinks.legal.map((link) => (
                 <li key={link.name}>
-                  {link.href.startsWith('http') ? (
-                    <a 
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-background/80 hover:text-primary transition-colors"
-                    >
-                      {link.name}
-                    </a>
-                  ) : (
-                    <Link 
-                      to={link.href} 
-                      className="text-background/80 hover:text-primary transition-colors"
-                    >
-                      {link.name}
-                    </Link>
-                  )}
+                  <Link 
+                    to={link.href} 
+                    className="text-background/80 hover:text-primary transition-colors"
+                  >
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>
