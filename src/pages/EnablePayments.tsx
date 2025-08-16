@@ -582,12 +582,13 @@ const EnablePayments = () => {
         </div>
       </main>
 
-      {/* Floating Save Button - Enhanced visibility */}
-      <div className="fixed bottom-8 right-8 z-[100]">
+      {/* Floating Save Button - Left side with secondary color */}
+      <div className="fixed bottom-8 left-8 z-[100]">
         <Button 
           onClick={savePaymentSettings}
           disabled={isSaving}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xl hover:shadow-3xl border-2 border-primary/20 rounded-full px-8 py-4 h-auto text-base font-semibold transition-all duration-300 hover:scale-105"
+          variant="secondary"
+          className="shadow-2xl hover:shadow-3xl border-2 border-secondary/20 rounded-full px-8 py-4 h-auto text-base font-semibold transition-all duration-300 hover:scale-105"
           size="lg"
         >
           <Save className="mr-3 h-6 w-6" />
