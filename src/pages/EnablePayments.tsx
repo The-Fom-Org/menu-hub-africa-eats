@@ -79,8 +79,8 @@ const EnablePayments = () => {
 
   const loadPaymentSettings = async (userId: string) => {
     try {
-      // First try to get existing settings
-      const { data, error } = await supabase
+      // Use type assertion to work around missing types
+      const { data, error } = await (supabase as any)
         .from('restaurant_payment_settings')
         .select('payment_methods')
         .eq('restaurant_id', userId)
@@ -114,7 +114,8 @@ const EnablePayments = () => {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      // Use type assertion to work around missing types
+      const { error } = await (supabase as any)
         .from('restaurant_payment_settings')
         .upsert({
           restaurant_id: user.id,
