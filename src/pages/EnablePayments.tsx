@@ -182,7 +182,7 @@ const EnablePayments = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-foreground mb-2">
             Payment Methods
@@ -582,15 +582,15 @@ const EnablePayments = () => {
         </div>
       </main>
 
-      {/* Floating Save Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* Floating Save Button - Enhanced visibility */}
+      <div className="fixed bottom-8 right-8 z-[100]">
         <Button 
           onClick={savePaymentSettings}
           disabled={isSaving}
-          className="bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl rounded-full px-6 py-3 h-auto"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xl hover:shadow-3xl border-2 border-primary/20 rounded-full px-8 py-4 h-auto text-base font-semibold transition-all duration-300 hover:scale-105"
           size="lg"
         >
-          <Save className="mr-2 h-5 w-5" />
+          <Save className="mr-3 h-6 w-6" />
           {isSaving ? "Saving..." : "Save Settings"}
         </Button>
       </div>
