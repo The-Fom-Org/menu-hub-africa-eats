@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -53,25 +54,31 @@ export const useAnalytics = () => {
             )
           )
         `)
-        .eq('restaurant_id', user.id);
+        .eq('restaurant_id', user.id)
+        .eq('payment_status', 'completed'); // Only include completed orders
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
+        // Don't throw, just log and continue with empty data
+      }
+
+      const validOrders = orders || [];
 
       // Calculate analytics
-      const totalOrders = orders?.length || 0;
-      const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const totalOrders = validOrders.length;
+      const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
       // Calculate popular items
       const itemCounts: Record<string, { orders: number; revenue: number }> = {};
-      orders?.forEach(order => {
+      validOrders.forEach(order => {
         order.order_items?.forEach((item: any) => {
           const itemName = item.menu_item?.name || 'Unknown Item';
           if (!itemCounts[itemName]) {
             itemCounts[itemName] = { orders: 0, revenue: 0 };
           }
-          itemCounts[itemName].orders += item.quantity;
-          itemCounts[itemName].revenue += item.quantity * Number(item.unit_price);
+          itemCounts[itemName].orders += item.quantity || 0;
+          itemCounts[itemName].revenue += (item.quantity || 0) * Number(item.unit_price || 0);
         });
       });
 
@@ -88,14 +95,14 @@ export const useAnalytics = () => {
       }).reverse();
 
       const dailyOrders = last7Days.map(date => {
-        const dayOrders = orders?.filter(order => 
-          order.created_at.startsWith(date)
-        ) || [];
+        const dayOrders = validOrders.filter(order => 
+          order.created_at?.startsWith(date)
+        );
         
         return {
           date,
           orders: dayOrders.length,
-          revenue: dayOrders.reduce((sum, order) => sum + Number(order.total_amount), 0)
+          revenue: dayOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
         };
       });
 
@@ -111,13 +118,13 @@ export const useAnalytics = () => {
 
       const monthlyRevenue = last6Months.map(({ year, month }) => {
         const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
-        const monthOrders = orders?.filter(order => 
-          order.created_at.startsWith(monthStr)
-        ) || [];
+        const monthOrders = validOrders.filter(order => 
+          order.created_at?.startsWith(monthStr)
+        );
         
         return {
           month: new Date(year, month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-          revenue: monthOrders.reduce((sum, order) => sum + Number(order.total_amount), 0)
+          revenue: monthOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
         };
       });
 
@@ -148,6 +155,31 @@ export const useAnalytics = () => {
 
   useEffect(() => {
     fetchAnalytics();
+  }, [user]);
+
+  // Set up real-time subscription for order updates
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = supabase
+      .channel('order-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'orders',
+          filter: `restaurant_id=eq.${user.id}`
+        }, 
+        () => {
+          console.log('Order changed, refreshing analytics...');
+          fetchAnalytics();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [user]);
 
   return {

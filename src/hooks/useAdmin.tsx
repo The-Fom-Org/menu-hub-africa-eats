@@ -44,18 +44,30 @@ export const useAdmin = () => {
   }, [user]);
 
   const checkAdminStatus = async () => {
+    if (!user) {
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log('Checking admin status for user:', user.id, user.email);
+      
       const { data, error } = await supabase
         .from('admin_users')
         .select('*')
-        .eq('user_id', user?.id)
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      console.log('Admin query result:', { data, error });
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
       } else {
-        setIsAdmin(!!data);
+        const isAdminUser = !!data;
+        console.log('Is admin user:', isAdminUser);
+        setIsAdmin(isAdminUser);
       }
     } catch (error) {
       console.error('Error in checkAdminStatus:', error);
@@ -92,10 +104,9 @@ export const useAdmin = () => {
     if (!isAdmin) return { error: 'Unauthorized' };
 
     try {
-      // Ensure we have required fields for upsert
       const upsertData = {
         restaurant_id: restaurantId,
-        email: updates.email || '', // Provide a default if missing
+        email: updates.email || '',
         ...updates,
       };
 
@@ -110,7 +121,6 @@ export const useAdmin = () => {
         return { error: error.message };
       }
 
-      // Refresh the subscribers list
       await fetchSubscribers();
       
       return { data, error: null };

@@ -1,17 +1,18 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Clock, MapPin, CreditCard, Smartphone } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector';
+import { paymentGatewayRegistry } from '@/lib/payment-gateways/registry';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -30,8 +31,63 @@ const Checkout = () => {
     clearCart 
   } = useCart(restaurantId);
 
-  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'card'>('mpesa');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [availableGateways, setAvailableGateways] = useState<any[]>([]);
+
+  // Load payment settings for this restaurant
+  useEffect(() => {
+    const loadPaymentSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('restaurant_payment_settings')
+          .select('payment_methods')
+          .eq('restaurant_id', restaurantId)
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading payment settings:', error);
+        }
+
+        const paymentMethods = data?.payment_methods || {};
+        const allGateways = paymentGatewayRegistry.getAll();
+        
+        // Filter available gateways based on restaurant settings
+        const available = allGateways.filter(gateway => {
+          const config = paymentMethods[gateway.type];
+          return config?.enabled || gateway.type === 'cash'; // Cash is always available
+        }).map(gateway => ({
+          ...gateway,
+          credentials: paymentMethods[gateway.type]?.credentials || {}
+        }));
+
+        // If no payment methods configured, default to cash
+        if (available.length === 0) {
+          const cashGateway = allGateways.find(g => g.type === 'cash');
+          if (cashGateway) {
+            available.push(cashGateway);
+          }
+        }
+
+        setAvailableGateways(available);
+        
+        // Set default payment method to first available
+        if (available.length > 0) {
+          setPaymentMethod(available[0].type);
+        }
+      } catch (error) {
+        console.error('Error loading payment settings:', error);
+        // Fallback to cash only
+        const cashGateway = paymentGatewayRegistry.get('cash');
+        if (cashGateway) {
+          setAvailableGateways([cashGateway]);
+          setPaymentMethod('cash');
+        }
+      }
+    };
+
+    loadPaymentSettings();
+  }, [restaurantId]);
 
   // Redirect if cart is empty
   if (cartItems.length === 0) {
@@ -96,23 +152,94 @@ const Checkout = () => {
     setIsProcessing(true);
     
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
       const orderDetails = getOrderDetails();
-      
-      // In a real app, you would:
-      // 1. Send order to backend
-      // 2. Process payment via M-Pesa or card
-      // 3. Send confirmation
-      
-      // For demo, we'll just show success
+      const orderId = `ORDER-${Date.now()}`;
+
+      // Create order in database
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          id: orderId,
+          restaurant_id: restaurantId,
+          customer_name: orderDetails.customer_name,
+          customer_phone: orderDetails.customer_phone,
+          order_type: orderDetails.order_type,
+          payment_method: paymentMethod,
+          payment_status: 'pending',
+          order_status: 'pending',
+          total_amount: orderDetails.total,
+          scheduled_time: orderDetails.preferred_time ? new Date(orderDetails.preferred_time).toISOString() : null,
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItems = cartItems.map(item => ({
+        order_id: orderId,
+        menu_item_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        customizations: item.customizations ? { customizations: item.customizations } : {},
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // Handle payment based on method
+      const selectedGateway = availableGateways.find(g => g.type === paymentMethod);
+      if (selectedGateway) {
+        if (paymentMethod === 'pesapal') {
+          // Initialize Pesapal payment
+          try {
+            const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
+              body: {
+                amount: orderDetails.total,
+                currency: 'KES',
+                orderId: orderId,
+                description: `Order from Restaurant`,
+                customerInfo: {
+                  name: orderDetails.customer_name || 'Customer',
+                  email: 'customer@example.com',
+                  phone: orderDetails.customer_phone || '',
+                },
+                credentials: selectedGateway.credentials,
+              }
+            });
+
+            if (error) throw error;
+
+            if (data.success && data.redirect_url) {
+              // Redirect to Pesapal
+              window.location.href = data.redirect_url;
+              return;
+            }
+          } catch (pesapalError) {
+            console.error('Pesapal payment failed:', pesapalError);
+            toast({
+              title: "Payment initialization failed",
+              description: "Please try a different payment method",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+      }
+
+      // For other payment methods, show success page
       clearCart();
       navigate('/order-success', { 
         state: { 
-          orderDetails,
+          orderDetails: {
+            ...orderDetails,
+            orderId,
+          },
           paymentMethod,
-          orderId: `ORDER-${Date.now()}` 
+          paymentInstructions: selectedGateway?.credentials,
         }
       });
 
@@ -122,8 +249,9 @@ const Checkout = () => {
       });
 
     } catch (error) {
+      console.error('Order creation failed:', error);
       toast({
-        title: "Payment failed",
+        title: "Order failed",
         description: "Please try again or contact support.",
         variant: "destructive",
       });
@@ -232,45 +360,11 @@ const Checkout = () => {
             )}
 
             {/* Payment Method */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Payment Method
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup 
-                  value={paymentMethod} 
-                  onValueChange={(value) => setPaymentMethod(value as 'mpesa' | 'card')}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="mpesa" id="mpesa" />
-                    <Label htmlFor="mpesa" className="flex items-center gap-2 cursor-pointer">
-                      <Smartphone className="h-4 w-4 text-green-600" />
-                      M-Pesa
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="card" id="card" />
-                    <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer">
-                      <CreditCard className="h-4 w-4" />
-                      Card Payment
-                    </Label>
-                  </div>
-                </RadioGroup>
-
-                {paymentMethod === 'mpesa' && (
-                  <Alert className="mt-4">
-                    <Smartphone className="h-4 w-4" />
-                    <AlertDescription>
-                      You will receive an M-Pesa prompt to complete payment
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
+            <PaymentMethodSelector
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+              availableGateways={availableGateways}
+            />
           </div>
 
           {/* Order Summary */}
@@ -315,7 +409,7 @@ const Checkout = () => {
                   className="w-full"
                   size="lg"
                 >
-                  {isProcessing ? 'Processing...' : `Pay KSh ${cartTotal.toFixed(2)}`}
+                  {isProcessing ? 'Processing...' : `Complete Order - KSh ${cartTotal.toFixed(2)}`}
                 </Button>
               </CardContent>
             </Card>

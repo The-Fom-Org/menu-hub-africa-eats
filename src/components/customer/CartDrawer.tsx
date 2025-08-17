@@ -14,22 +14,27 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface CartDrawerProps {
   restaurantId: string;
 }
 
 export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
-  const { cartItems, getCartTotal, getCartCount, updateQuantity, removeFromCart, updateTrigger } = useCart(restaurantId);
+  const cart = useCart(restaurantId);
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [cartTotal, setCartTotal] = useState(0);
 
-  // Use updateTrigger to ensure fresh calculations
-  const cartCount = getCartCount();
-  const cartTotal = getCartTotal();
-
-  console.log('CartDrawer render - updateTrigger:', updateTrigger, 'cartCount:', cartCount, 'cartItems:', cartItems);
+  // Force re-render when cart changes
+  useEffect(() => {
+    const count = cart.getCartCount();
+    const total = cart.getCartTotal();
+    setCartCount(count);
+    setCartTotal(total);
+    console.log('Cart updated - count:', count, 'total:', total, 'items:', cart.cartItems.length);
+  }, [cart.cartItems, cart.updateTrigger]);
 
   const handleCheckout = () => {
     if (cartCount === 0) return;
@@ -76,7 +81,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
             <>
               <ScrollArea className="flex-1 -mx-6 px-6">
                 <div className="space-y-4 mt-6">
-                  {cartItems.map((item, index) => (
+                  {cart.cartItems.map((item, index) => (
                     <div key={`${item.id}-${item.customizations}-${index}`} className="space-y-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -100,7 +105,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1, item.customizations)}
+                            onClick={() => cart.updateQuantity(item.id, item.quantity - 1, item.customizations)}
                             className="h-7 w-7 p-0"
                           >
                             <Minus className="h-3 w-3" />
@@ -111,7 +116,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1, item.customizations)}
+                            onClick={() => cart.updateQuantity(item.id, item.quantity + 1, item.customizations)}
                             className="h-7 w-7 p-0"
                           >
                             <Plus className="h-3 w-3" />
@@ -119,14 +124,14 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeFromCart(item.id, item.customizations)}
+                            onClick={() => cart.removeFromCart(item.id, item.customizations)}
                             className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
-                      {index < cartItems.length - 1 && <Separator />}
+                      {index < cart.cartItems.length - 1 && <Separator />}
                     </div>
                   ))}
                 </div>
