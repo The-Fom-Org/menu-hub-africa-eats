@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,24 +16,6 @@ const Analytics = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { analytics, loading: analyticsLoading } = useAnalytics();
-
-  // Demo analytics data
-  const analyticsData = {
-    totalOrders: 127,
-    totalRevenue: 45680,
-    averageOrder: 359,
-    menuViews: 892,
-    popularItems: [
-      { name: "Nyama Choma", orders: 34, revenue: 15300 },
-      { name: "Ugali & Sukuma", orders: 28, revenue: 7000 },
-      { name: "Samosas", orders: 45, revenue: 6750 },
-    ],
-    recentOrders: [
-      { id: 1, item: "Nyama Choma", amount: 450, time: "2 hours ago", status: "completed" },
-      { id: 2, item: "Dawa Tea", amount: 80, time: "3 hours ago", status: "completed" },
-      { id: 3, item: "Ugali & Sukuma", amount: 250, time: "4 hours ago", status: "pending" },
-    ]
-  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -123,10 +106,10 @@ const Analytics = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                  <p className="text-2xl font-bold text-foreground">{analyticsData.totalOrders}</p>
+                  <p className="text-2xl font-bold text-foreground">{analytics.totalOrders}</p>
                   <div className="flex items-center mt-1">
                     <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                    <span className="text-xs text-green-600">+12% this week</span>
+                    <span className="text-xs text-green-600">All time</span>
                   </div>
                 </div>
               </div>
@@ -141,10 +124,10 @@ const Analytics = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                  <p className="text-2xl font-bold text-foreground">KSH {analyticsData.totalRevenue.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-foreground">KSH {analytics.totalRevenue.toLocaleString()}</p>
                   <div className="flex items-center mt-1">
                     <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                    <span className="text-xs text-green-600">+8% this week</span>
+                    <span className="text-xs text-green-600">All time</span>
                   </div>
                 </div>
               </div>
@@ -159,10 +142,12 @@ const Analytics = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">Average Order</p>
-                  <p className="text-2xl font-bold text-foreground">KSH {analyticsData.averageOrder}</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    KSH {analytics.averageOrderValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </p>
                   <div className="flex items-center mt-1">
-                    <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                    <span className="text-xs text-green-600">+5% this week</span>
+                    <BarChart3 className="h-3 w-3 text-blue-600 mr-1" />
+                    <span className="text-xs text-blue-600">Average</span>
                   </div>
                 </div>
               </div>
@@ -176,11 +161,11 @@ const Analytics = () => {
                   <Eye className="h-6 w-6 text-primary" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Menu Views</p>
-                  <p className="text-2xl font-bold text-foreground">{analyticsData.menuViews}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Popular Items</p>
+                  <p className="text-2xl font-bold text-foreground">{analytics.popularItems.length}</p>
                   <div className="flex items-center mt-1">
                     <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                    <span className="text-xs text-green-600">+18% this week</span>
+                    <span className="text-xs text-green-600">Top sellers</span>
                   </div>
                 </div>
               </div>
@@ -194,84 +179,104 @@ const Analytics = () => {
             <CardHeader>
               <CardTitle>Popular Menu Items</CardTitle>
               <CardDescription>
-                Top performing items this week
+                Top performing items by order count
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analyticsData.popularItems.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
-                        {index + 1}
+                {analytics.popularItems.length > 0 ? (
+                  analytics.popularItems.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{item.name}</h4>
+                          <p className="text-sm text-muted-foreground">{item.orders} orders</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium">{item.name}</h4>
-                        <p className="text-sm text-muted-foreground">{item.orders} orders</p>
+                      <div className="text-right">
+                        <p className="font-bold text-primary">KSH {item.revenue.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Revenue</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-primary">KSH {item.revenue.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Revenue</p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No orders yet</p>
+                    <p className="text-sm text-muted-foreground mt-2">Popular items will appear here once you start receiving orders</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Recent Orders */}
+          {/* Daily Orders Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
+              <CardTitle>Daily Orders</CardTitle>
               <CardDescription>
-                Latest customer orders
+                Orders over the last 7 days
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analyticsData.recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                    <div>
-                      <h4 className="font-medium">{order.item}</h4>
-                      <p className="text-sm text-muted-foreground">{order.time}</p>
-                    </div>
-                    <div className="text-right flex items-center gap-3">
+                {analytics.dailyOrders.length > 0 ? (
+                  analytics.dailyOrders.map((day, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                       <div>
-                        <p className="font-bold">KSH {order.amount}</p>
-                        <Badge variant={order.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
-                          {order.status}
+                        <h4 className="font-medium">{new Date(day.date).toLocaleDateString()}</h4>
+                        <p className="text-sm text-muted-foreground">{day.orders} orders</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">KSH {day.revenue.toLocaleString()}</p>
+                        <Badge variant="secondary" className="text-xs">
+                          {day.orders > 0 ? 'Active' : 'No orders'}
                         </Badge>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No recent orders</p>
+                    <p className="text-sm text-muted-foreground mt-2">Daily statistics will appear here once you start receiving orders</p>
                   </div>
-                ))}
+                )}
               </div>
-              <Button variant="outline" className="w-full mt-4">
-                View All Orders
-              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Chart Placeholder */}
+        {/* Monthly Revenue Chart */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Revenue Trends</CardTitle>
+            <CardTitle>Monthly Revenue Trends</CardTitle>
             <CardDescription>
-              Daily revenue over the past month
+              Revenue over the past 6 months
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-64 bg-muted/20 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Revenue chart will appear here</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Connect analytics to see detailed trends
-                </p>
+            {analytics.monthlyRevenue.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {analytics.monthlyRevenue.map((month, index) => (
+                  <div key={index} className="text-center p-4 rounded-lg bg-muted/20">
+                    <p className="text-sm font-medium text-muted-foreground">{month.month}</p>
+                    <p className="text-lg font-bold text-foreground">KSH {month.revenue.toLocaleString()}</p>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <div className="h-64 bg-muted/20 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No revenue data yet</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Revenue trends will appear here once you start receiving orders
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -281,22 +286,27 @@ const Analytics = () => {
             <Users className="h-12 w-12 mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-4">Grow Your Business</h3>
             <p className="text-lg mb-6 text-primary-foreground/90">
-              Use these insights to optimize your menu and increase revenue
+              {analytics.totalOrders > 0 
+                ? "Use these insights to optimize your menu and increase revenue"
+                : "Start receiving orders to see detailed analytics and insights"
+              }
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 variant="secondary" 
                 size="lg"
                 className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                onClick={() => navigate("/digital-menu")}
               >
-                Download Report
+                View Menu
               </Button>
               <Button 
                 variant="outline" 
                 size="lg"
-                className="border-primary-foreground text-secondary hover:bg-primary-foreground/10"
+                className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={() => navigate("/qr-code")}
               >
-                Setup Alerts
+                Generate QR Code
               </Button>
             </div>
           </CardContent>

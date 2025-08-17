@@ -51,7 +51,7 @@ function App() {
             <Route path="/custom-branding" element={<CustomBranding />} />
             <Route path="/enable-payments" element={<EnablePayments />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/menu/:userId" element={<CustomerMenu />} />
+            <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/terms" element={<Terms />} />
