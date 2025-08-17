@@ -5,22 +5,18 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CreditCard, Smartphone, Building, DollarSign } from 'lucide-react';
 
-interface PaymentGateway {
+interface PaymentGatewayWithCredentials {
   type: string;
   name: string;
-  credentials?: {
-    till_number?: string;
-    paybill_number?: string;
-    account_number?: string;
-    bank_name?: string;
-    account_name?: string;
-  };
+  requiresCredentials: boolean;
+  supportedMethods: string[];
+  credentials?: any;
 }
 
 interface PaymentMethodSelectorProps {
   paymentMethod: string;
   setPaymentMethod: (method: string) => void;
-  availableGateways: PaymentGateway[];
+  availableGateways: PaymentGatewayWithCredentials[];
 }
 
 export const PaymentMethodSelector = ({ 
@@ -43,7 +39,9 @@ export const PaymentMethodSelector = ({
     }
   };
 
-  const getPaymentInstructions = (gateway: PaymentGateway) => {
+  const getPaymentInstructions = (gateway: PaymentGatewayWithCredentials) => {
+    console.log('Getting payment instructions for gateway:', gateway);
+    
     switch (gateway.type) {
       case 'mpesa_manual':
         return (

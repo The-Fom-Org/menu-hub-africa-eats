@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +12,14 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector';
 import { paymentGatewayRegistry } from '@/lib/payment-gateways/registry';
+
+interface PaymentGatewayWithCredentials {
+  type: string;
+  name: string;
+  requiresCredentials: boolean;
+  supportedMethods: string[];
+  credentials?: any;
+}
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -33,12 +40,13 @@ const Checkout = () => {
 
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [availableGateways, setAvailableGateways] = useState<any[]>([]);
+  const [availableGateways, setAvailableGateways] = useState<PaymentGatewayWithCredentials[]>([]);
 
   // Load payment settings for this restaurant
   useEffect(() => {
     const loadPaymentSettings = async () => {
       try {
+        console.log('Loading payment settings for restaurant:', restaurantId);
         const { data, error } = await supabase
           .from('restaurant_payment_settings')
           .select('payment_methods')
@@ -50,22 +58,40 @@ const Checkout = () => {
         }
 
         const paymentMethods = data?.payment_methods || {};
-        const allGateways = paymentGatewayRegistry.getAll();
+        console.log('Payment methods from DB:', paymentMethods);
         
-        // Filter available gateways based on restaurant settings
-        const available = allGateways.filter(gateway => {
-          const config = paymentMethods[gateway.type];
-          return config?.enabled || gateway.type === 'cash'; // Cash is always available
-        }).map(gateway => ({
-          ...gateway,
-          credentials: paymentMethods[gateway.type]?.credentials || {}
-        }));
+        const allGateways = paymentGatewayRegistry.getAll();
+        console.log('All available gateways:', allGateways);
+        
+        // Filter and map available gateways based on restaurant settings
+        const available: PaymentGatewayWithCredentials[] = allGateways
+          .filter(gateway => {
+            const config = paymentMethods[gateway.type];
+            const isEnabled = config?.enabled || gateway.type === 'cash';
+            console.log(`Gateway ${gateway.type}: enabled=${isEnabled}, config=`, config);
+            return isEnabled;
+          })
+          .map(gateway => ({
+            type: gateway.type,
+            name: gateway.name,
+            requiresCredentials: gateway.requiresCredentials,
+            supportedMethods: gateway.supportedMethods,
+            credentials: paymentMethods[gateway.type] || {}
+          }));
+
+        console.log('Available gateways after filtering:', available);
 
         // If no payment methods configured, default to cash
         if (available.length === 0) {
           const cashGateway = allGateways.find(g => g.type === 'cash');
           if (cashGateway) {
-            available.push(cashGateway);
+            available.push({
+              type: cashGateway.type,
+              name: cashGateway.name,
+              requiresCredentials: cashGateway.requiresCredentials,
+              supportedMethods: cashGateway.supportedMethods,
+              credentials: {}
+            });
           }
         }
 
@@ -80,7 +106,13 @@ const Checkout = () => {
         // Fallback to cash only
         const cashGateway = paymentGatewayRegistry.get('cash');
         if (cashGateway) {
-          setAvailableGateways([cashGateway]);
+          setAvailableGateways([{
+            type: cashGateway.type,
+            name: cashGateway.name,
+            requiresCredentials: cashGateway.requiresCredentials,
+            supportedMethods: cashGateway.supportedMethods,
+            credentials: {}
+          }]);
           setPaymentMethod('cash');
         }
       }
@@ -155,6 +187,8 @@ const Checkout = () => {
       const orderDetails = getOrderDetails();
       const orderId = `ORDER-${Date.now()}`;
 
+      console.log('Creating order with details:', orderDetails);
+
       // Create order in database
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -175,6 +209,8 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
+      console.log('Order created successfully:', order);
+
       // Create order items
       const orderItems = cartItems.map(item => ({
         order_id: orderId,
@@ -190,12 +226,17 @@ const Checkout = () => {
 
       if (itemsError) throw itemsError;
 
+      console.log('Order items created successfully');
+
       // Handle payment based on method
       const selectedGateway = availableGateways.find(g => g.type === paymentMethod);
+      console.log('Selected payment gateway:', selectedGateway);
+      
       if (selectedGateway) {
         if (paymentMethod === 'pesapal') {
           // Initialize Pesapal payment
           try {
+            console.log('Initializing Pesapal payment with credentials:', selectedGateway.credentials);
             const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
               body: {
                 amount: orderDetails.total,
@@ -212,6 +253,8 @@ const Checkout = () => {
             });
 
             if (error) throw error;
+
+            console.log('Pesapal initialization response:', data);
 
             if (data.success && data.redirect_url) {
               // Redirect to Pesapal
