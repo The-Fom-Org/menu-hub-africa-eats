@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,7 @@ import { Plus, Minus } from 'lucide-react';
 import { CustomerMenuItem } from '@/hooks/useCustomerMenuData';
 import { useCart } from '@/hooks/useCart';
 import { MenuItemCustomizationDialog } from './MenuItemCustomizationDialog';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface MenuItemCardProps {
   item: CustomerMenuItem;
@@ -15,21 +15,15 @@ interface MenuItemCardProps {
 }
 
 export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
-  const { addToCart, cartItems, updateQuantity, cartVersion } = useCart(restaurantId);
+  const { addToCart, cartItems, updateQuantity } = useCart(restaurantId);
   const { toast } = useToast();
   const [showCustomization, setShowCustomization] = useState(false);
-  const [, forceUpdate] = useState(0);
-
-  // Force re-render when cart changes
-  useEffect(() => {
-    forceUpdate(prev => prev + 1);
-  }, [cartVersion, cartItems]);
 
   // Find cart item without customizations for the quick add/remove buttons
   const cartItem = cartItems.find(cartItem => cartItem.id === item.id && !cartItem.customizations);
   const quantity = cartItem?.quantity || 0;
 
-  console.log(`MenuItemCard ${item.name} - quantity:`, quantity, 'cartItems:', cartItems.length);
+  console.log(`MenuItemCard ${item.name} - quantity:`, quantity, 'cartItems:', cartItems);
 
   const handleAddToCart = useCallback((customizations?: string, specialInstructions?: string) => {
     console.log('Adding item to cart:', item.name, customizations, specialInstructions);

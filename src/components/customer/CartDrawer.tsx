@@ -14,28 +14,21 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface CartDrawerProps {
   restaurantId: string;
 }
 
 export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
-  const { cartItems, getCartTotal, getCartCount, updateQuantity, removeFromCart, cartVersion } = useCart(restaurantId);
+  const { cartItems, getCartTotal, getCartCount, updateQuantity, removeFromCart } = useCart(restaurantId);
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  
-  // Force component to re-render when cart changes
-  const [, forceUpdate] = useState(0);
-  
-  useEffect(() => {
-    forceUpdate(prev => prev + 1);
-  }, [cartVersion, cartItems]);
 
   const cartCount = getCartCount();
   const cartTotal = getCartTotal();
 
-  console.log('CartDrawer render - cartCount:', cartCount, 'cartItems length:', cartItems.length, 'version:', cartVersion);
+  console.log('CartDrawer render - cartCount:', cartCount, 'cartItems:', cartItems);
 
   const handleCheckout = () => {
     if (cartCount === 0) return;

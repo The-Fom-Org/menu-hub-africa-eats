@@ -28,59 +28,68 @@ export const useCart = (restaurantId: string) => {
     phone: '',
     preferred_time: '',
   });
-  const [cartVersion, setCartVersion] = useState(0); // Force re-renders
 
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem(`cart_${restaurantId}`);
     if (savedCart) {
-      const parsed = JSON.parse(savedCart);
-      setCartItems(parsed);
-      console.log('Cart loaded from localStorage:', parsed);
+      try {
+        const parsed = JSON.parse(savedCart);
+        setCartItems(parsed);
+        console.log('Cart loaded from localStorage:', parsed);
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        localStorage.removeItem(`cart_${restaurantId}`);
+      }
     }
   }, [restaurantId]);
 
   // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem(`cart_${restaurantId}`, JSON.stringify(cartItems));
-    setCartVersion(prev => prev + 1); // Trigger re-renders
-    console.log('Cart saved to localStorage:', cartItems);
-  }, [cartItems, restaurantId]);
+  const saveCartToStorage = useCallback((items: CartItem[]) => {
+    try {
+      localStorage.setItem(`cart_${restaurantId}`, JSON.stringify(items));
+      console.log('Cart saved to localStorage:', items);
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
+  }, [restaurantId]);
 
   const addToCart = useCallback((item: Omit<CartItem, 'quantity'>) => {
     console.log('Adding to cart:', item);
-    setCartItems(prev => {
-      const existingItem = prev.find(cartItem => 
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(cartItem => 
         cartItem.id === item.id && 
         cartItem.customizations === item.customizations
       );
       
-      let newCart;
+      let newItems: CartItem[];
       if (existingItem) {
-        newCart = prev.map(cartItem =>
+        newItems = prevItems.map(cartItem =>
           cartItem.id === item.id && cartItem.customizations === item.customizations
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
       } else {
-        newCart = [...prev, { ...item, quantity: 1 }];
+        newItems = [...prevItems, { ...item, quantity: 1 }];
       }
       
-      console.log('New cart state:', newCart);
-      return newCart;
+      console.log('New cart state after add:', newItems);
+      saveCartToStorage(newItems);
+      return newItems;
     });
-  }, []);
+  }, [saveCartToStorage]);
 
   const removeFromCart = useCallback((itemId: string, customizations?: string) => {
     console.log('Removing from cart:', itemId, customizations);
-    setCartItems(prev => {
-      const newCart = prev.filter(item => 
+    setCartItems(prevItems => {
+      const newItems = prevItems.filter(item => 
         !(item.id === itemId && item.customizations === customizations)
       );
-      console.log('Cart after removal:', newCart);
-      return newCart;
+      console.log('Cart after removal:', newItems);
+      saveCartToStorage(newItems);
+      return newItems;
     });
-  }, []);
+  }, [saveCartToStorage]);
 
   const updateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
     console.log('Updating quantity:', itemId, quantity, customizations);
@@ -89,16 +98,17 @@ export const useCart = (restaurantId: string) => {
       return;
     }
     
-    setCartItems(prev => {
-      const newCart = prev.map(item =>
+    setCartItems(prevItems => {
+      const newItems = prevItems.map(item =>
         item.id === itemId && item.customizations === customizations
           ? { ...item, quantity }
           : item
       );
-      console.log('Cart after quantity update:', newCart);
-      return newCart;
+      console.log('Cart after quantity update:', newItems);
+      saveCartToStorage(newItems);
+      return newItems;
     });
-  }, [removeFromCart]);
+  }, [removeFromCart, saveCartToStorage]);
 
   const clearCart = useCallback(() => {
     console.log('Clearing cart');
@@ -108,13 +118,13 @@ export const useCart = (restaurantId: string) => {
 
   const getCartTotal = useCallback(() => {
     const total = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    console.log('Cart total:', total);
+    console.log('Cart total calculated:', total);
     return total;
   }, [cartItems]);
 
   const getCartCount = useCallback(() => {
     const count = cartItems.reduce((count, item) => count + item.quantity, 0);
-    console.log('Cart count:', count);
+    console.log('Cart count calculated:', count);
     return count;
   }, [cartItems]);
 
@@ -141,6 +151,5 @@ export const useCart = (restaurantId: string) => {
     getCartTotal,
     getCartCount,
     getOrderDetails,
-    cartVersion, // Expose for forcing re-renders
   };
 };
