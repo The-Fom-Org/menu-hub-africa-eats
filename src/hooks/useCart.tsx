@@ -30,9 +30,9 @@ export const useCart = (restaurantId: string) => {
   });
 
   // Force component re-renders when cart changes
-  const [, forceUpdate] = useState(0);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
   const triggerUpdate = useCallback(() => {
-    forceUpdate(prev => prev + 1);
+    setUpdateTrigger(prev => prev + 1);
   }, []);
 
   // Load cart from localStorage on mount
@@ -159,5 +159,6 @@ export const useCart = (restaurantId: string) => {
     getCartTotal,
     getCartCount,
     getOrderDetails,
+    updateTrigger,
   };
 };
