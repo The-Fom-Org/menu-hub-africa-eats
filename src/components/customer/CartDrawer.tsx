@@ -14,29 +14,35 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 interface CartDrawerProps {
   restaurantId: string;
 }
 
 export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
-  const { cartItems, getCartTotal, getCartCount, updateQuantity, removeFromCart } = useCart(restaurantId);
+  const { cartItems, getCartTotal, getCartCount, updateQuantity, removeFromCart, cartVersion } = useCart(restaurantId);
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Force component to re-render when cart changes
+  const [, forceUpdate] = useState(0);
+  
+  useEffect(() => {
+    forceUpdate(prev => prev + 1);
+  }, [cartVersion, cartItems]);
 
-  // Memoize cart calculations to ensure they update immediately
-  const cartCount = useMemo(() => getCartCount(), [cartItems]);
-  const cartTotal = useMemo(() => getCartTotal(), [cartItems]);
+  const cartCount = getCartCount();
+  const cartTotal = getCartTotal();
 
-  console.log('CartDrawer render - cartCount:', cartCount, 'cartItems:', cartItems.length);
+  console.log('CartDrawer render - cartCount:', cartCount, 'cartItems length:', cartItems.length, 'version:', cartVersion);
 
   const handleCheckout = () => {
+    if (cartCount === 0) return;
     setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
   };
 
-  // Always render the button as pressable, just change its appearance based on cart state
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
@@ -142,6 +148,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                   onClick={handleCheckout}
                   className="w-full"
                   size="lg"
+                  disabled={cartCount === 0}
                 >
                   Proceed to Checkout
                 </Button>

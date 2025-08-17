@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,15 +15,24 @@ interface MenuItemCardProps {
 }
 
 export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
-  const { addToCart, cartItems, updateQuantity } = useCart(restaurantId);
+  const { addToCart, cartItems, updateQuantity, cartVersion } = useCart(restaurantId);
   const { toast } = useToast();
   const [showCustomization, setShowCustomization] = useState(false);
+  const [, forceUpdate] = useState(0);
+
+  // Force re-render when cart changes
+  useEffect(() => {
+    forceUpdate(prev => prev + 1);
+  }, [cartVersion, cartItems]);
 
   // Find cart item without customizations for the quick add/remove buttons
   const cartItem = cartItems.find(cartItem => cartItem.id === item.id && !cartItem.customizations);
   const quantity = cartItem?.quantity || 0;
 
-  const handleAddToCart = (customizations?: string, specialInstructions?: string) => {
+  console.log(`MenuItemCard ${item.name} - quantity:`, quantity, 'cartItems:', cartItems.length);
+
+  const handleAddToCart = useCallback((customizations?: string, specialInstructions?: string) => {
+    console.log('Adding item to cart:', item.name, customizations, specialInstructions);
     addToCart({
       id: item.id,
       name: item.name,
@@ -32,17 +41,15 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       special_instructions: specialInstructions,
     });
 
-    // Show success toast
     toast({
       title: "Added to cart",
       description: `${item.name} has been added to your cart`,
       duration: 2000,
     });
+  }, [addToCart, item, toast]);
 
-    console.log('Item added to cart:', item.name);
-  };
-
-  const handleQuickAdd = () => {
+  const handleQuickAdd = useCallback(() => {
+    console.log('Quick add clicked for:', item.name, 'current quantity:', quantity);
     if (quantity === 0) {
       handleAddToCart();
     } else {
@@ -53,9 +60,10 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
         duration: 1500,
       });
     }
-  };
+  }, [quantity, handleAddToCart, updateQuantity, item, toast]);
 
-  const handleDecrease = () => {
+  const handleDecrease = useCallback(() => {
+    console.log('Decrease clicked for:', item.name, 'current quantity:', quantity);
     if (quantity > 0) {
       updateQuantity(item.id, quantity - 1);
       toast({
@@ -64,7 +72,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
         duration: 1500,
       });
     }
-  };
+  }, [quantity, updateQuantity, item, toast]);
 
   return (
     <>
