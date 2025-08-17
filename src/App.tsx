@@ -29,7 +29,14 @@ import Refunds from "./pages/Refunds";
 import ManageSubscription from "./pages/ManageSubscription";
 import AdminDashboard from "./pages/AdminDashboard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 function App() {
   return (
