@@ -29,6 +29,7 @@ import Cookies from "./pages/Cookies";
 import Refunds from "./pages/Refunds";
 import ManageSubscription from "./pages/ManageSubscription";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin"; // Added
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +72,7 @@ function App() {
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/refunds" element={<Refunds />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin-login" element={<AdminLogin />} /> {/* Added */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
