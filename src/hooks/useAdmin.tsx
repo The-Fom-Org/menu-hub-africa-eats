@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -92,13 +92,16 @@ export const useAdmin = () => {
     if (!isAdmin) return { error: 'Unauthorized' };
 
     try {
+      // Ensure we have required fields for upsert
+      const upsertData = {
+        restaurant_id: restaurantId,
+        email: updates.email || '', // Provide a default if missing
+        ...updates,
+      };
+
       const { data, error } = await supabase
         .from('subscribers')
-        .upsert({
-          restaurant_id: restaurantId,
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
+        .upsert(upsertData)
         .select()
         .single();
 
@@ -140,6 +143,7 @@ export const useAdmin = () => {
   };
 
   return {
+    user,
     isAdmin,
     loading,
     subscribers,
