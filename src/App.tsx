@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +25,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Cookies from "./pages/Cookies";
 import Refunds from "./pages/Refunds";
+import ManageSubscription from "./pages/ManageSubscription";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +51,7 @@ function App() {
             <Route path="/custom-branding" element={<CustomBranding />} />
             <Route path="/enable-payments" element={<EnablePayments />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/manage-subscription" element={<ManageSubscription />} />
             <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />
