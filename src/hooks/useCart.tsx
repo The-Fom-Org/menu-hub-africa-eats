@@ -22,6 +22,7 @@ export interface OrderDetails {
 
 export const useCart = (restaurantId: string) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-renders
   const [orderType, setOrderType] = useState<'now' | 'later'>('now');
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
@@ -44,11 +45,12 @@ export const useCart = (restaurantId: string) => {
     }
   }, [restaurantId]);
 
-  // Save cart to localStorage whenever it changes
-  const saveCartToStorage = useCallback((items: CartItem[]) => {
+  // Save cart to localStorage and trigger update
+  const saveCartAndUpdate = useCallback((items: CartItem[]) => {
     try {
       localStorage.setItem(`cart_${restaurantId}`, JSON.stringify(items));
       console.log('Cart saved to localStorage:', items);
+      setUpdateTrigger(prev => prev + 1); // Force re-render
     } catch (error) {
       console.error('Error saving cart to localStorage:', error);
     }
@@ -74,10 +76,10 @@ export const useCart = (restaurantId: string) => {
       }
       
       console.log('New cart state after add:', newItems);
-      saveCartToStorage(newItems);
+      saveCartAndUpdate(newItems);
       return newItems;
     });
-  }, [saveCartToStorage]);
+  }, [saveCartAndUpdate]);
 
   const removeFromCart = useCallback((itemId: string, customizations?: string) => {
     console.log('Removing from cart:', itemId, customizations);
@@ -86,10 +88,10 @@ export const useCart = (restaurantId: string) => {
         !(item.id === itemId && item.customizations === customizations)
       );
       console.log('Cart after removal:', newItems);
-      saveCartToStorage(newItems);
+      saveCartAndUpdate(newItems);
       return newItems;
     });
-  }, [saveCartToStorage]);
+  }, [saveCartAndUpdate]);
 
   const updateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
     console.log('Updating quantity:', itemId, quantity, customizations);
@@ -105,15 +107,16 @@ export const useCart = (restaurantId: string) => {
           : item
       );
       console.log('Cart after quantity update:', newItems);
-      saveCartToStorage(newItems);
+      saveCartAndUpdate(newItems);
       return newItems;
     });
-  }, [removeFromCart, saveCartToStorage]);
+  }, [removeFromCart, saveCartAndUpdate]);
 
   const clearCart = useCallback(() => {
     console.log('Clearing cart');
     setCartItems([]);
     localStorage.removeItem(`cart_${restaurantId}`);
+    setUpdateTrigger(prev => prev + 1);
   }, [restaurantId]);
 
   const getCartTotal = useCallback(() => {
@@ -151,5 +154,6 @@ export const useCart = (restaurantId: string) => {
     getCartTotal,
     getCartCount,
     getOrderDetails,
+    updateTrigger, // Expose for components that need to react to cart changes
   };
 };

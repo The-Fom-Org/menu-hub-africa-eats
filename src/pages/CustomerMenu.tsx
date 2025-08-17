@@ -82,8 +82,34 @@ const CustomerMenu = () => {
     );
   }
 
+  // Apply custom branding colors as CSS variables
+  const brandingStyles = restaurantInfo ? {
+    '--brand-primary': restaurantInfo.primary_color || 'hsl(25 85% 55%)',
+    '--brand-secondary': restaurantInfo.secondary_color || 'hsl(120 50% 25%)',
+  } as React.CSSProperties : {};
+
   return (
-    <div className="min-h-screen bg-gradient-subtle">
+    <div className="min-h-screen bg-gradient-subtle" style={brandingStyles}>
+      {/* Cover Image Section */}
+      {restaurantInfo?.cover_image_url && (
+        <div className="relative h-48 overflow-hidden">
+          <img 
+            src={restaurantInfo.cover_image_url} 
+            alt={`${restaurantInfo.name} cover`}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center text-white">
+              <h1 className="text-3xl font-bold mb-2">{restaurantInfo.name}</h1>
+              {restaurantInfo.tagline && (
+                <p className="text-lg opacity-90">{restaurantInfo.tagline}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-card border-b shadow-sm sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -96,11 +122,14 @@ const CustomerMenu = () => {
                   className="h-12 w-12 rounded-full object-cover"
                 />
               ) : (
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <div 
+                  className="h-12 w-12 rounded-full flex items-center justify-center text-white"
+                  style={{ backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
+                >
                   {customerFlow === 'qr' ? (
-                    <QrCode className="h-6 w-6 text-primary" />
+                    <QrCode className="h-6 w-6" />
                   ) : (
-                    <Clock className="h-6 w-6 text-primary" />
+                    <Clock className="h-6 w-6" />
                   )}
                 </div>
               )}
@@ -132,26 +161,57 @@ const CustomerMenu = () => {
 
       {/* Flow Indicator */}
       <div className="max-w-4xl mx-auto px-4 py-4">
-        <Card className={`border-l-4 ${customerFlow === 'qr' ? 'border-l-primary' : 'border-l-secondary'}`}>
+        <Card 
+          className="border-l-4"
+          style={{ 
+            borderLeftColor: customerFlow === 'qr' 
+              ? restaurantInfo?.primary_color || 'hsl(var(--primary))' 
+              : restaurantInfo?.secondary_color || 'hsl(var(--secondary))'
+          }}
+        >
           <CardContent className="py-4">
             <div className="flex items-center space-x-3">
               {customerFlow === 'qr' ? (
                 <>
-                  <MapPin className="h-5 w-5 text-primary" />
+                  <MapPin 
+                    className="h-5 w-5" 
+                    style={{ color: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
+                  />
                   <div>
                     <p className="font-medium text-sm">Dining In</p>
                     <p className="text-xs text-muted-foreground">Your order will be prepared for immediate service</p>
                   </div>
-                  <Badge variant="default" className="ml-auto">Now</Badge>
+                  <Badge 
+                    variant="default" 
+                    className="ml-auto"
+                    style={{ 
+                      backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))',
+                      color: 'white'
+                    }}
+                  >
+                    Now
+                  </Badge>
                 </>
               ) : (
                 <>
-                  <Clock className="h-5 w-5 text-secondary" />
+                  <Clock 
+                    className="h-5 w-5" 
+                    style={{ color: restaurantInfo?.secondary_color || 'hsl(var(--secondary))' }}
+                  />
                   <div>
                     <p className="font-medium text-sm">Pre-ordering</p>
                     <p className="text-xs text-muted-foreground">Schedule your meal for pickup or delivery</p>
                   </div>
-                  <Badge variant="secondary" className="ml-auto">Later</Badge>
+                  <Badge 
+                    variant="secondary" 
+                    className="ml-auto"
+                    style={{ 
+                      backgroundColor: restaurantInfo?.secondary_color || 'hsl(var(--secondary))',
+                      color: 'white'
+                    }}
+                  >
+                    Later
+                  </Badge>
                 </>
               )}
             </div>
@@ -177,7 +237,11 @@ const CustomerMenu = () => {
           <Tabs key={searchTerm} defaultValue={defaultActiveTab} className="space-y-6">
             <TabsList className="w-full justify-start overflow-x-auto">
               {categoriesToShow.map((category) => (
-                <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap">
+                <TabsTrigger 
+                  key={category.id} 
+                  value={category.id} 
+                  className="whitespace-nowrap data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-white"
+                >
                   {category.name}
                   {searchTerm && category.menu_items && category.menu_items.length > 0 && (
                     <Badge variant="secondary" className="ml-2 text-xs">

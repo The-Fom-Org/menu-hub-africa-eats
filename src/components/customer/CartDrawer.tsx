@@ -21,14 +21,15 @@ interface CartDrawerProps {
 }
 
 export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
-  const { cartItems, getCartTotal, getCartCount, updateQuantity, removeFromCart } = useCart(restaurantId);
+  const { cartItems, getCartTotal, getCartCount, updateQuantity, removeFromCart, updateTrigger } = useCart(restaurantId);
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Use updateTrigger to ensure fresh calculations
   const cartCount = getCartCount();
   const cartTotal = getCartTotal();
 
-  console.log('CartDrawer render - cartCount:', cartCount, 'cartItems:', cartItems);
+  console.log('CartDrawer render - updateTrigger:', updateTrigger, 'cartCount:', cartCount, 'cartItems:', cartItems);
 
   const handleCheckout = () => {
     if (cartCount === 0) return;
