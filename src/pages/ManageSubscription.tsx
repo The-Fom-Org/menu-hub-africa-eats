@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Crown, Check, RefreshCw } from 'lucide-react';
+import { Crown, Check, RefreshCw, Smartphone, Users, BarChart3, Palette, CreditCard, MapPin, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SubscriptionData {
@@ -17,9 +17,44 @@ interface SubscriptionData {
 }
 
 const PLANS = [
-  { name: 'Basic', price: 9.99, features: ['Digital Menu for 1 Restaurant','Basic QR Code Generation','Up to 50 Menu Items','Email Support'], popular: false },
-  { name: 'Premium', price: 19.99, features: ['Digital Menu for Up to 3 Restaurants','Custom Branding & Colors','Unlimited Menu Items','Order Management','Analytics Dashboard','Priority Support'], popular: true },
-  { name: 'Enterprise', price: 39.99, features: ['Unlimited Restaurants','White-label Solution','Advanced Analytics','API Access','Custom Integrations','Dedicated Account Manager','24/7 Phone Support'], popular: false }
+  {
+    id: 'standard',
+    name: 'Standard Digital Menu Solution',
+    price: 3000,
+    currency: 'KES',
+    description: 'Perfect for single restaurant locations',
+    features: [
+      'Mobile-friendly QR code-based menu',
+      'Unlimited menu updates (photos, descriptions, prices)',
+      'Order-taking via customer phones',
+      'M-Pesa & card payment integration',
+      'Restaurant branding (logo, colors)',
+      'Basic analytics (menu views, popular items)',
+      'WhatsApp support'
+    ],
+    popular: true,
+    billing: 'One-time setup fee',
+    commission: 'No monthly commissions'
+  },
+  {
+    id: 'multi_location',
+    name: 'Multi-location + Staff Management',
+    price: 8000,
+    currency: 'KES',
+    description: 'For restaurant chains and growing businesses',
+    features: [
+      'Everything in Standard package',
+      'Multi-location management',
+      'Separate menus & analytics per branch',
+      'Staff accounts & permissions',
+      'Order assignment & tracking per waiter/chef',
+      'Priority support',
+      'Advanced reporting'
+    ],
+    popular: false,
+    billing: 'One-time setup fee',
+    commission: 'No monthly commissions'
+  }
 ];
 
 export default function ManageSubscription() {
@@ -43,7 +78,6 @@ export default function ManageSubscription() {
   const checkSubscriptionStatus = async () => {
     try {
       setLoading(true);
-      // Use PESAPAL-based status check (no Stripe)
       const { data, error } = await supabase.functions.invoke('check-subscription-pesapal');
       if (error) throw error;
       setSubscriptionData(data as SubscriptionData);
@@ -56,41 +90,52 @@ export default function ManageSubscription() {
     }
   };
 
-  const handleSubscribe = async (planName: string, amountUSD: number) => {
+  const handleSubscribe = async (planId: string, planName: string, amountKES: number) => {
     if (!user) return;
     try {
-      setProcessingCheckout(planName);
-      // Initialize Pesapal subscription payment using Edge Function (uses MenuHub credentials via secrets)
-      const orderId = `subscription_${planName.toLowerCase()}_${Date.now()}`;
-      const description = `MenuHub ${planName} Plan Subscription`;
+      setProcessingCheckout(planId);
+      
+      // Initialize Pesapal payment using MenuHub Africa's credentials
+      const orderId = `menuhub_subscription_${planId}_${Date.now()}`;
+      const description = `MenuHub Africa - ${planName} Package`;
+      
       const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
         body: {
-          amount: amountUSD,             // keep USD to match UI pricing
-          currency: 'USD',
+          amount: amountKES,
+          currency: 'KES',
           orderId,
           description,
           customerInfo: {
-            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Restaurant Owner',
             email: user.email || '',
-            phone: ''
+            phone: user.user_metadata?.phone || ''
           },
-          callbackUrl: `${window.location.origin}/manage-subscription?success=true`,
+          callbackUrl: `${window.location.origin}/manage-subscription?success=true&plan=${planId}`,
           cancelUrl: `${window.location.origin}/manage-subscription?canceled=true`,
-          isSubscription: true
+          isSubscription: true // This flag ensures MenuHub Africa's Pesapal credentials are used
         }
       });
 
       if (error) throw error;
 
       if (data?.redirect_url) {
+        // Open Pesapal payment page in new tab
         window.open(data.redirect_url, '_blank');
-        toast({ title: "Redirecting to Pesapal", description: "Complete your subscription in the new tab" });
+        toast({ 
+          title: "Redirecting to Pesapal Payment", 
+          description: "Complete your payment in the new tab. Payment goes directly to MenuHub Africa.",
+          duration: 5000
+        });
       } else {
         throw new Error('Missing redirect URL from Pesapal');
       }
     } catch (error) {
-      console.error('Error creating Pesapal subscription:', error);
-      toast({ title: "Error", description: "Failed to start Pesapal checkout", variant: "destructive" });
+      console.error('Error creating Pesapal payment:', error);
+      toast({ 
+        title: "Payment Error", 
+        description: "Failed to initialize Pesapal checkout. Please try again.", 
+        variant: "destructive" 
+      });
     } finally {
       setProcessingCheckout(null);
     }
@@ -112,16 +157,16 @@ export default function ManageSubscription() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Manage Your Subscription</h1>
+            <h1 className="text-3xl font-bold mb-4">Choose Your MenuHub Package</h1>
             <p className="text-muted-foreground mb-6">
-              Choose the perfect plan for your restaurant business
+              Affordable, one-time setup with no monthly commissions. Perfect for Kenyan restaurants.
             </p>
 
             {subscriptionData?.subscribed && (
               <div className="flex items-center justify-center gap-4 mb-6">
                 <Badge variant="default" className="px-4 py-2">
                   <Crown className="h-4 w-4 mr-2" />
-                  Current Plan: {subscriptionData.subscription_tier}
+                  Active Plan: {subscriptionData.subscription_tier}
                 </Badge>
               </div>
             )}
@@ -136,15 +181,15 @@ export default function ManageSubscription() {
             </Button>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {PLANS.map((plan) => {
               const isCurrentPlan = subscriptionData?.subscription_tier === plan.name;
               const isSubscribed = subscriptionData?.subscribed && isCurrentPlan;
 
               return (
                 <Card
-                  key={plan.name}
-                  className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''} ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
+                  key={plan.id}
+                  className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : ''} ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
                 >
                   {plan.popular && (
                     <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
@@ -156,19 +201,24 @@ export default function ManageSubscription() {
                     <div className="absolute top-4 right-4">
                       <Badge variant="secondary">
                         <Check className="h-3 w-3 mr-1" />
-                        Current
+                        Active
                       </Badge>
                     </div>
                   )}
 
                   <CardHeader className="text-center pb-4">
-                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    <div className="text-3xl font-bold">
-                      ${plan.price}
-                      <span className="text-sm font-normal text-muted-foreground">/month</span>
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <div className="text-3xl font-bold text-primary">
+                      {plan.currency} {plan.price.toLocaleString()}
+                      <div className="text-sm font-normal text-muted-foreground mt-1">
+                        {plan.billing}
+                      </div>
                     </div>
-                    <CardDescription>
-                      Perfect for {plan.name.toLowerCase()} restaurant needs
+                    <div className="text-sm text-green-600 font-medium">
+                      ✓ {plan.commission}
+                    </div>
+                    <CardDescription className="mt-2">
+                      {plan.description}
                     </CardDescription>
                   </CardHeader>
 
@@ -176,8 +226,8 @@ export default function ManageSubscription() {
                     <Separator className="mb-4" />
                     <ul className="space-y-3 mb-6">
                       {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                        <li key={index} className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                           <span className="text-sm">{feature}</span>
                         </li>
                       ))}
@@ -186,32 +236,88 @@ export default function ManageSubscription() {
                     <Button
                       className="w-full"
                       variant={isCurrentPlan ? "secondary" : "default"}
-                      disabled={isSubscribed || processingCheckout === plan.name}
-                      onClick={() => handleSubscribe(plan.name, plan.price)}
+                      size="lg"
+                      disabled={isSubscribed || processingCheckout === plan.id}
+                      onClick={() => handleSubscribe(plan.id, plan.name, plan.price)}
                     >
-                      {processingCheckout === plan.name ? (
+                      {processingCheckout === plan.id ? (
                         <>
                           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Processing...
+                          Processing Payment...
                         </>
                       ) : isSubscribed ? (
-                        'Current Plan'
-                      ) : isCurrentPlan ? (
-                        'Manage via Pesapal'
+                        'Current Package'
                       ) : (
-                        'Subscribe with Pesapal'
+                        <>
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Pay {plan.currency} {plan.price.toLocaleString()} - Setup Now
+                        </>
                       )}
                     </Button>
+
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Secure payment via Pesapal (M-Pesa & Cards accepted)
+                    </p>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
 
+          {/* Payment Methods */}
+          <div className="text-center mt-12 p-6 bg-muted/50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Accepted Payment Methods</h3>
+            <div className="flex justify-center items-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4 text-green-600" />
+                <span>M-Pesa</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-blue-600" />
+                <span>Visa & Mastercard</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-purple-600" />
+                <span>Secure by Pesapal</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              All payments are processed securely by Pesapal and deposited directly to MenuHub Africa
+            </p>
+          </div>
+
+          {/* Why Choose MenuHub */}
+          <div className="mt-12 text-center">
+            <h3 className="text-xl font-semibold mb-6">Why Choose MenuHub Africa?</h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CreditCard className="h-6 w-6 text-primary" />
+                </div>
+                <h4 className="font-medium mb-2">No Monthly Fees</h4>
+                <p className="text-sm text-muted-foreground">Pay once, use forever. No hidden commissions or monthly charges.</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Smartphone className="h-6 w-6 text-primary" />
+                </div>
+                <h4 className="font-medium mb-2">M-Pesa Ready</h4>
+                <p className="text-sm text-muted-foreground">Built for Kenya. Accept M-Pesa and card payments seamlessly.</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Users className="h-6 w-6 text-primary" />
+                </div>
+                <h4 className="font-medium mb-2">Local Support</h4>
+                <p className="text-sm text-muted-foreground">Kenyan-based support team that understands your business needs.</p>
+              </div>
+            </div>
+          </div>
+
           {subscriptionData?.subscription_end && (
             <div className="text-center mt-8 p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Your subscription renews on{' '}
+                Your package was activated on{' '}
                 <span className="font-medium">
                   {new Date(subscriptionData.subscription_end).toLocaleDateString()}
                 </span>
