@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +48,11 @@ const CustomerMenu = () => {
 
   // Use filtered categories for display
   const categoriesToShow = searchTerm ? filteredCategories : categories;
+
+  // Find the first category with items for search results
+  const defaultActiveTab = searchTerm 
+    ? categoriesToShow.find(cat => cat.menu_items && cat.menu_items.length > 0)?.id || categoriesToShow[0]?.id
+    : categoriesToShow[0]?.id;
 
   if (loading) {
     return (
@@ -170,11 +174,16 @@ const CustomerMenu = () => {
             </CardContent>
           </Card>
         ) : (
-          <Tabs defaultValue={categoriesToShow[0]?.id} className="space-y-6">
+          <Tabs key={searchTerm} defaultValue={defaultActiveTab} className="space-y-6">
             <TabsList className="w-full justify-start overflow-x-auto">
               {categoriesToShow.map((category) => (
                 <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap">
                   {category.name}
+                  {searchTerm && category.menu_items && category.menu_items.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      {category.menu_items.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -187,20 +196,29 @@ const CustomerMenu = () => {
                     {category.description && (
                       <p className="text-muted-foreground">{category.description}</p>
                     )}
+                    {searchTerm && category.menu_items && category.menu_items.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Found {category.menu_items.length} item{category.menu_items.length !== 1 ? 's' : ''} matching "{searchTerm}"
+                      </p>
+                    )}
                   </CardHeader>
                 </Card>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {category.menu_items?.map((item) => (
-                    <MenuItemCard
-                      key={item.id}
-                      item={item}
-                      restaurantId={restaurantId!}
-                    />
-                  )) || (
+                  {category.menu_items && category.menu_items.length > 0 ? (
+                    category.menu_items.map((item) => (
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        restaurantId={restaurantId!}
+                      />
+                    ))
+                  ) : (
                     <Card className="sm:col-span-2">
                       <CardContent className="py-8 text-center">
-                        <p className="text-muted-foreground">No items in this category yet.</p>
+                        <p className="text-muted-foreground">
+                          {searchTerm ? `No items found matching "${searchTerm}" in this category.` : 'No items in this category yet.'}
+                        </p>
                       </CardContent>
                     </Card>
                   )}
