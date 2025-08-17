@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Crown, Check, ArrowRight, RefreshCw } from 'lucide-react';
+import { Crown, Check, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SubscriptionData {
@@ -17,44 +17,9 @@ interface SubscriptionData {
 }
 
 const PLANS = [
-  {
-    name: 'Basic',
-    price: 9.99,
-    features: [
-      'Digital Menu for 1 Restaurant',
-      'Basic QR Code Generation',
-      'Up to 50 Menu Items',
-      'Email Support'
-    ],
-    popular: false
-  },
-  {
-    name: 'Premium',
-    price: 19.99,
-    features: [
-      'Digital Menu for Up to 3 Restaurants',
-      'Custom Branding & Colors',
-      'Unlimited Menu Items',
-      'Order Management',
-      'Analytics Dashboard',
-      'Priority Support'
-    ],
-    popular: true
-  },
-  {
-    name: 'Enterprise',
-    price: 39.99,
-    features: [
-      'Unlimited Restaurants',
-      'White-label Solution',
-      'Advanced Analytics',
-      'API Access',
-      'Custom Integrations',
-      'Dedicated Account Manager',
-      '24/7 Phone Support'
-    ],
-    popular: false
-  }
+  { name: 'Basic', price: 9.99, features: ['Digital Menu for 1 Restaurant','Basic QR Code Generation','Up to 50 Menu Items','Email Support'], popular: false },
+  { name: 'Premium', price: 19.99, features: ['Digital Menu for Up to 3 Restaurants','Custom Branding & Colors','Unlimited Menu Items','Order Management','Analytics Dashboard','Priority Support'], popular: true },
+  { name: 'Enterprise', price: 39.99, features: ['Unlimited Restaurants','White-label Solution','Advanced Analytics','API Access','Custom Integrations','Dedicated Account Manager','24/7 Phone Support'], popular: false }
 ];
 
 export default function ManageSubscription() {
@@ -70,7 +35,6 @@ export default function ManageSubscription() {
       navigate('/login');
       return;
     }
-    
     if (user) {
       checkSubscriptionStatus();
     }
@@ -79,73 +43,56 @@ export default function ManageSubscription() {
   const checkSubscriptionStatus = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke('check-subscription');
-      
+      // Use PESAPAL-based status check (no Stripe)
+      const { data, error } = await supabase.functions.invoke('check-subscription-pesapal');
       if (error) throw error;
-      
-      setSubscriptionData(data);
-      console.log('Subscription status:', data);
+      setSubscriptionData(data as SubscriptionData);
+      console.log('Subscription status (Pesapal):', data);
     } catch (error) {
-      console.error('Error checking subscription:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load subscription status",
-        variant: "destructive",
-      });
+      console.error('Error checking subscription (Pesapal):', error);
+      toast({ title: "Error", description: "Failed to load subscription status", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubscribe = async (planName: string) => {
+  const handleSubscribe = async (planName: string, amountUSD: number) => {
     if (!user) return;
-    
     try {
       setProcessingCheckout(planName);
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: planName }
+      // Initialize Pesapal subscription payment using Edge Function (uses MenuHub credentials via secrets)
+      const orderId = `subscription_${planName.toLowerCase()}_${Date.now()}`;
+      const description = `MenuHub ${planName} Plan Subscription`;
+      const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
+        body: {
+          amount: amountUSD,             // keep USD to match UI pricing
+          currency: 'USD',
+          orderId,
+          description,
+          customerInfo: {
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
+            email: user.email || '',
+            phone: ''
+          },
+          callbackUrl: `${window.location.origin}/manage-subscription?success=true`,
+          cancelUrl: `${window.location.origin}/manage-subscription?canceled=true`,
+          isSubscription: true
+        }
       });
-      
+
       if (error) throw error;
-      
-      // Open Stripe checkout in a new tab
-      window.open(data.url, '_blank');
-      
-      toast({
-        title: "Redirecting to checkout",
-        description: "Complete your subscription in the new tab",
-      });
+
+      if (data?.redirect_url) {
+        window.open(data.redirect_url, '_blank');
+        toast({ title: "Redirecting to Pesapal", description: "Complete your subscription in the new tab" });
+      } else {
+        throw new Error('Missing redirect URL from Pesapal');
+      }
     } catch (error) {
-      console.error('Error creating checkout:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start checkout process",
-        variant: "destructive",
-      });
+      console.error('Error creating Pesapal subscription:', error);
+      toast({ title: "Error", description: "Failed to start Pesapal checkout", variant: "destructive" });
     } finally {
       setProcessingCheckout(null);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      
-      if (error) throw error;
-      
-      window.open(data.url, '_blank');
-      
-      toast({
-        title: "Opening subscription portal",
-        description: "Manage your subscription in the new tab",
-      });
-    } catch (error) {
-      console.error('Error opening customer portal:', error);
-      toast({
-        title: "Error",
-        description: "Failed to open subscription management",
-        variant: "destructive",
-      });
     }
   };
 
@@ -169,26 +116,18 @@ export default function ManageSubscription() {
             <p className="text-muted-foreground mb-6">
               Choose the perfect plan for your restaurant business
             </p>
-            
+
             {subscriptionData?.subscribed && (
               <div className="flex items-center justify-center gap-4 mb-6">
                 <Badge variant="default" className="px-4 py-2">
                   <Crown className="h-4 w-4 mr-2" />
                   Current Plan: {subscriptionData.subscription_tier}
                 </Badge>
-                <Button 
-                  variant="outline" 
-                  onClick={handleManageSubscription}
-                  className="flex items-center gap-2"
-                >
-                  Manage Subscription
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
               </div>
             )}
-            
-            <Button 
-              variant="ghost" 
+
+            <Button
+              variant="ghost"
               onClick={checkSubscriptionStatus}
               className="flex items-center gap-2 mx-auto"
             >
@@ -201,10 +140,10 @@ export default function ManageSubscription() {
             {PLANS.map((plan) => {
               const isCurrentPlan = subscriptionData?.subscription_tier === plan.name;
               const isSubscribed = subscriptionData?.subscribed && isCurrentPlan;
-              
+
               return (
-                <Card 
-                  key={plan.name} 
+                <Card
+                  key={plan.name}
                   className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''} ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
                 >
                   {plan.popular && (
@@ -212,7 +151,7 @@ export default function ManageSubscription() {
                       <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
                     </div>
                   )}
-                  
+
                   {isCurrentPlan && (
                     <div className="absolute top-4 right-4">
                       <Badge variant="secondary">
@@ -248,7 +187,7 @@ export default function ManageSubscription() {
                       className="w-full"
                       variant={isCurrentPlan ? "secondary" : "default"}
                       disabled={isSubscribed || processingCheckout === plan.name}
-                      onClick={() => handleSubscribe(plan.name)}
+                      onClick={() => handleSubscribe(plan.name, plan.price)}
                     >
                       {processingCheckout === plan.name ? (
                         <>
@@ -258,9 +197,9 @@ export default function ManageSubscription() {
                       ) : isSubscribed ? (
                         'Current Plan'
                       ) : isCurrentPlan ? (
-                        'Manage Plan'
+                        'Manage via Pesapal'
                       ) : (
-                        'Subscribe Now'
+                        'Subscribe with Pesapal'
                       )}
                     </Button>
                   </CardContent>
