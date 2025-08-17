@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           created_at: string
@@ -243,6 +270,54 @@ export type Database = {
           id?: string
           payment_methods?: Json
           restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscribers: {
+        Row: {
+          admin_notes: string | null
+          billing_method: string | null
+          created_at: string
+          email: string
+          id: string
+          managed_by_sales: boolean
+          restaurant_id: string
+          restaurant_name: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          subscription_start: string | null
+          subscription_tier: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          billing_method?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          managed_by_sales?: boolean
+          restaurant_id: string
+          restaurant_name?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_start?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          billing_method?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          managed_by_sales?: boolean
+          restaurant_id?: string
+          restaurant_name?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_start?: string | null
+          subscription_tier?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,21 +6,23 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Crown, Check, RefreshCw, Smartphone, Users, BarChart3, Palette, CreditCard, MapPin, Shield } from 'lucide-react';
+import { Crown, Check, RefreshCw, Smartphone, Users, CreditCard, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SubscriptionData {
   subscribed: boolean;
   subscription_tier?: string;
   subscription_end?: string;
+  managed_by_sales?: boolean;
+  billing_method?: string | null;
 }
 
 const PLANS = [
   {
     id: 'standard',
     name: 'Standard Digital Menu Solution',
-    price: 3000,
-    currency: 'KES',
+    price: 30,
+    currency: 'USD',
     description: 'Perfect for single restaurant locations',
     features: [
       'Mobile-friendly QR code-based menu',
@@ -39,8 +40,8 @@ const PLANS = [
   {
     id: 'multi_location',
     name: 'Multi-location + Staff Management',
-    price: 8000,
-    currency: 'KES',
+    price: 80,
+    currency: 'USD',
     description: 'For restaurant chains and growing businesses',
     features: [
       'Everything in Standard package',
@@ -80,10 +81,28 @@ export default function ManageSubscription() {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('check-subscription-pesapal');
       if (error) throw error;
-      setSubscriptionData(data as SubscriptionData);
-      console.log('Subscription status (Pesapal):', data);
+      let merged: SubscriptionData = data as SubscriptionData;
+
+      const { data: subRow, error: subErr } = await supabase
+        .from('subscribers')
+        .select('subscribed, subscription_tier, subscription_end, managed_by_sales, billing_method')
+        .eq('restaurant_id', user!.id)
+        .maybeSingle();
+
+      if (!subErr && subRow) {
+        merged = {
+          subscribed: !!subRow.subscribed,
+          subscription_tier: subRow.subscription_tier || merged.subscription_tier,
+          subscription_end: subRow.subscription_end || merged.subscription_end,
+          managed_by_sales: subRow.managed_by_sales,
+          billing_method: subRow.billing_method,
+        };
+      }
+
+      setSubscriptionData(merged);
+      console.log('Subscription status (merged):', merged);
     } catch (error) {
-      console.error('Error checking subscription (Pesapal):', error);
+      console.error('Error checking subscription:', error);
       toast({ title: "Error", description: "Failed to load subscription status", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -152,6 +171,8 @@ export default function ManageSubscription() {
     );
   }
 
+  const isSalesManaged = !!subscriptionData?.managed_by_sales || subscriptionData?.billing_method === 'sales_managed';
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -167,6 +188,7 @@ export default function ManageSubscription() {
                 <Badge variant="default" className="px-4 py-2">
                   <Crown className="h-4 w-4 mr-2" />
                   Active Plan: {subscriptionData.subscription_tier}
+                  {isSalesManaged && " – Managed by Sales"}
                 </Badge>
               </div>
             )}
@@ -183,7 +205,7 @@ export default function ManageSubscription() {
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {PLANS.map((plan) => {
-              const isCurrentPlan = subscriptionData?.subscription_tier === plan.name;
+              const isCurrentPlan = subscriptionData?.subscription_tier === plan.name || subscriptionData?.subscription_tier?.toLowerCase()?.includes(plan.id);
               const isSubscribed = subscriptionData?.subscribed && isCurrentPlan;
 
               return (
@@ -237,26 +259,22 @@ export default function ManageSubscription() {
                       className="w-full"
                       variant={isCurrentPlan ? "secondary" : "default"}
                       size="lg"
-                      disabled={isSubscribed || processingCheckout === plan.id}
-                      onClick={() => handleSubscribe(plan.id, plan.name, plan.price)}
+                      disabled={true /* sales-managed flow disables payment in-app */}
+                      onClick={() => {}}
                     >
-                      {processingCheckout === plan.id ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Processing Payment...
-                        </>
+                      {isSalesManaged ? (
+                        "Managed by Sales"
                       ) : isSubscribed ? (
-                        'Current Package'
+                        "Current Package"
                       ) : (
                         <>
-                          <CreditCard className="h-4 w-4 mr-2" />
-                          Pay {plan.currency} {plan.price.toLocaleString()} - Setup Now
+                          Contact Sales
                         </>
                       )}
                     </Button>
 
                     <p className="text-xs text-muted-foreground text-center mt-2">
-                      Secure payment via Pesapal (M-Pesa & Cards accepted)
+                      {isSalesManaged ? "This subscription is managed by our sales team." : "Contact our sales team to activate your plan."}
                     </p>
                   </CardContent>
                 </Card>
@@ -266,23 +284,15 @@ export default function ManageSubscription() {
 
           {/* Payment Methods */}
           <div className="text-center mt-12 p-6 bg-muted/50 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">Accepted Payment Methods</h3>
+            <h3 className="text-lg font-semibold mb-4">Billing</h3>
             <div className="flex justify-center items-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-green-600" />
-                <span>M-Pesa</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-blue-600" />
-                <span>Visa & Mastercard</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-purple-600" />
-                <span>Secure by Pesapal</span>
+                <span>Managed by Sales (offline billing)</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-3">
-              All payments are processed securely by Pesapal and deposited directly to MenuHub Africa
+              Billing handled outside the system (bank transfer, invoice, M-Pesa, Stripe invoice, etc.). Your plan and features are reflected here.
             </p>
           </div>
 

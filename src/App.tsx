@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +27,7 @@ import Privacy from "./pages/Privacy";
 import Cookies from "./pages/Cookies";
 import Refunds from "./pages/Refunds";
 import ManageSubscription from "./pages/ManageSubscription";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +61,7 @@ function App() {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/refunds" element={<Refunds />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
