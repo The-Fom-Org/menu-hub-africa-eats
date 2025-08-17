@@ -1,3 +1,4 @@
+
 import {
   Sheet,
   SheetContent,
@@ -13,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 interface CartDrawerProps {
   restaurantId: string;
@@ -21,8 +23,16 @@ interface CartDrawerProps {
 export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const { cartItems, getCartTotal, getCartCount, updateQuantity, removeFromCart } = useCart(restaurantId);
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Force re-render when cart items change
+  useEffect(() => {
+    // This effect will run whenever cartItems changes
+    console.log('Cart items updated:', cartItems.length);
+  }, [cartItems]);
 
   const handleCheckout = () => {
+    setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
   };
 
@@ -39,7 +49,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   }
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="default" size="sm" className="relative">
           <ShoppingCart className="h-4 w-4 mr-2" />
@@ -130,9 +140,6 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
             >
               Proceed to Checkout
             </Button>
-            <Plus className="h-3 w-3" />
-            <Plus className="h-3 w-3" />
-            
           </div>
         </div>
       </SheetContent>

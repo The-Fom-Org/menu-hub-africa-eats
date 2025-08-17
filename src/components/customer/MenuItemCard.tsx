@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Plus, Minus } from 'lucide-react';
 import { CustomerMenuItem } from '@/hooks/useCustomerMenuData';
 import { useCart } from '@/hooks/useCart';
 import { MenuItemCustomizationDialog } from './MenuItemCustomizationDialog';
+import { useToast } from '@/components/ui/use-toast';
 
 interface MenuItemCardProps {
   item: CustomerMenuItem;
@@ -13,10 +15,12 @@ interface MenuItemCardProps {
 }
 
 export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
-  const { addToCart, cartItems, updateQuantity, getCartCount } = useCart(restaurantId);
+  const { addToCart, cartItems, updateQuantity } = useCart(restaurantId);
+  const { toast } = useToast();
   const [showCustomization, setShowCustomization] = useState(false);
 
-  const cartItem = cartItems.find(cartItem => cartItem.id === item.id);
+  // Find cart item without customizations for the quick add/remove buttons
+  const cartItem = cartItems.find(cartItem => cartItem.id === item.id && !cartItem.customizations);
   const quantity = cartItem?.quantity || 0;
 
   const handleAddToCart = (customizations?: string, specialInstructions?: string) => {
@@ -27,6 +31,15 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       customizations,
       special_instructions: specialInstructions,
     });
+
+    // Show success toast
+    toast({
+      title: "Added to cart",
+      description: `${item.name} has been added to your cart`,
+      duration: 2000,
+    });
+
+    console.log('Item added to cart:', item.name);
   };
 
   const handleQuickAdd = () => {
@@ -34,12 +47,22 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       handleAddToCart();
     } else {
       updateQuantity(item.id, quantity + 1);
+      toast({
+        title: "Quantity updated",
+        description: `${item.name} quantity increased`,
+        duration: 1500,
+      });
     }
   };
 
   const handleDecrease = () => {
     if (quantity > 0) {
       updateQuantity(item.id, quantity - 1);
+      toast({
+        title: "Quantity updated",
+        description: quantity === 1 ? `${item.name} removed from cart` : `${item.name} quantity decreased`,
+        duration: 1500,
+      });
     }
   };
 
