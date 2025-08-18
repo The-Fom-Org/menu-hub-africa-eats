@@ -28,7 +28,7 @@ export const useCart = (restaurantId: string) => {
     phone: '',
     preferred_time: '',
   });
-  const [updateCounter, setUpdateCounter] = useState(0); // Force re-renders
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -49,7 +49,7 @@ export const useCart = (restaurantId: string) => {
     loadCart();
   }, [restaurantId]);
 
-  // Save cart to localStorage and trigger update whenever cartItems changes
+  // Save cart to localStorage whenever cartItems changes
   useEffect(() => {
     if (cartItems.length > 0) {
       try {
@@ -62,8 +62,8 @@ export const useCart = (restaurantId: string) => {
       localStorage.removeItem(`cart_${restaurantId}`);
     }
     
-    // Force components to re-render
-    setUpdateCounter(prev => prev + 1);
+    // Force all components using this hook to re-render
+    setForceUpdate(prev => prev + 1);
   }, [cartItems, restaurantId]);
 
   const addToCart = useCallback((item: Omit<CartItem, 'quantity'>) => {
@@ -75,24 +75,30 @@ export const useCart = (restaurantId: string) => {
       );
       
       if (existingItem) {
-        return prevItems.map(cartItem =>
+        const updated = prevItems.map(cartItem =>
           cartItem.id === item.id && cartItem.customizations === item.customizations
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
+        console.log('Updated cart after add:', updated);
+        return updated;
       } else {
-        return [...prevItems, { ...item, quantity: 1 }];
+        const updated = [...prevItems, { ...item, quantity: 1 }];
+        console.log('Updated cart after add new:', updated);
+        return updated;
       }
     });
   }, []);
 
   const removeFromCart = useCallback((itemId: string, customizations?: string) => {
     console.log('Removing from cart:', itemId, customizations);
-    setCartItems(prevItems => 
-      prevItems.filter(item => 
+    setCartItems(prevItems => {
+      const updated = prevItems.filter(item => 
         !(item.id === itemId && item.customizations === customizations)
-      )
-    );
+      );
+      console.log('Updated cart after remove:', updated);
+      return updated;
+    });
   }, []);
 
   const updateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
@@ -102,13 +108,15 @@ export const useCart = (restaurantId: string) => {
       return;
     }
     
-    setCartItems(prevItems =>
-      prevItems.map(item =>
+    setCartItems(prevItems => {
+      const updated = prevItems.map(item =>
         item.id === itemId && item.customizations === customizations
           ? { ...item, quantity }
           : item
-      )
-    );
+      );
+      console.log('Updated cart after quantity change:', updated);
+      return updated;
+    });
   }, [removeFromCart]);
 
   const clearCart = useCallback(() => {
@@ -117,31 +125,26 @@ export const useCart = (restaurantId: string) => {
     localStorage.removeItem(`cart_${restaurantId}`);
   }, [restaurantId]);
 
-  // Direct calculations instead of memoized
-  const getCartTotal = useCallback(() => {
-    const total = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    console.log('Cart total calculated:', total);
-    return total;
-  }, [cartItems]);
+  // Memoized calculations that will update when cartItems changes
+  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
-  const getCartCount = useCallback(() => {
-    const count = cartItems.reduce((count, item) => count + item.quantity, 0);
-    console.log('Cart count calculated:', count);
-    return count;
-  }, [cartItems]);
+  console.log('useCart render - cartItems:', cartItems, 'total:', cartTotal, 'count:', cartCount, 'forceUpdate:', forceUpdate);
 
   const getOrderDetails = useCallback((): OrderDetails => ({
     items: cartItems,
-    total: getCartTotal(),
+    total: cartTotal,
     order_type: orderType,
     customer_name: orderType === 'later' ? customerInfo.name : undefined,
     customer_phone: orderType === 'later' ? customerInfo.phone : undefined,
     preferred_time: orderType === 'later' ? customerInfo.preferred_time : undefined,
     restaurant_id: restaurantId,
-  }), [cartItems, getCartTotal, orderType, customerInfo, restaurantId]);
+  }), [cartItems, cartTotal, orderType, customerInfo, restaurantId]);
 
   return {
     cartItems,
+    cartTotal,
+    cartCount,
     orderType,
     setOrderType,
     customerInfo,
@@ -150,9 +153,7 @@ export const useCart = (restaurantId: string) => {
     removeFromCart,
     updateQuantity,
     clearCart,
-    getCartTotal,
-    getCartCount,
     getOrderDetails,
-    updateCounter, // Expose for components that need to react to changes
+    forceUpdate, // Expose for debugging
   };
 };

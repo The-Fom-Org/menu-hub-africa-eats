@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +12,6 @@ import { useSubscriptionLimits } from '@/hooks/useSubscriptionLimits';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector';
-import { UpgradePrompt } from '@/components/checkout/UpgradePrompt';
 import { paymentGatewayRegistry } from '@/lib/payment-gateways/registry';
 
 interface PaymentGatewayWithCredentials {
@@ -32,7 +30,7 @@ const Checkout = () => {
   
   const { 
     cartItems, 
-    getCartTotal, 
+    cartTotal,
     orderType, 
     setOrderType, 
     customerInfo, 
@@ -166,14 +164,9 @@ const Checkout = () => {
   }
 
   const handleOrderTypeChange = (type: 'now' | 'later') => {
-    // Check if pre-orders are allowed for this plan
+    // For free plans that don't support pre-orders, just silently keep it as 'now'
     if (type === 'later' && subscriptionLimits.requiresUpgradeForPreOrders) {
-      toast({
-        title: "Upgrade Required",
-        description: "Pre-orders require a Standard or Advanced plan",
-        variant: "destructive",
-      });
-      return;
+      return; // Don't change anything, no toast notification
     }
     
     setOrderType(type);
@@ -342,7 +335,6 @@ const Checkout = () => {
     }
   };
 
-  const cartTotal = getCartTotal();
   const isManualPayment = ['cash', 'mpesa_manual', 'bank_transfer'].includes(paymentMethod);
 
   return (
@@ -389,36 +381,19 @@ const Checkout = () => {
                       Order for Now (Dining In)
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem 
-                      value="later" 
-                      id="later" 
-                      disabled={subscriptionLimits.requiresUpgradeForPreOrders}
-                    />
-                    <Label 
-                      htmlFor="later" 
-                      className={`flex items-center gap-2 cursor-pointer ${
-                        subscriptionLimits.requiresUpgradeForPreOrders ? 'opacity-50' : ''
-                      }`}
-                    >
-                      <Clock className="h-4 w-4" />
-                      Pre-order for Later
-                      {subscriptionLimits.requiresUpgradeForPreOrders && (
-                        <span className="text-xs text-amber-600 font-medium">(Upgrade Required)</span>
-                      )}
-                    </Label>
-                  </div>
+                  {/* Only show pre-order option if allowed by subscription */}
+                  {!subscriptionLimits.requiresUpgradeForPreOrders && (
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="later" id="later" />
+                      <Label htmlFor="later" className="flex items-center gap-2 cursor-pointer">
+                        <Clock className="h-4 w-4" />
+                        Pre-order for Later
+                      </Label>
+                    </div>
+                  )}
                 </RadioGroup>
               </CardContent>
             </Card>
-
-            {/* Upgrade Prompt for Pre-orders */}
-            {subscriptionLimits.requiresUpgradeForPreOrders && (
-              <UpgradePrompt
-                feature="Pre-orders"
-                description="Allow customers to schedule orders for pickup at their preferred time. This feature requires automatic payment processing."
-              />
-            )}
 
             {/* Customer Information (for pre-orders) */}
             {orderType === 'later' && !subscriptionLimits.requiresUpgradeForPreOrders && (

@@ -25,12 +25,10 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
-  // CRITICAL: Subscribe directly to cartItems and updateCounter to ensure re-renders
-  const { cartItems, updateCounter } = cart;
-  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Use the calculated values directly from the hook
+  const { cartItems, cartCount, cartTotal, forceUpdate } = cart;
 
-  console.log('CartDrawer render - updateCounter:', updateCounter, 'cartCount:', cartCount, 'cartItems length:', cartItems.length);
+  console.log('CartDrawer render - cartCount:', cartCount, 'cartTotal:', cartTotal, 'cartItems length:', cartItems.length, 'forceUpdate:', forceUpdate);
 
   const handleCheckout = () => {
     if (cartCount === 0) return;
@@ -155,4 +153,3 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     </Sheet>
   );
 };
-
