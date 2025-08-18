@@ -16,26 +16,50 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("admin@menuhub.com");
   const [password, setPassword] = useState("AdminPass123!");
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const createAdminUser = async () => {
+    setCreating(true);
     try {
-      const response = await fetch('/functions/v1/create-admin-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      console.log('Calling create-admin-user function...');
+      
+      const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        body: {}
       });
       
-      const result = await response.json();
+      console.log('Function response:', { data, error });
       
-      if (result.success) {
-        toast({ title: "Admin user created", description: "You can now sign in with the admin credentials." });
+      if (error) {
+        console.error('Function error:', error);
+        toast({ 
+          title: "Creation failed", 
+          description: error.message || "Could not create admin user.", 
+          variant: "destructive" 
+        });
+        return;
+      }
+      
+      if (data?.success) {
+        toast({ 
+          title: "Admin user created", 
+          description: "You can now sign in with the admin credentials." 
+        });
       } else {
-        toast({ title: "Creation failed", description: result.error, variant: "destructive" });
+        toast({ 
+          title: "Creation failed", 
+          description: data?.error || "Unknown error occurred.", 
+          variant: "destructive" 
+        });
       }
     } catch (error) {
       console.error('Create admin error:', error);
-      toast({ title: "Creation failed", description: "Could not create admin user.", variant: "destructive" });
+      toast({ 
+        title: "Creation failed", 
+        description: "Could not create admin user.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -177,8 +201,9 @@ export default function AdminLogin() {
               variant="outline"
               className="w-full"
               onClick={createAdminUser}
+              disabled={creating}
             >
-              Create Admin User (if needed)
+              {creating ? "Creating..." : "Create Admin User (if needed)"}
             </Button>
           </div>
         </CardContent>
