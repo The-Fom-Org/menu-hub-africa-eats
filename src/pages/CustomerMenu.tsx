@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -85,11 +86,11 @@ const CustomerMenu = () => {
     );
   }
 
-  // Apply custom branding colors as CSS variables
-  const brandingStyles = restaurantInfo ? {
+  // Apply custom branding colors as CSS variables with proper typing
+  const brandingStyles: React.CSSProperties = restaurantInfo ? {
     '--brand-primary': restaurantInfo.primary_color || 'hsl(25 85% 55%)',
     '--brand-secondary': restaurantInfo.secondary_color || 'hsl(120 50% 25%)',
-  } : {};
+  } as React.CSSProperties : {};
 
   return (
     <div className="min-h-screen bg-gradient-subtle" style={brandingStyles}>
