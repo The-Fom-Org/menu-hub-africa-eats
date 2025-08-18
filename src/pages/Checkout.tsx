@@ -45,14 +45,33 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [availableGateways, setAvailableGateways] = useState<PaymentGatewayWithCredentials[]>([]);
   const [isLoadingPaymentMethods, setIsLoadingPaymentMethods] = useState(true);
+  const [paymentLoadTimeout, setPaymentLoadTimeout] = useState(false);
 
-  // Load payment settings for this restaurant
+  // Load payment settings with timeout and fallback
   useEffect(() => {
     const loadPaymentSettings = async () => {
       try {
         setIsLoadingPaymentMethods(true);
         console.log('Loading payment settings for restaurant:', restaurantId);
-        
+
+        // Set up a timeout for subscription limits
+        const timeoutId = setTimeout(() => {
+          console.log('Subscription limits loading timeout - using fallback');
+          setPaymentLoadTimeout(true);
+        }, 5000);
+
+        // Wait for subscription limits with timeout
+        let limits = subscriptionLimits;
+        if (subscriptionLimits.isLoading && !paymentLoadTimeout) {
+          console.log('Waiting for subscription limits...');
+          // Give it a moment, but don't wait forever
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          limits = subscriptionLimits;
+        }
+
+        clearTimeout(timeoutId);
+
+        // Load payment settings from database
         const { data, error } = await supabase
           .from('restaurant_payment_settings')
           .select('payment_methods')
@@ -68,15 +87,22 @@ const Checkout = () => {
         
         const allGateways = paymentGatewayRegistry.getAll();
         console.log('All available gateways:', allGateways);
-        console.log('Subscription limits:', subscriptionLimits);
         
-        // Filter and map available gateways based on restaurant settings AND subscription limits
+        // Use fallback limits if still loading or timeout occurred
+        const effectiveLimits = limits.isLoading || paymentLoadTimeout ? {
+          canEnablePaymentMethod: (method: string) => ['cash', 'mpesa_manual', 'bank_transfer'].includes(method),
+          plan: 'free'
+        } : limits;
+
+        console.log('Effective subscription limits:', effectiveLimits);
+        
+        // Filter and map available gateways
         const available: PaymentGatewayWithCredentials[] = allGateways
           .filter(gateway => {
-            // Check if gateway is allowed by subscription plan
-            const allowedByPlan = subscriptionLimits.canEnablePaymentMethod(gateway.type);
+            // Check if gateway is allowed by subscription plan (with fallback)
+            const allowedByPlan = effectiveLimits.canEnablePaymentMethod(gateway.type);
             if (!allowedByPlan) {
-              console.log(`Gateway ${gateway.type} not allowed by plan ${subscriptionLimits.plan}`);
+              console.log(`Gateway ${gateway.type} not allowed by plan ${effectiveLimits.plan}`);
               return false;
             }
 
@@ -98,8 +124,9 @@ const Checkout = () => {
 
         // If no payment methods configured, add default allowed methods
         if (available.length === 0) {
+          console.log('No payment methods found, adding defaults');
           const defaultMethods = ['cash'];
-          if (subscriptionLimits.canEnablePaymentMethod('mpesa_manual')) {
+          if (effectiveLimits.canEnablePaymentMethod('mpesa_manual')) {
             defaultMethods.push('mpesa_manual', 'bank_transfer');
           }
 
@@ -123,29 +150,32 @@ const Checkout = () => {
         if (available.length > 0) {
           setPaymentMethod(available[0].type);
         }
+
+        console.log('Payment methods loaded successfully:', available);
       } catch (error) {
         console.error('Error loading payment settings:', error);
         // Fallback to cash only
         const cashGateway = paymentGatewayRegistry.get('cash');
         if (cashGateway) {
-          setAvailableGateways([{
+          const fallbackGateways = [{
             type: cashGateway.type,
             name: cashGateway.name,
             requiresCredentials: cashGateway.requiresCredentials,
             supportedMethods: cashGateway.supportedMethods,
             credentials: {}
-          }]);
+          }];
+          setAvailableGateways(fallbackGateways);
           setPaymentMethod('cash');
+          console.log('Using fallback payment methods:', fallbackGateways);
         }
       } finally {
         setIsLoadingPaymentMethods(false);
       }
     };
 
-    if (!subscriptionLimits.isLoading) {
-      loadPaymentSettings();
-    }
-  }, [restaurantId, subscriptionLimits]);
+    // Always try to load payment settings, don't wait indefinitely for subscription limits
+    loadPaymentSettings();
+  }, [restaurantId, subscriptionLimits.isLoading, paymentLoadTimeout]);
 
   // Redirect if cart is empty
   if (cartItems.length === 0) {
@@ -447,6 +477,9 @@ const Checkout = () => {
                   <div className="animate-pulse space-y-4">
                     <div className="h-4 bg-muted rounded w-3/4"></div>
                     <div className="h-4 bg-muted rounded w-1/2"></div>
+                    <p className="text-sm text-muted-foreground">
+                      {paymentLoadTimeout ? 'Loading is taking longer than expected, using defaults...' : 'Please wait while we load available payment options...'}
+                    </p>
                   </div>
                 </CardContent>
               </Card>

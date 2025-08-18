@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface CartDrawerProps {
   restaurantId: string;
@@ -30,6 +30,11 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
 
   console.log('CartDrawer render - cartCount:', cartCount, 'cartTotal:', cartTotal, 'cartItems length:', cartItems.length, 'forceUpdate:', forceUpdate);
 
+  // Force component update when forceUpdate changes
+  useEffect(() => {
+    console.log('CartDrawer forceUpdate changed:', forceUpdate);
+  }, [forceUpdate]);
+
   const handleCheckout = () => {
     if (cartCount === 0) return;
     setIsOpen(false);
@@ -43,6 +48,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
           variant={cartCount > 0 ? "default" : "outline"} 
           size="sm" 
           className="relative"
+          key={`cart-trigger-${forceUpdate}`}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
           Cart
@@ -54,7 +60,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
         </Button>
       </SheetTrigger>
       
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
+      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col" key={`cart-content-${forceUpdate}`}>
         <SheetHeader className="flex-shrink-0">
           <SheetTitle>Your Order</SheetTitle>
           <SheetDescription>
@@ -76,7 +82,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
               <ScrollArea className="flex-1 -mx-6 px-6">
                 <div className="space-y-4 mt-6">
                   {cartItems.map((item, index) => (
-                    <div key={`${item.id}-${item.customizations}-${index}`} className="space-y-3">
+                    <div key={`${item.id}-${item.customizations}-${index}-${forceUpdate}`} className="space-y-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h4 className="font-medium text-sm">{item.name}</h4>

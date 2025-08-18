@@ -17,7 +17,7 @@ const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const [searchParams] = useSearchParams();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId!);
-  const { setOrderType } = useCart(restaurantId!);
+  const { setOrderType, forceUpdate } = useCart(restaurantId!);
   const { canUsePreOrders } = useSubscriptionLimits();
   const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,7 +89,7 @@ const CustomerMenu = () => {
   const brandingStyles = restaurantInfo ? {
     '--brand-primary': restaurantInfo.primary_color || 'hsl(25 85% 55%)',
     '--brand-secondary': restaurantInfo.secondary_color || 'hsl(120 50% 25%)',
-  } as React.CSSProperties : {};
+  } : {};
 
   return (
     <div className="min-h-screen bg-gradient-subtle" style={brandingStyles}>
@@ -146,7 +146,7 @@ const CustomerMenu = () => {
               </div>
             </div>
             
-            <CartDrawer restaurantId={restaurantId!} />
+            <CartDrawer key={forceUpdate} restaurantId={restaurantId!} />
           </div>
           
           {/* Search Bar */}
