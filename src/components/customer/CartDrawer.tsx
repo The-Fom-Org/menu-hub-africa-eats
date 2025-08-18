@@ -25,9 +25,12 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Use direct function calls to ensure real-time updates
-  const cartCount = cart.getCartCount();
-  const cartTotal = cart.getCartTotal();
+  // CRITICAL: Subscribe directly to cartItems and updateCounter to ensure re-renders
+  const { cartItems, updateCounter } = cart;
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  console.log('CartDrawer render - updateCounter:', updateCounter, 'cartCount:', cartCount, 'cartItems length:', cartItems.length);
 
   const handleCheckout = () => {
     if (cartCount === 0) return;
@@ -74,7 +77,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
             <>
               <ScrollArea className="flex-1 -mx-6 px-6">
                 <div className="space-y-4 mt-6">
-                  {cart.cartItems.map((item, index) => (
+                  {cartItems.map((item, index) => (
                     <div key={`${item.id}-${item.customizations}-${index}`} className="space-y-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -124,7 +127,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           </Button>
                         </div>
                       </div>
-                      {index < cart.cartItems.length - 1 && <Separator />}
+                      {index < cartItems.length - 1 && <Separator />}
                     </div>
                   ))}
                 </div>
@@ -152,3 +155,4 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     </Sheet>
   );
 };
+
