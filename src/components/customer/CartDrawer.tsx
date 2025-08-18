@@ -36,15 +36,13 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   };
 
   const handleQuantityUpdate = (itemId: string, quantity: number, customizations?: string) => {
-    console.log('CartDrawer - updating quantity with reload:', itemId, 'to', quantity);
+    console.log('CartDrawer - updating quantity:', itemId, 'to', quantity);
     cart.updateQuantity(itemId, quantity, customizations);
-    // Reload is handled by the useCart hook
   };
 
   const handleRemoveItem = (itemId: string, customizations?: string) => {
-    console.log('CartDrawer - removing item with reload:', itemId);
+    console.log('CartDrawer - removing item:', itemId);
     cart.removeFromCart(itemId, customizations);
-    // Reload is handled by the useCart hook
   };
 
   return (
