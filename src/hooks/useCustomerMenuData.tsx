@@ -62,10 +62,10 @@ export const useCustomerMenuData = (restaurantId: string) => {
 
       setCategories(filteredCategories);
 
-      // Fetch restaurant profile info
+      // Fetch restaurant profile info (only public-safe fields for customer menu)
       const { data: profileData, error: profileError } = await (supabase as any)
         .from('profiles')
-        .select('*')
+        .select('restaurant_name, logo_url, cover_image_url, primary_color, secondary_color')
         .eq('user_id', restaurantId)
         .single();
 
@@ -73,13 +73,12 @@ export const useCustomerMenuData = (restaurantId: string) => {
         setRestaurantInfo({
           id: restaurantId,
           name: profileData.restaurant_name || "MenuHub Restaurant",
-          description: profileData.description || "Delicious meals made with love",
+          description: "Delicious meals made with love", // Default since not queried
           logo_url: profileData.logo_url,
           cover_image_url: profileData.cover_image_url,
-          tagline: profileData.tagline,
           primary_color: profileData.primary_color,
           secondary_color: profileData.secondary_color,
-          phone_number: profileData.phone_number,
+          // Sensitive fields not exposed to public customer menu
         });
       } else {
         setRestaurantInfo({
