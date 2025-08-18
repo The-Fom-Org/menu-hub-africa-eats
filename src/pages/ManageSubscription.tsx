@@ -62,8 +62,7 @@ const PLANS = [
       'WhatsApp support'
     ],
     popular: true,
-    billing: 'Monthly subscription fee',
-    commission: 'No commissions'
+    commission: 'Monthly commissions'
   },
   {
     id: 'multi_location',
@@ -82,8 +81,7 @@ const PLANS = [
       'Advanced reporting'
     ],
     popular: false,
-    billing: 'Monthly subscription fee',
-    commission: 'No commissions'
+    commission: 'Monthly commissions'
   }
 ];
 
