@@ -28,23 +28,28 @@ export const useCart = (restaurantId: string) => {
     phone: '',
     preferred_time: '',
   });
+  const [updateCounter, setUpdateCounter] = useState(0); // Force re-renders
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem(`cart_${restaurantId}`);
-    if (savedCart) {
-      try {
-        const parsed = JSON.parse(savedCart);
-        setCartItems(parsed);
-        console.log('Cart loaded from localStorage:', parsed);
-      } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
-        localStorage.removeItem(`cart_${restaurantId}`);
+    const loadCart = () => {
+      const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+      if (savedCart) {
+        try {
+          const parsed = JSON.parse(savedCart);
+          setCartItems(parsed);
+          console.log('Cart loaded from localStorage:', parsed);
+        } catch (error) {
+          console.error('Error loading cart from localStorage:', error);
+          localStorage.removeItem(`cart_${restaurantId}`);
+        }
       }
-    }
+    };
+    
+    loadCart();
   }, [restaurantId]);
 
-  // Save cart to localStorage whenever cartItems changes
+  // Save cart to localStorage and trigger update whenever cartItems changes
   useEffect(() => {
     if (cartItems.length > 0) {
       try {
@@ -56,6 +61,9 @@ export const useCart = (restaurantId: string) => {
     } else {
       localStorage.removeItem(`cart_${restaurantId}`);
     }
+    
+    // Force components to re-render
+    setUpdateCounter(prev => prev + 1);
   }, [cartItems, restaurantId]);
 
   const addToCart = useCallback((item: Omit<CartItem, 'quantity'>) => {
@@ -109,6 +117,7 @@ export const useCart = (restaurantId: string) => {
     localStorage.removeItem(`cart_${restaurantId}`);
   }, [restaurantId]);
 
+  // Direct calculations instead of memoized
   const getCartTotal = useCallback(() => {
     const total = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
     console.log('Cart total calculated:', total);
@@ -144,5 +153,6 @@ export const useCart = (restaurantId: string) => {
     getCartTotal,
     getCartCount,
     getOrderDetails,
+    updateCounter, // Expose for components that need to react to changes
   };
 };

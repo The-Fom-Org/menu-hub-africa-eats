@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 
 interface CartDrawerProps {
   restaurantId: string;
@@ -25,9 +25,9 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Use useMemo to ensure these values are properly calculated and cached
-  const cartCount = useMemo(() => cart.getCartCount(), [cart.cartItems]);
-  const cartTotal = useMemo(() => cart.getCartTotal(), [cart.cartItems]);
+  // Use direct function calls to ensure real-time updates
+  const cartCount = cart.getCartCount();
+  const cartTotal = cart.getCartTotal();
 
   const handleCheckout = () => {
     if (cartCount === 0) return;
