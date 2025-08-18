@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
 
 interface AddMenuItemDialogProps {
   categoryId: string;
@@ -32,10 +35,20 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
   const [isAvailable, setIsAvailable] = useState(true);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { canAddMenuItem, plan, maxMenuItems, currentMenuItemCount } = useSubscriptionLimits();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !price) return;
+
+    if (!canAddMenuItem) {
+      toast({
+        title: "Item limit reached",
+        description: `Free plan is limited to ${maxMenuItems} menu items. Upgrade to add more.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -76,7 +89,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="sm">
+          <Button size="sm" disabled={!canAddMenuItem}>
             <Plus className="h-4 w-4 mr-2" />
             Add Item
           </Button>
@@ -87,69 +100,83 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
           <DialogTitle>Add Item to {categoryName}</DialogTitle>
           <DialogDescription>
             Add a new menu item to this category.
+            {plan === 'free' && maxMenuItems && (
+              <span className="block mt-1 text-xs text-muted-foreground">
+                {currentMenuItemCount}/{maxMenuItems} items used
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="item-name">Item Name</Label>
-            <Input
-              id="item-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Nyama Choma"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="item-description">Description</Label>
-            <Textarea
-              id="item-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of the dish"
-              rows={3}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="item-price">Price (KSh)</Label>
-            <Input
-              id="item-price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0.00"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Item Image</Label>
-            <ImageUpload
-              bucket="menu-images"
-              path="items/"
-              value={imageUrl}
-              onChange={setImageUrl}
-              placeholder="Upload menu item image"
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="item-available"
-              checked={isAvailable}
-              onCheckedChange={setIsAvailable}
-            />
-            <Label htmlFor="item-available">Available</Label>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading || !name.trim() || !price}>
-              {loading ? "Adding..." : "Add Item"}
-            </Button>
-          </div>
-        </form>
+
+        {!canAddMenuItem ? (
+          <UpgradePrompt
+            title="Menu Item Limit Reached"
+            description={`Your free plan is limited to ${maxMenuItems} menu items. Upgrade to Standard or Advanced plan to add unlimited menu items.`}
+            feature="unlimited menu items"
+          />
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="item-name">Item Name</Label>
+              <Input
+                id="item-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Nyama Choma"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="item-description">Description</Label>
+              <Textarea
+                id="item-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of the dish"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="item-price">Price (KSh)</Label>
+              <Input
+                id="item-price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Item Image</Label>
+              <ImageUpload
+                bucket="menu-images"
+                path="items/"
+                value={imageUrl}
+                onChange={setImageUrl}
+                placeholder="Upload menu item image"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="item-available"
+                checked={isAvailable}
+                onCheckedChange={setIsAvailable}
+              />
+              <Label htmlFor="item-available">Available</Label>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading || !name.trim() || !price}>
+                {loading ? "Adding..." : "Add Item"}
+              </Button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

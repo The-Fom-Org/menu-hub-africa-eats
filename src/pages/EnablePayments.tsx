@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, Smartphone, Shield, CheckCircle, AlertCircle, Building, Banknote, ExternalLink, Info, Save } from "lucide-react";
+import { ArrowLeft, CreditCard, Smartphone, Shield, CheckCircle, AlertCircle, Building, Banknote, ExternalLink, Info, Save, Crown } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
+import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 
 interface PaymentSettings {
   pesapal?: {
@@ -41,6 +43,7 @@ const EnablePayments = () => {
   const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { canEnablePaymentMethod, plan } = useSubscriptionLimits();
 
   // Payment settings state
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
@@ -142,6 +145,17 @@ const EnablePayments = () => {
     }
   };
 
+  const isPaymentMethodAllowed = (method: string) => {
+    return canEnablePaymentMethod(method);
+  };
+
+  const getPaymentMethodBadge = (method: string, enabled: boolean) => {
+    if (!isPaymentMethodAllowed(method)) {
+      return <Badge variant="outline" className="text-orange-600 border-orange-200">Premium</Badge>;
+    }
+    return <Badge variant={enabled ? "default" : "secondary"}>{enabled ? "Active" : "Inactive"}</Badge>;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -184,19 +198,37 @@ const EnablePayments = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Payment Methods
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Enable secure payment options for your customers
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-foreground mb-2">
+                Payment Methods
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                Enable secure payment options for your customers
+              </p>
+            </div>
+            {plan === 'free' && (
+              <Badge variant="secondary">Free Plan</Badge>
+            )}
+          </div>
         </div>
+
+        {plan === 'free' && (
+          <div className="mb-8">
+            <UpgradePrompt
+              title="Unlock All Payment Methods"
+              description="Free plan includes M-Pesa and Cash payments. Upgrade to enable Pesapal integration and Bank transfers for more payment options."
+              feature="all payment methods"
+              compact
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Payment Methods */}
           <div className="lg:col-span-2 space-y-6">
             {/* Pesapal Integration */}
-            <Card className="border-l-4 border-l-primary">
+            <Card className={`border-l-4 border-l-primary ${!isPaymentMethodAllowed('pesapal') ? 'opacity-75' : ''}`}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -209,12 +241,21 @@ const EnablePayments = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={paymentSettings.pesapal?.enabled ? "default" : "secondary"}>
-                      {paymentSettings.pesapal?.enabled ? "Active" : "Inactive"}
-                    </Badge>
+                    {getPaymentMethodBadge('pesapal', paymentSettings.pesapal?.enabled || false)}
                     <Switch
                       checked={paymentSettings.pesapal?.enabled || false}
-                      onCheckedChange={(checked) => handleSettingChange('pesapal', 'enabled', checked)}
+                      onCheckedChange={(checked) => {
+                        if (!isPaymentMethodAllowed('pesapal') && checked) {
+                          toast({
+                            title: "Premium Feature",
+                            description: "Pesapal integration is available in Standard and Advanced plans.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        handleSettingChange('pesapal', 'enabled', checked);
+                      }}
+                      disabled={!isPaymentMethodAllowed('pesapal')}
                     />
                   </div>
                 </div>
@@ -236,8 +277,20 @@ const EnablePayments = () => {
                     <AlertCircle className="h-4 w-4 text-orange-600" />
                     <span>Requires Pesapal business account</span>
                   </div>
+
+                  {!isPaymentMethodAllowed('pesapal') && (
+                    <Alert className="mt-4 border-orange-200 bg-orange-50">
+                      <Crown className="h-4 w-4 text-orange-600" />
+                      <AlertDescription className="text-orange-800">
+                        <strong>Premium Feature:</strong> Pesapal integration is available in Standard and Advanced plans. 
+                        <Button variant="link" className="p-0 h-auto text-orange-600 ml-1" onClick={() => navigate('/manage-subscription')}>
+                          Upgrade now
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   
-                  {!paymentSettings.pesapal?.enabled && (
+                  {!paymentSettings.pesapal?.enabled && isPaymentMethodAllowed('pesapal') && (
                     <Alert className="mt-4">
                       <Info className="h-4 w-4" />
                       <AlertDescription>
@@ -254,7 +307,7 @@ const EnablePayments = () => {
                     </Alert>
                   )}
                   
-                  {paymentSettings.pesapal?.enabled && (
+                  {paymentSettings.pesapal?.enabled && isPaymentMethodAllowed('pesapal') && (
                     <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg">
                       <h4 className="font-medium">Pesapal Credentials</h4>
                       <div className="grid grid-cols-1 gap-3">
@@ -285,7 +338,7 @@ const EnablePayments = () => {
                     </div>
                   )}
                   
-                  {!paymentSettings.pesapal?.enabled && (
+                  {!paymentSettings.pesapal?.enabled && isPaymentMethodAllowed('pesapal') && (
                     <Button 
                       className="w-full mt-4"
                       onClick={() => window.open('https://www.pesapal.com/business', '_blank')}
@@ -312,9 +365,7 @@ const EnablePayments = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={paymentSettings.mpesa_manual?.enabled ? "default" : "secondary"}>
-                      {paymentSettings.mpesa_manual?.enabled ? "Active" : "Inactive"}
-                    </Badge>
+                    {getPaymentMethodBadge('mpesa_manual', paymentSettings.mpesa_manual?.enabled || false)}
                     <Switch
                       checked={paymentSettings.mpesa_manual?.enabled || false}
                       onCheckedChange={(checked) => handleSettingChange('mpesa_manual', 'enabled', checked)}
@@ -383,7 +434,7 @@ const EnablePayments = () => {
             </Card>
 
             {/* Bank Transfer */}
-            <Card className="border-l-4 border-l-accent">
+            <Card className={`border-l-4 border-l-accent ${!isPaymentMethodAllowed('bank_transfer') ? 'opacity-75' : ''}`}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -396,12 +447,21 @@ const EnablePayments = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={paymentSettings.bank_transfer?.enabled ? "default" : "secondary"}>
-                      {paymentSettings.bank_transfer?.enabled ? "Active" : "Inactive"}
-                    </Badge>
+                    {getPaymentMethodBadge('bank_transfer', paymentSettings.bank_transfer?.enabled || false)}
                     <Switch
                       checked={paymentSettings.bank_transfer?.enabled || false}
-                      onCheckedChange={(checked) => handleSettingChange('bank_transfer', 'enabled', checked)}
+                      onCheckedChange={(checked) => {
+                        if (!isPaymentMethodAllowed('bank_transfer') && checked) {
+                          toast({
+                            title: "Premium Feature",
+                            description: "Bank transfer is available in Standard and Advanced plans.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        handleSettingChange('bank_transfer', 'enabled', checked);
+                      }}
+                      disabled={!isPaymentMethodAllowed('bank_transfer')}
                     />
                   </div>
                 </div>
@@ -419,8 +479,20 @@ const EnablePayments = () => {
                     <AlertCircle className="h-4 w-4 text-orange-600" />
                     <span>Manual verification required</span>
                   </div>
+
+                  {!isPaymentMethodAllowed('bank_transfer') && (
+                    <Alert className="mt-4 border-orange-200 bg-orange-50">
+                      <Crown className="h-4 w-4 text-orange-600" />
+                      <AlertDescription className="text-orange-800">
+                        <strong>Premium Feature:</strong> Bank transfer is available in Standard and Advanced plans. 
+                        <Button variant="link" className="p-0 h-auto text-orange-600 ml-1" onClick={() => navigate('/manage-subscription')}>
+                          Upgrade now
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   
-                  {paymentSettings.bank_transfer?.enabled && (
+                  {paymentSettings.bank_transfer?.enabled && isPaymentMethodAllowed('bank_transfer') && (
                     <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg">
                       <h4 className="font-medium">Bank Account Details</h4>
                       <div className="grid grid-cols-1 gap-3">
@@ -478,9 +550,7 @@ const EnablePayments = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={paymentSettings.cash?.enabled ? "default" : "secondary"}>
-                      {paymentSettings.cash?.enabled ? "Active" : "Inactive"}
-                    </Badge>
+                    {getPaymentMethodBadge('cash', paymentSettings.cash?.enabled || false)}
                     <Switch
                       checked={paymentSettings.cash?.enabled || false}
                       onCheckedChange={(checked) => handleSettingChange('cash', 'enabled', checked)}

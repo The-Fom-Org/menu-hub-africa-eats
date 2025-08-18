@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Crown, Check, RefreshCw, Smartphone, Users, CreditCard, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
 
 interface SubscriptionData {
   subscribed: boolean;
@@ -19,16 +20,41 @@ interface SubscriptionData {
 
 const PLANS = [
   {
+    id: 'free',
+    name: 'Free Plan',
+    price: 0,
+    currency: 'USD',
+    description: 'Perfect for getting started',
+    features: [
+      'Up to 15 menu items',
+      'Mobile-friendly QR code menu',
+      'M-Pesa manual payments',
+      'Cash payments',
+      'Basic restaurant branding',
+      'WhatsApp support'
+    ],
+    limitations: [
+      'Limited to 15 menu items',
+      'Manual payment verification only',
+      'Basic payment methods only'
+    ],
+    popular: false,
+    billing: 'Always free',
+    commission: 'No monthly fees'
+  },
+  {
     id: 'standard',
     name: 'Standard Digital Menu Solution',
     price: 30,
     currency: 'USD',
     description: 'Perfect for single restaurant locations',
     features: [
+      'Unlimited menu items',
       'Mobile-friendly QR code-based menu',
       'Unlimited menu updates (photos, descriptions, prices)',
       'Order-taking via customer phones',
-      'M-Pesa & card payment integration',
+      'M-Pesa & card payment integration (Pesapal)',
+      'Bank transfer payments',
       'Restaurant branding (logo, colors)',
       'Basic analytics (menu views, popular items)',
       'WhatsApp support'
@@ -45,6 +71,7 @@ const PLANS = [
     description: 'For restaurant chains and growing businesses',
     features: [
       'Everything in Standard package',
+      'Unlimited menu items',
       'Multi-location management',
       'Separate menus & analytics per branch',
       'Staff accounts & permissions',
@@ -65,6 +92,7 @@ export default function ManageSubscription() {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingCheckout, setProcessingCheckout] = useState<string | null>(null);
+  const { plan, currentMenuItemCount, maxMenuItems } = useSubscriptionLimits();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -131,14 +159,13 @@ export default function ManageSubscription() {
           },
           callbackUrl: `${window.location.origin}/manage-subscription?success=true&plan=${planId}`,
           cancelUrl: `${window.location.origin}/manage-subscription?canceled=true`,
-          isSubscription: true // This flag ensures MenuHub Africa's Pesapal credentials are used
+          isSubscription: true
         }
       });
 
       if (error) throw error;
 
       if (data?.redirect_url) {
-        // Open Pesapal payment page in new tab
         window.open(data.redirect_url, '_blank');
         toast({ 
           title: "Redirecting to Pesapal Payment", 
@@ -180,7 +207,7 @@ export default function ManageSubscription() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-4">Choose Your MenuHub Package</h1>
             <p className="text-muted-foreground mb-6">
-              Affordable, one-time setup with no monthly commissions. Perfect for Kenyan restaurants.
+              Start free, upgrade when you're ready. Affordable, one-time setup with no monthly commissions.
             </p>
 
             {subscriptionData?.subscribed && (
@@ -190,6 +217,17 @@ export default function ManageSubscription() {
                   Active Plan: {subscriptionData.subscription_tier}
                   {isSalesManaged && " – Managed by Sales"}
                 </Badge>
+              </div>
+            )}
+
+            {plan === 'free' && maxMenuItems && (
+              <div className="bg-muted/50 rounded-lg p-4 mb-6 max-w-md mx-auto">
+                <p className="text-sm text-muted-foreground mb-2">Current Usage (Free Plan)</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Menu Items</span>
+                  <span className="font-semibold">{currentMenuItemCount}/{maxMenuItems}</span>
+                </div>
+                <Progress value={(currentMenuItemCount / maxMenuItems) * 100} className="h-2 mt-2" />
               </div>
             )}
 
@@ -203,17 +241,20 @@ export default function ManageSubscription() {
             </Button>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {PLANS.map((plan) => {
-              const isCurrentPlan = subscriptionData?.subscription_tier === plan.name || subscriptionData?.subscription_tier?.toLowerCase()?.includes(plan.id);
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {PLANS.map((planItem) => {
+              const isCurrentPlan = 
+                (planItem.id === 'free' && plan === 'free') ||
+                subscriptionData?.subscription_tier === planItem.name || 
+                subscriptionData?.subscription_tier?.toLowerCase()?.includes(planItem.id);
               const isSubscribed = subscriptionData?.subscribed && isCurrentPlan;
 
               return (
                 <Card
-                  key={plan.id}
-                  className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : ''} ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
+                  key={planItem.id}
+                  className={`relative ${planItem.popular ? 'border-primary shadow-lg scale-105' : ''} ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
                 >
-                  {plan.popular && (
+                  {planItem.popular && (
                     <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                       <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
                     </div>
@@ -223,31 +264,31 @@ export default function ManageSubscription() {
                     <div className="absolute top-4 right-4">
                       <Badge variant="secondary">
                         <Check className="h-3 w-3 mr-1" />
-                        Active
+                        {planItem.id === 'free' ? 'Current' : 'Active'}
                       </Badge>
                     </div>
                   )}
 
                   <CardHeader className="text-center pb-4">
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <CardTitle className="text-xl">{planItem.name}</CardTitle>
                     <div className="text-3xl font-bold text-primary">
-                      {plan.currency} {plan.price.toLocaleString()}
+                      {planItem.price === 0 ? 'FREE' : `${planItem.currency} ${planItem.price.toLocaleString()}`}
                       <div className="text-sm font-normal text-muted-foreground mt-1">
-                        {plan.billing}
+                        {planItem.billing}
                       </div>
                     </div>
                     <div className="text-sm text-green-600 font-medium">
-                      ✓ {plan.commission}
+                      ✓ {planItem.commission}
                     </div>
                     <CardDescription className="mt-2">
-                      {plan.description}
+                      {planItem.description}
                     </CardDescription>
                   </CardHeader>
 
                   <CardContent>
                     <Separator className="mb-4" />
                     <ul className="space-y-3 mb-6">
-                      {plan.features.map((feature, index) => (
+                      {planItem.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-2">
                           <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                           <span className="text-sm">{feature}</span>
@@ -255,26 +296,45 @@ export default function ManageSubscription() {
                       ))}
                     </ul>
 
+                    {planItem.limitations && (
+                      <div className="mb-6">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">Limitations:</h4>
+                        <ul className="space-y-2">
+                          {planItem.limitations.map((limitation, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <AlertCircle className="h-3 w-3 text-orange-500 flex-shrink-0 mt-0.5" />
+                              <span className="text-xs text-muted-foreground">{limitation}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     <Button
                       className="w-full"
                       variant={isCurrentPlan ? "secondary" : "default"}
                       size="lg"
-                      disabled={true /* sales-managed flow disables payment in-app */}
+                      disabled={planItem.id === 'free' ? isCurrentPlan : true}
                       onClick={() => {}}
                     >
-                      {isSalesManaged ? (
+                      {planItem.id === 'free' ? (
+                        isCurrentPlan ? "Current Plan" : "Start Free"
+                      ) : isSalesManaged ? (
                         "Managed by Sales"
                       ) : isSubscribed ? (
                         "Current Package"
                       ) : (
-                        <>
-                          Contact Sales
-                        </>
+                        "Contact Sales"
                       )}
                     </Button>
 
                     <p className="text-xs text-muted-foreground text-center mt-2">
-                      {isSalesManaged ? "This subscription is managed by our sales team." : "Contact our sales team to activate your plan."}
+                      {planItem.id === 'free' ? 
+                        "No credit card required" : 
+                        isSalesManaged ? 
+                          "This subscription is managed by our sales team." : 
+                          "Contact our sales team to activate your plan."
+                      }
                     </p>
                   </CardContent>
                 </Card>
@@ -304,8 +364,8 @@ export default function ManageSubscription() {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                   <CreditCard className="h-6 w-6 text-primary" />
                 </div>
-                <h4 className="font-medium mb-2">No Monthly Fees</h4>
-                <p className="text-sm text-muted-foreground">Pay once, use forever. No hidden commissions or monthly charges.</p>
+                <h4 className="font-medium mb-2">Start Free</h4>
+                <p className="text-sm text-muted-foreground">Try our service with up to 15 menu items. Upgrade when you're ready to grow.</p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">

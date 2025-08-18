@@ -11,12 +11,16 @@ import { AddCategoryDialog } from "@/components/dialogs/AddCategoryDialog";
 import { AddMenuItemDialog } from "@/components/dialogs/AddMenuItemDialog";
 import { EditMenuItemDialog } from "@/components/dialogs/EditMenuItemDialog";
 import { EditCategoryDialog } from "@/components/dialogs/EditCategoryDialog";
+import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
+import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
+import { Progress } from "@/components/ui/progress";
 
 const EditMenu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const { categories, loading: menuLoading, addCategory, addMenuItem, updateMenuItem, deleteMenuItem, refetch } = useMenuData();
+  const { plan, maxMenuItems, currentMenuItemCount, canAddMenuItem } = useSubscriptionLimits();
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editingCategory, setEditingCategory] = useState<any>(null);
 
@@ -82,7 +86,7 @@ const EditMenu = () => {
               <AddCategoryDialog 
                 onAddCategory={addCategory}
                 trigger={
-                  <Button className="bg-primary hover:bg-primary/90">
+                  <Button className="bg-primary hover:bg-primary/90" disabled={!canAddMenuItem}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Category
                   </Button>
@@ -99,13 +103,42 @@ const EditMenu = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Menu Management
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Add, edit, and organize your menu items
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-foreground mb-2">
+                Menu Management
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                Add, edit, and organize your menu items
+              </p>
+            </div>
+            
+            {plan === 'free' && maxMenuItems && (
+              <div className="text-right">
+                <Badge variant="secondary" className="mb-2">Free Plan</Badge>
+                <div className="text-sm text-muted-foreground">
+                  {currentMenuItemCount}/{maxMenuItems} items used
+                </div>
+                <Progress 
+                  value={(currentMenuItemCount / maxMenuItems) * 100} 
+                  className="w-32 h-2 mt-1"
+                />
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Show upgrade prompt if at limit */}
+        {!canAddMenuItem && plan === 'free' && (
+          <div className="mb-8">
+            <UpgradePrompt
+              title="Menu Item Limit Reached"
+              description={`You've reached the ${maxMenuItems} item limit for the free plan. Upgrade to add unlimited menu items and unlock more features.`}
+              feature="unlimited menu items"
+              compact
+            />
+          </div>
+        )}
 
         {/* Menu Categories */}
         <div className="space-y-8">
@@ -119,12 +152,22 @@ const EditMenu = () => {
                 <AddCategoryDialog 
                   onAddCategory={addCategory}
                   trigger={
-                    <Button>
+                    <Button disabled={!canAddMenuItem}>
                       <Plus className="mr-2 h-4 w-4" />
                       Add Your First Category
                     </Button>
                   }
                 />
+                {!canAddMenuItem && (
+                  <div className="mt-4">
+                    <UpgradePrompt
+                      title="Upgrade Required"
+                      description="You've reached the menu limit for the free plan."
+                      feature="menu management"
+                      compact
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -151,7 +194,7 @@ const EditMenu = () => {
                         categoryName={category.name}
                         onAddItem={addMenuItem}
                         trigger={
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" disabled={!canAddMenuItem}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Item
                           </Button>
@@ -228,7 +271,7 @@ const EditMenu = () => {
                         categoryName={category.name}
                         onAddItem={addMenuItem}
                         trigger={
-                          <Button variant="outline">
+                          <Button variant="outline" disabled={!canAddMenuItem}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add First Item
                           </Button>
@@ -243,7 +286,7 @@ const EditMenu = () => {
         </div>
 
         {/* Call to Action */}
-        {categories.length > 0 && (
+        {categories.length > 0 && canAddMenuItem && (
           <Card className="mt-8 bg-gradient-hero text-primary-foreground">
             <CardContent className="p-8 text-center">
               <h3 className="text-2xl font-bold mb-4">Build Your Complete Menu</h3>
