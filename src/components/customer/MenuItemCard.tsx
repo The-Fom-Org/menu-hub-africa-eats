@@ -15,16 +15,15 @@ interface MenuItemCardProps {
 }
 
 export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
-  const { addToCart, cartItems, updateQuantity, updateCounter } = useCart(restaurantId);
+  const { addToCart, cartItems, updateQuantity } = useCart(restaurantId);
   const { toast } = useToast();
   const [showCustomization, setShowCustomization] = useState(false);
 
   // Find cart item without customizations for the quick add/remove buttons
-  // Using updateCounter to ensure we get fresh data
   const cartItem = cartItems.find(cartItem => cartItem.id === item.id && !cartItem.customizations);
   const quantity = cartItem?.quantity || 0;
 
-  console.log(`MenuItemCard ${item.name} - updateCounter:`, updateCounter, 'quantity:', quantity, 'cartItems:', cartItems);
+  console.log(`MenuItemCard ${item.name} - quantity:`, quantity, 'cartItems:', cartItems);
 
   const handleAddToCart = useCallback((customizations?: string, specialInstructions?: string) => {
     console.log('Adding item to cart:', item.name, customizations, specialInstructions);
