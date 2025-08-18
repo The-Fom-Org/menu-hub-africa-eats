@@ -14,32 +14,39 @@ export interface SubscriptionLimits {
   isLoading: boolean;
 }
 
-export const useSubscriptionLimits = (): SubscriptionLimits => {
+export const useSubscriptionLimits = (restaurantId?: string): SubscriptionLimits => {
   const { user } = useAuth();
   const { categories } = useMenuData();
   const [plan, setPlan] = useState<'free' | 'standard' | 'advanced'>('free');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Use the provided restaurantId or fall back to current user
+  const targetRestaurantId = restaurantId || user?.id;
+
   useEffect(() => {
     const fetchSubscriptionStatus = async () => {
-      if (!user) {
+      if (!targetRestaurantId) {
         setIsLoading(false);
         return;
       }
 
       try {
+        console.log('Checking subscription for restaurant:', targetRestaurantId);
+        
         const { data, error } = await supabase
           .from('subscribers')
           .select('subscribed, subscription_tier, managed_by_sales')
-          .eq('restaurant_id', user.id)
+          .eq('restaurant_id', targetRestaurantId)
           .maybeSingle();
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
           console.error('Error fetching subscription:', error);
           setPlan('free');
         } else if (data?.subscribed || data?.managed_by_sales) {
           // Determine plan based on subscription tier
           const tier = data.subscription_tier?.toLowerCase();
+          console.log('Subscription tier:', tier);
+          
           if (tier?.includes('multi') || tier?.includes('advanced')) {
             setPlan('advanced');
           } else if (tier?.includes('standard')) {
@@ -48,6 +55,7 @@ export const useSubscriptionLimits = (): SubscriptionLimits => {
             setPlan('free');
           }
         } else {
+          console.log('No active subscription found, using free plan');
           setPlan('free');
         }
       } catch (error) {
@@ -59,7 +67,7 @@ export const useSubscriptionLimits = (): SubscriptionLimits => {
     };
 
     fetchSubscriptionStatus();
-  }, [user]);
+  }, [targetRestaurantId]);
 
   // Calculate current menu item count
   const currentMenuItemCount = categories.reduce((total, category) => {
@@ -89,6 +97,13 @@ export const useSubscriptionLimits = (): SubscriptionLimits => {
   const canEnablePaymentMethod = (method: string) => {
     return currentLimits.allowedPaymentMethods.includes(method);
   };
+
+  console.log('Subscription limits result:', {
+    plan,
+    allowedPaymentMethods: currentLimits.allowedPaymentMethods,
+    isLoading,
+    targetRestaurantId
+  });
 
   return {
     plan,
