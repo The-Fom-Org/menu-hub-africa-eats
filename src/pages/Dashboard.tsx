@@ -1,315 +1,265 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { 
-  LogOut, 
   Menu, 
   QrCode, 
-  Edit3, 
   Palette, 
   CreditCard, 
-  BarChart3,
-  Smartphone,
-  Globe,
-  Users
+  BarChart3, 
+  Crown,
+  RefreshCw,
+  ArrowRight,
+  Settings
 } from "lucide-react";
-import { User } from "@supabase/supabase-js";
 
-const Dashboard = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+interface SubscriptionData {
+  subscribed: boolean;
+  subscription_tier?: string;
+  subscription_end?: string;
+  managed_by_sales?: boolean;
+}
+
+export default function Dashboard() {
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [checkingSubscription, setCheckingSubscription] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/login");
-        return;
-      }
-      
-      setUser(session.user);
-      setIsLoading(false);
-    };
+    if (!loading && !user) {
+      navigate("/login");
+      return;
+    }
+    if (user) {
+      checkSubscriptionStatus();
+    }
+  }, [user, loading, navigate]);
 
-    checkUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        navigate("/login");
-      } else if (session) {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const handleLogout = async () => {
+  const checkSubscriptionStatus = async () => {
+    if (!user) return;
+    
     try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logged out successfully",
-        description: "See you next time!",
+      setCheckingSubscription(true);
+      
+      // Check subscription status from subscribers table
+      const { data: subData, error: subError } = await supabase
+        .from('subscribers')
+        .select('subscribed, subscription_tier, subscription_end, managed_by_sales')
+        .eq('restaurant_id', user.id)
+        .maybeSingle();
+
+      if (!subError && subData) {
+        setSubscriptionData({
+          subscribed: !!subData.subscribed,
+          subscription_tier: subData.subscription_tier,
+          subscription_end: subData.subscription_end,
+          managed_by_sales: subData.managed_by_sales
+        });
+      } else {
+        // No subscription record found
+        setSubscriptionData({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+          managed_by_sales: false
+        });
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      setSubscriptionData({
+        subscribed: false,
+        subscription_tier: null,
+        subscription_end: null,
+        managed_by_sales: false
       });
-    } catch (error: any) {
-      toast({
-        title: "Error logging out",
-        description: error.message,
-        variant: "destructive",
-      });
+    } finally {
+      setCheckingSubscription(false);
     }
   };
 
-  const getBusinessName = () => {
-    return user?.user_metadata?.business_name || "Your Restaurant";
-  };
-
-  const dashboardCards = [
-    {
-      title: "Your Digital Menu",
-      description: "Create and manage your restaurant menu items",
-      icon: Menu,
-      color: "primary",
-      comingSoon: false,
-    },
-    {
-      title: "QR Code",
-      description: "Generate QR codes for contactless ordering",
-      icon: QrCode,
-      color: "secondary",
-      comingSoon: false,
-    },
-    {
-      title: "Edit Menu Items",
-      description: "Add, update, and organize your menu",
-      icon: Edit3,
-      color: "accent",
-      comingSoon: false,
-    },
-    {
-      title: "Customize Branding",
-      description: "Personalize your restaurant's digital presence",
-      icon: Palette,
-      color: "primary",
-      comingSoon: false,
-    },
-    {
-      title: "Enable Payments",
-      description: "Accept M-Pesa and other payment methods",
-      icon: CreditCard,
-      color: "secondary",
-      comingSoon: false,
-    },
-    {
-      title: "Analytics",
-      description: "Track orders, popular items, and revenue",
-      icon: BarChart3,
-      color: "accent",
-      comingSoon: false,
-    },
-  ];
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your dashboard...</p>
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
+  const hasSubscriptionAccess = subscriptionData?.subscribed || subscriptionData?.managed_by_sales;
+
+  const dashboardItems = [
+    {
+      title: "Digital Menu",
+      description: "View and share your restaurant's digital menu",
+      icon: Menu,
+      href: "/digital-menu",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      available: true
+    },
+    {
+      title: "Edit Menu",
+      description: "Add, edit, or remove menu items and categories",
+      icon: Settings,
+      href: "/edit-menu",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      available: true
+    },
+    {
+      title: "QR Code",
+      description: "Generate and download QR codes for your menu",
+      icon: QrCode,
+      href: "/qr-code",
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      available: true
+    },
+    {
+      title: "Custom Branding",
+      description: "Customize your menu's appearance and branding",
+      icon: Palette,
+      href: "/custom-branding",
+      color: "text-pink-600",
+      bgColor: "bg-pink-50",
+      available: true
+    },
+    {
+      title: "Enable Payments",
+      description: "Set up payment methods for online orders",
+      icon: CreditCard,
+      href: "/enable-payments",
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      available: true
+    },
+    {
+      title: "Analytics",
+      description: "View insights about your menu performance",
+      icon: BarChart3,
+      href: "/analytics",
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+      available: true
+    },
+    {
+      title: "Manage Subscription",
+      description: "View and manage your subscription plan",
+      icon: Crown,
+      href: "/manage-subscription",
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+      available: hasSubscriptionAccess
+    }
+  ];
+
+  const availableItems = dashboardItems.filter(item => item.available);
+
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <header className="bg-card border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-foreground">MenuHub Dashboard</h1>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+              <p className="text-muted-foreground">
+                Welcome back! Manage your restaurant's digital presence.
+              </p>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">
-                {user?.email}
-              </span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleLogout}
-                className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
+            <div className="flex items-center gap-4">
+              {subscriptionData && (
+                <div className="text-right">
+                  {hasSubscriptionAccess ? (
+                    <Badge variant="default" className="mb-1">
+                      <Crown className="h-3 w-3 mr-1" />
+                      {subscriptionData.subscription_tier || 'Active'}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="mb-1">
+                      Free Plan
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={checkSubscriptionStatus}
+                    disabled={checkingSubscription}
+                    className="text-xs"
+                  >
+                    <RefreshCw className={`h-3 w-3 mr-1 ${checkingSubscription ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Karibu, Welcome to {getBusinessName()}!
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Manage your digital menu, track orders, and grow your business
-          </p>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Smartphone className="h-6 w-6 text-primary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Mobile Ready</p>
-                  <p className="text-2xl font-bold text-foreground">100%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-secondary/5 border-secondary/20">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-secondary/10 rounded-lg">
-                  <Globe className="h-6 w-6 text-secondary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Online Presence</p>
-                  <p className="text-2xl font-bold text-foreground">Active</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-accent/5 border-accent/20">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-accent/10 rounded-lg">
-                  <Users className="h-6 w-6 text-accent" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Ready for Customers</p>
-                  <p className="text-2xl font-bold text-foreground">Yes</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {dashboardCards.map((card, index) => {
-            const Icon = card.icon;
-            
-            const getRouteForCard = (title: string) => {
-              switch (title) {
-                case "Your Digital Menu":
-                  return "/digital-menu";
-                case "QR Code":
-                  return "/qr-code";
-                case "Edit Menu Items":
-                  return "/edit-menu";
-                case "Customize Branding":
-                  return "/custom-branding";
-                case "Enable Payments":
-                  return "/enable-payments";
-                case "Analytics":
-                  return "/analytics";
-                default:
-                  return "#";
-              }
-            };
-
-            return (
-              <Card 
-                key={index}
-                className="hover:shadow-warm transition-all duration-300 hover:scale-105 cursor-pointer group"
-                onClick={() => {
-                  const route = getRouteForCard(card.title);
-                  if (route !== "#") {
-                    navigate(route);
-                  }
-                }}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className={`p-2 rounded-lg bg-${card.color}/10`}>
-                      <Icon className={`h-6 w-6 text-${card.color}`} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {availableItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Card 
+                  key={item.title} 
+                  className="hover:shadow-lg transition-shadow cursor-pointer group"
+                  onClick={() => navigate(item.href)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className={`p-3 rounded-lg ${item.bgColor}`}>
+                        <Icon className={`h-6 w-6 ${item.color}`} />
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
-                    {card.comingSoon && (
-                      <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
-                        Soon
-                      </span>
-                    )}
-                  </div>
-                  <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                    {card.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm">
-                    {card.description}
-                  </CardDescription>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full mt-4 group-hover:bg-primary/10 group-hover:text-primary"
-                    disabled={card.comingSoon}
-                  >
-                    {card.comingSoon ? "Coming Soon" : "Manage →"}
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardTitle className="text-xl mb-2">{item.title}</CardTitle>
+                    <CardDescription>{item.description}</CardDescription>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-        {/* Call to Action */}
-        <div className="mt-12 text-center">
-          <Card className="bg-gradient-hero text-primary-foreground">
-            <CardContent className="p-8">
-              <h3 className="text-2xl font-bold mb-4">Ready to Launch Your Digital Menu?</h3>
-              <p className="text-lg mb-6 text-primary-foreground/90">
-                Start by creating your first menu items and generate your QR code for customers
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  variant="secondary" 
-                  size="lg"
-                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                >
-                  Create First Menu Item
+          {!hasSubscriptionAccess && (
+            <Card className="mt-8 border-dashed">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-yellow-600" />
+                  Unlock Premium Features
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  Contact our sales team to unlock premium features including subscription management, 
+                  advanced analytics, and priority support.
+                </p>
+                <Button variant="outline" onClick={() => navigate("/contact")}>
+                  Contact Sales
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="border-primary-foreground text-secondary hover:bg-primary-foreground/10"
-                >
-                  Generate QR Code
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          <Separator className="my-8" />
+          
+          <div className="text-center text-sm text-muted-foreground">
+            <p>Need help? Check our documentation or contact support.</p>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

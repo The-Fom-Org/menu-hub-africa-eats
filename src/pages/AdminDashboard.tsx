@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -12,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, Search, Save, Shield, Plus } from "lucide-react";
+import { RefreshCw, Search, Save, Shield, Plus, Link } from "lucide-react";
 
 type Plan = "free" | "standard" | "advanced";
 
@@ -32,6 +31,11 @@ interface Subscriber {
   updated_at: string;
 }
 
+interface Profile {
+  user_id: string;
+  restaurant_name: string | null;
+}
+
 export default function AdminDashboard() {
   const { isAdmin, loading, user } = useAdmin();
   const { toast } = useToast();
@@ -41,6 +45,7 @@ export default function AdminDashboard() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
+  const [activatingSubscription, setActivatingSubscription] = useState<string | null>(null);
 
   // New record creation form
   const [newEmail, setNewEmail] = useState("");
@@ -113,7 +118,7 @@ export default function AdminDashboard() {
 
       // Combine results, prioritizing subscribers data
       const foundSubscribers = subscribersResult.data as Subscriber[];
-      const foundProfiles = profilesResult.data || [];
+      const foundProfiles = profilesResult.data as Profile[] || [];
 
       // Auto-fill form if we find a match in profiles but not in subscribers
       if (foundSubscribers.length === 0 && foundProfiles.length > 0) {
@@ -201,6 +206,70 @@ export default function AdminDashboard() {
       toast({ title: "Save failed", description: "Could not update subscriber.", variant: "destructive" });
     } finally {
       setSavingIds((s) => ({ ...s, [row.id]: false }));
+    }
+  };
+
+  const activateManageSubscription = async (restaurantId: string, email: string) => {
+    setActivatingSubscription(restaurantId);
+    try {
+      // First ensure the subscriber record exists with at least a basic subscription
+      const { data: existingSubscriber } = await supabase
+        .from("subscribers")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .maybeSingle();
+
+      if (!existingSubscriber) {
+        // Create a basic subscriber record if it doesn't exist
+        const { error: createError } = await supabase
+          .from("subscribers")
+          .upsert({
+            restaurant_id: restaurantId,
+            email: email,
+            restaurant_name: newRestaurantName || null,
+            subscribed: true, // Activate subscription access
+            subscription_tier: "standard", // Default to standard
+            managed_by_sales: true,
+            billing_method: "sales_managed",
+            admin_notes: "Subscription page activated by admin"
+          });
+
+        if (createError) throw createError;
+      } else {
+        // Update existing subscriber to activate subscription
+        const { error: updateError } = await supabase
+          .from("subscribers")
+          .update({
+            subscribed: true,
+            subscription_tier: existingSubscriber.subscription_tier || "standard",
+            managed_by_sales: true,
+            billing_method: "sales_managed",
+            admin_notes: (existingSubscriber.admin_notes || "") + " | Subscription page activated by admin"
+          })
+          .eq("restaurant_id", restaurantId);
+
+        if (updateError) throw updateError;
+      }
+
+      toast({
+        title: "Subscription Activated",
+        description: `Manage Subscription page has been activated for ${email}. They can now access it from their dashboard.`
+      });
+
+      // Refresh search results
+      if (query) {
+        handleSearch();
+      }
+
+    } catch (err) {
+      console.error("[Admin] activate subscription error:", err);
+      toast({
+        title: "Activation Failed",
+        description: `Could not activate subscription page: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    } finally {
+      setActivatingSubscription(null);
     }
   };
 
@@ -407,10 +476,53 @@ export default function AdminDashboard() {
                           <Save className="h-4 w-4" />
                           {savingIds[row.id] ? "Saving..." : "Save"}
                         </Button>
+                        
+                        <Button
+                          onClick={() => activateManageSubscription(row.restaurant_id, row.email)}
+                          disabled={activatingSubscription === row.restaurant_id}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <Link className="h-4 w-4" />
+                          {activatingSubscription === row.restaurant_id ? "Activating..." : "Activate Manage Subscription"}
+                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
+              </>
+            )}
+
+            {/* Show activate subscription option for searched restaurants without existing subscription */}
+            {query && newRestaurantId && !subscribers.some(s => s.restaurant_id === newRestaurantId) && (
+              <>
+                <Separator className="my-4" />
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Activate Manage Subscription Page</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      This restaurant doesn't have subscription access yet. You can activate the "Manage Subscription" page for them.
+                    </p>
+                    <div className="space-y-2 mb-4">
+                      <p><strong>Restaurant:</strong> {newRestaurantName || "Unnamed"}</p>
+                      <p><strong>Email:</strong> {newEmail || "Not found"}</p>
+                      <p><strong>User ID:</strong> {newRestaurantId}</p>
+                    </div>
+                    <Button
+                      onClick={() => activateManageSubscription(newRestaurantId, newEmail)}
+                      disabled={activatingSubscription === newRestaurantId || !newEmail}
+                      className="flex items-center gap-2"
+                    >
+                      <Link className="h-4 w-4" />
+                      {activatingSubscription === newRestaurantId ? "Activating..." : "Activate Manage Subscription Page"}
+                    </Button>
+                    {!newEmail && (
+                      <p className="text-xs text-destructive mt-2">Email is required to activate subscription page</p>
+                    )}
+                  </CardContent>
+                </Card>
               </>
             )}
           </CardContent>
