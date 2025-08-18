@@ -24,10 +24,14 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   const [quantity, setQuantity] = useState(1);
   const [showCustomization, setShowCustomization] = useState(false);
 
+  // Find cart item by ID and customizations
   const cartItem = cartItems.find(cartItem => cartItem.id === item.id);
   const cartQuantity = cartItem?.quantity || 0;
 
+  console.log('MenuItemCard - item:', item.name, 'cartQuantity:', cartQuantity, 'cartItems:', cartItems);
+
   const handleAddToCart = (customizations?: string, specialInstructions?: string) => {
+    console.log('Adding to cart:', item.name, 'customizations:', customizations);
     addToCart({
       id: item.id,
       name: item.name,
@@ -35,19 +39,17 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       customizations,
       special_instructions: specialInstructions,
     });
-    
-    // Reload the page to ensure cart updates are visible
-    window.location.reload();
+    // NO PAGE RELOAD - let React handle the state update
   };
 
   const handleQuantityChange = (newQuantity: number) => {
+    console.log('Updating quantity for:', item.name, 'from', cartQuantity, 'to', newQuantity);
     if (newQuantity === 0) {
       updateQuantity(item.id, 0);
     } else {
       updateQuantity(item.id, newQuantity);
     }
-    // Reload the page to ensure cart updates are visible
-    window.location.reload();
+    // NO PAGE RELOAD - let React handle the state update
   };
 
   if (!item.is_available) {

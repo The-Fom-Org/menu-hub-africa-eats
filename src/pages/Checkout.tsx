@@ -26,7 +26,28 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const restaurantId = searchParams.get('restaurantId') || 'default';
+  
+  // FIX: Get the actual restaurant ID from URL params instead of defaulting to 'default'
+  const restaurantId = searchParams.get('restaurantId');
+  
+  console.log('Checkout page - restaurantId from URL:', restaurantId);
+  
+  // If no restaurant ID, redirect back
+  if (!restaurantId) {
+    console.error('No restaurant ID provided in URL');
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground mb-4">Invalid restaurant ID</p>
+            <Button onClick={() => navigate('/')}>
+              Go to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   const { 
     cartItems, 
@@ -45,31 +66,15 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [availableGateways, setAvailableGateways] = useState<PaymentGatewayWithCredentials[]>([]);
   const [isLoadingPaymentMethods, setIsLoadingPaymentMethods] = useState(true);
-  const [paymentLoadTimeout, setPaymentLoadTimeout] = useState(false);
 
-  // Load payment settings with timeout and fallback
+  console.log('Checkout - cartItems:', cartItems.length, 'cartTotal:', cartTotal);
+
+  // Load payment settings
   useEffect(() => {
     const loadPaymentSettings = async () => {
       try {
         setIsLoadingPaymentMethods(true);
         console.log('Loading payment settings for restaurant:', restaurantId);
-
-        // Set up a timeout for subscription limits
-        const timeoutId = setTimeout(() => {
-          console.log('Subscription limits loading timeout - using fallback');
-          setPaymentLoadTimeout(true);
-        }, 5000);
-
-        // Wait for subscription limits with timeout
-        let limits = subscriptionLimits;
-        if (subscriptionLimits.isLoading && !paymentLoadTimeout) {
-          console.log('Waiting for subscription limits...');
-          // Give it a moment, but don't wait forever
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          limits = subscriptionLimits;
-        }
-
-        clearTimeout(timeoutId);
 
         // Load payment settings from database
         const { data, error } = await supabase
@@ -88,21 +93,18 @@ const Checkout = () => {
         const allGateways = paymentGatewayRegistry.getAll();
         console.log('All available gateways:', allGateways);
         
-        // Use fallback limits if still loading or timeout occurred
-        const effectiveLimits = limits.isLoading || paymentLoadTimeout ? {
-          canEnablePaymentMethod: (method: string) => ['cash', 'mpesa_manual', 'bank_transfer'].includes(method),
-          plan: 'free'
-        } : limits;
-
-        console.log('Effective subscription limits:', effectiveLimits);
-        
         // Filter and map available gateways
         const available: PaymentGatewayWithCredentials[] = allGateways
           .filter(gateway => {
-            // Check if gateway is allowed by subscription plan (with fallback)
-            const allowedByPlan = effectiveLimits.canEnablePaymentMethod(gateway.type);
+            // Check if gateway is allowed by subscription plan
+            if (subscriptionLimits.isLoading) {
+              // Allow basic payment methods while loading
+              return ['cash', 'mpesa_manual', 'bank_transfer'].includes(gateway.type);
+            }
+            
+            const allowedByPlan = subscriptionLimits.canEnablePaymentMethod(gateway.type);
             if (!allowedByPlan) {
-              console.log(`Gateway ${gateway.type} not allowed by plan ${effectiveLimits.plan}`);
+              console.log(`Gateway ${gateway.type} not allowed by plan ${subscriptionLimits.plan}`);
               return false;
             }
 
@@ -125,10 +127,7 @@ const Checkout = () => {
         // If no payment methods configured, add default allowed methods
         if (available.length === 0) {
           console.log('No payment methods found, adding defaults');
-          const defaultMethods = ['cash'];
-          if (effectiveLimits.canEnablePaymentMethod('mpesa_manual')) {
-            defaultMethods.push('mpesa_manual', 'bank_transfer');
-          }
+          const defaultMethods = ['cash', 'mpesa_manual', 'bank_transfer'];
 
           defaultMethods.forEach(methodType => {
             const gateway = allGateways.find(g => g.type === methodType);
@@ -173,9 +172,8 @@ const Checkout = () => {
       }
     };
 
-    // Always try to load payment settings, don't wait indefinitely for subscription limits
     loadPaymentSettings();
-  }, [restaurantId, subscriptionLimits.isLoading, paymentLoadTimeout]);
+  }, [restaurantId, subscriptionLimits.isLoading]);
 
   // Redirect if cart is empty
   if (cartItems.length === 0) {
@@ -194,9 +192,8 @@ const Checkout = () => {
   }
 
   const handleOrderTypeChange = (type: 'now' | 'later') => {
-    // For free plans that don't support pre-orders, just silently keep it as 'now'
     if (type === 'later' && subscriptionLimits.requiresUpgradeForPreOrders) {
-      return; // Don't change anything, no toast notification
+      return;
     }
     
     setOrderType(type);
@@ -249,30 +246,39 @@ const Checkout = () => {
       const orderId = `ORDER-${Date.now()}`;
 
       console.log('Creating order with details:', orderDetails);
+      console.log('Restaurant ID:', restaurantId);
+      console.log('Payment method:', paymentMethod);
 
-      // Create order in database
+      // CREATE ORDER IN DATABASE
+      const orderData = {
+        id: orderId,
+        restaurant_id: restaurantId,
+        customer_name: orderDetails.customer_name,
+        customer_phone: orderDetails.customer_phone,
+        order_type: orderDetails.order_type,
+        payment_method: paymentMethod,
+        payment_status: 'pending',
+        order_status: 'pending',
+        total_amount: orderDetails.total,
+        scheduled_time: orderDetails.preferred_time ? new Date(orderDetails.preferred_time).toISOString() : null,
+      };
+
+      console.log('Inserting order data:', orderData);
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          id: orderId,
-          restaurant_id: restaurantId,
-          customer_name: orderDetails.customer_name,
-          customer_phone: orderDetails.customer_phone,
-          order_type: orderDetails.order_type,
-          payment_method: paymentMethod,
-          payment_status: 'pending',
-          order_status: 'pending',
-          total_amount: orderDetails.total,
-          scheduled_time: orderDetails.preferred_time ? new Date(orderDetails.preferred_time).toISOString() : null,
-        })
+        .insert(orderData)
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Order creation error:', orderError);
+        throw new Error(`Order creation failed: ${orderError.message}`);
+      }
 
       console.log('Order created successfully:', order);
 
-      // Create order items
+      // CREATE ORDER ITEMS
       const orderItems = cartItems.map(item => ({
         order_id: orderId,
         menu_item_id: item.id,
@@ -281,15 +287,20 @@ const Checkout = () => {
         customizations: item.customizations ? { customizations: item.customizations } : {},
       }));
 
+      console.log('Inserting order items:', orderItems);
+
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Order items creation error:', itemsError);
+        throw new Error(`Order items creation failed: ${itemsError.message}`);
+      }
 
       console.log('Order items created successfully');
 
-      // Handle payment based on method
+      // HANDLE PAYMENT BASED ON METHOD
       const selectedGateway = availableGateways.find(g => g.type === paymentMethod);
       console.log('Selected payment gateway:', selectedGateway);
       
@@ -297,7 +308,7 @@ const Checkout = () => {
         if (paymentMethod === 'pesapal') {
           // Initialize Pesapal payment
           try {
-            console.log('Initializing Pesapal payment with credentials:', selectedGateway.credentials);
+            console.log('Initializing Pesapal payment...');
             const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
               body: {
                 amount: orderDetails.total,
@@ -313,7 +324,10 @@ const Checkout = () => {
               }
             });
 
-            if (error) throw error;
+            if (error) {
+              console.error('Pesapal initialization error:', error);
+              throw error;
+            }
 
             console.log('Pesapal initialization response:', data);
 
@@ -334,7 +348,7 @@ const Checkout = () => {
         }
       }
 
-      // For manual payment methods, show success page
+      // FOR MANUAL PAYMENT METHODS, SHOW SUCCESS PAGE
       clearCart();
       navigate('/order-success', { 
         state: { 
@@ -345,7 +359,7 @@ const Checkout = () => {
           paymentMethod,
           paymentInstructions: selectedGateway?.credentials,
           isManualPayment: ['cash', 'mpesa_manual', 'bank_transfer'].includes(paymentMethod),
-          totalAmount: cartTotal, // Pass total amount for M-Pesa instructions
+          totalAmount: cartTotal,
         }
       });
 
@@ -357,10 +371,10 @@ const Checkout = () => {
       });
 
     } catch (error) {
-      console.error('Order creation failed:', error);
+      console.error('Order creation failed with full error:', error);
       toast({
         title: "Order failed",
-        description: "Please try again or contact support.",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
     } finally {
@@ -378,6 +392,8 @@ const Checkout = () => {
       totalAmount: cartTotal
     } : gateway.credentials
   }));
+
+  console.log('Enhanced gateways with totalAmount:', enhancedGateways);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -489,9 +505,6 @@ const Checkout = () => {
                   <div className="animate-pulse space-y-4">
                     <div className="h-4 bg-muted rounded w-3/4"></div>
                     <div className="h-4 bg-muted rounded w-1/2"></div>
-                    <p className="text-sm text-muted-foreground">
-                      {paymentLoadTimeout ? 'Loading is taking longer than expected, using defaults...' : 'Please wait while we load available payment options...'}
-                    </p>
                   </div>
                 </CardContent>
               </Card>
