@@ -29,19 +29,26 @@ export interface RestaurantSubscriber {
 }
 
 export const useAdmin = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [subscribers, setSubscribers] = useState<RestaurantSubscriber[]>([]);
 
   useEffect(() => {
+    // Wait for auth to finish initializing before deciding admin state
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
     if (user) {
+      setLoading(true);
       checkAdminStatus();
     } else {
       setIsAdmin(false);
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const checkAdminStatus = async () => {
     if (!user) {
@@ -61,7 +68,7 @@ export const useAdmin = () => {
 
       console.log('Admin query result:', { data, error });
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && (error as any).code !== 'PGRST116') {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
       } else {
@@ -118,7 +125,7 @@ export const useAdmin = () => {
 
       if (error) {
         console.error('Error updating subscriber:', error);
-        return { error: error.message };
+        return { error: (error as any).message };
       }
 
       await fetchSubscribers();

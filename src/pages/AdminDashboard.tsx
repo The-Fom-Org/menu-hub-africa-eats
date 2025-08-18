@@ -51,7 +51,8 @@ export default function AdminDashboard() {
   const [newNotes, setNewNotes] = useState("");
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
+    // Only redirect if we definitively have a user, loading is done, and the user is not an admin
+    if (!loading && user && !isAdmin) {
       toast({
         title: "Access denied",
         description: "You do not have permission to view this page.",
@@ -59,7 +60,7 @@ export default function AdminDashboard() {
       });
       navigate("/");
     }
-  }, [isAdmin, loading, navigate, toast]);
+  }, [isAdmin, loading, user, navigate, toast]);
 
   const planLabel = (plan: string | null | undefined) => {
     switch (plan) {
