@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,12 +42,15 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [isProcessing, setIsProcessing] = useState(false);
   const [availableGateways, setAvailableGateways] = useState<PaymentGatewayWithCredentials[]>([]);
+  const [isLoadingPaymentMethods, setIsLoadingPaymentMethods] = useState(true);
 
   // Load payment settings for this restaurant
   useEffect(() => {
     const loadPaymentSettings = async () => {
       try {
+        setIsLoadingPaymentMethods(true);
         console.log('Loading payment settings for restaurant:', restaurantId);
+        
         const { data, error } = await supabase
           .from('restaurant_payment_settings')
           .select('payment_methods')
@@ -115,6 +119,8 @@ const Checkout = () => {
           }]);
           setPaymentMethod('cash');
         }
+      } finally {
+        setIsLoadingPaymentMethods(false);
       }
     };
 
@@ -324,7 +330,7 @@ const Checkout = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-4xl mx-auto px-4 py-6 pb-32">
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Order Details */}
           <div className="space-y-6">
@@ -403,16 +409,30 @@ const Checkout = () => {
             )}
 
             {/* Payment Method */}
-            <PaymentMethodSelector
-              paymentMethod={paymentMethod}
-              setPaymentMethod={setPaymentMethod}
-              availableGateways={availableGateways}
-            />
+            {isLoadingPaymentMethods ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Loading Payment Methods...</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <PaymentMethodSelector
+                paymentMethod={paymentMethod}
+                setPaymentMethod={setPaymentMethod}
+                availableGateways={availableGateways}
+              />
+            )}
           </div>
 
-          {/* Order Summary */}
-          <div>
-            <Card className="sticky top-24">
+          {/* Order Summary - Fixed positioning */}
+          <div className="space-y-6">
+            <Card className="lg:sticky lg:top-24">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
@@ -445,20 +465,25 @@ const Checkout = () => {
                   <span>Total:</span>
                   <span>KSh {cartTotal.toFixed(2)}</span>
                 </div>
-
-                <Button 
-                  onClick={handlePayment}
-                  disabled={isProcessing}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isProcessing ? 'Processing...' : `Complete Order - KSh ${cartTotal.toFixed(2)}`}
-                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
+
+      {/* Fixed Bottom Checkout Button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg p-4 z-50">
+        <div className="max-w-4xl mx-auto">
+          <Button 
+            onClick={handlePayment}
+            disabled={isProcessing || isLoadingPaymentMethods}
+            className="w-full"
+            size="lg"
+          >
+            {isProcessing ? 'Processing...' : `Complete Order - KSh ${cartTotal.toFixed(2)}`}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
