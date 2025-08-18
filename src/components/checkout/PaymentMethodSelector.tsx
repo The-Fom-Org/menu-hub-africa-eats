@@ -45,17 +45,31 @@ export const PaymentMethodSelector = ({
     switch (gateway.type) {
       case 'mpesa_manual':
         return (
-          <div className="mt-2 space-y-1 text-sm">
+          <div className="mt-2 space-y-2 text-sm">
             {gateway.credentials?.till_number && (
-              <p><strong>Till Number:</strong> {gateway.credentials.till_number}</p>
+              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="font-semibold text-green-800">M-Pesa Till Number</p>
+                <p className="text-lg font-mono text-green-900">{gateway.credentials.till_number}</p>
+                <p className="text-xs text-green-700 mt-1">Go to M-Pesa → Lipa na M-Pesa → Buy Goods and Services → Enter Till Number</p>
+              </div>
             )}
             {gateway.credentials?.paybill_number && (
-              <p><strong>Paybill:</strong> {gateway.credentials.paybill_number}</p>
+              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="font-semibold text-green-800">M-Pesa Paybill</p>
+                <p className="text-lg font-mono text-green-900">{gateway.credentials.paybill_number}</p>
+                {gateway.credentials?.account_number && (
+                  <p className="text-sm text-green-800">Account: <span className="font-mono">{gateway.credentials.account_number}</span></p>
+                )}
+                <p className="text-xs text-green-700 mt-1">Go to M-Pesa → Lipa na M-Pesa → Pay Bill → Enter Paybill Number</p>
+              </div>
             )}
-            {gateway.credentials?.account_number && (
-              <p><strong>Account:</strong> {gateway.credentials.account_number}</p>
+            {!gateway.credentials?.till_number && !gateway.credentials?.paybill_number && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-blue-800">M-Pesa payment details will be provided by the restaurant upon order confirmation.</p>
+                <p className="text-xs text-blue-700 mt-1">The restaurant will contact you with payment instructions.</p>
+              </div>
             )}
-            <p className="text-muted-foreground">Send payment and confirm with the restaurant</p>
+            <p className="text-muted-foreground text-xs">After sending payment, please keep your M-Pesa confirmation message and inform the restaurant.</p>
           </div>
         );
       case 'bank_transfer':

@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ShoppingCart, Plus, Minus, Trash2, RefreshCw } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -26,6 +27,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [cartTotal, setCartTotal] = useState(0);
+  const [showReloadNotification, setShowReloadNotification] = useState(false);
 
   // Force re-render when cart changes
   useEffect(() => {
@@ -36,39 +38,71 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     console.log('Cart updated - count:', count, 'total:', total, 'items:', cart.cartItems.length);
   }, [cart.cartItems, cart.updateTrigger]);
 
+  // Show reload notification when cart is updated
+  useEffect(() => {
+    if (cartCount > 0) {
+      setShowReloadNotification(true);
+      const timer = setTimeout(() => {
+        setShowReloadNotification(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [cartCount]);
+
   const handleCheckout = () => {
     if (cartCount === 0) return;
     setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
   };
 
-  return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button 
-          variant={cartCount > 0 ? "default" : "outline"} 
-          size="sm" 
-          className="relative"
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Cart
-          {cartCount > 0 && (
-            <Badge variant="secondary" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-              {cartCount}
-            </Badge>
-          )}
-        </Button>
-      </SheetTrigger>
-      
-      <SheetContent side="right" className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Your Order</SheetTitle>
-          <SheetDescription>
-            {cartCount === 0 ? 'Your cart is empty' : 'Review your items before checkout'}
-          </SheetDescription>
-        </SheetHeader>
+  const handleReloadPage = () => {
+    window.location.reload();
+  };
 
-        <div className="flex flex-col h-full">
+  return (
+    <>
+      {showReloadNotification && (
+        <Alert className="fixed top-4 right-4 w-auto z-50 bg-primary text-primary-foreground">
+          <RefreshCw className="h-4 w-4" />
+          <AlertDescription className="flex items-center gap-2">
+            Cart updated! Please reload to see changes.
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              onClick={handleReloadPage}
+              className="ml-2"
+            >
+              Reload
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetTrigger asChild>
+          <Button 
+            variant={cartCount > 0 ? "default" : "outline"} 
+            size="sm" 
+            className="relative"
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Cart
+            {cartCount > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                {cartCount}
+              </Badge>
+            )}
+          </Button>
+        </SheetTrigger>
+        
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col h-full">
+          <SheetHeader>
+            <SheetTitle>Your Order</SheetTitle>
+            <SheetDescription>
+              {cartCount === 0 ? 'Your cart is empty' : 'Review your items before checkout'}
+            </SheetDescription>
+          </SheetHeader>
+
           {cartCount === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -137,7 +171,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                 </div>
               </ScrollArea>
 
-              <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t mt-auto">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">Total:</span>
                   <span className="font-bold text-lg">KSh {cartTotal.toFixed(2)}</span>
@@ -154,8 +188,8 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
               </div>
             </>
           )}
-        </div>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };
