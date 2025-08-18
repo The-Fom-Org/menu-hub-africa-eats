@@ -35,6 +35,18 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     navigate(`/checkout?restaurantId=${restaurantId}`);
   };
 
+  const handleQuantityUpdate = (itemId: string, quantity: number, customizations?: string) => {
+    console.log('CartDrawer - updating quantity with reload:', itemId, 'to', quantity);
+    cart.updateQuantity(itemId, quantity, customizations);
+    // Reload is handled by the useCart hook
+  };
+
+  const handleRemoveItem = (itemId: string, customizations?: string) => {
+    console.log('CartDrawer - removing item with reload:', itemId);
+    cart.removeFromCart(itemId, customizations);
+    // Reload is handled by the useCart hook
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
@@ -98,7 +110,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => cart.updateQuantity(item.id, item.quantity - 1, item.customizations)}
+                            onClick={() => handleQuantityUpdate(item.id, item.quantity - 1, item.customizations)}
                             className="h-7 w-7 p-0"
                           >
                             <Minus className="h-3 w-3" />
@@ -109,7 +121,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => cart.updateQuantity(item.id, item.quantity + 1, item.customizations)}
+                            onClick={() => handleQuantityUpdate(item.id, item.quantity + 1, item.customizations)}
                             className="h-7 w-7 p-0"
                           >
                             <Plus className="h-3 w-3" />
@@ -117,7 +129,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => cart.removeFromCart(item.id, item.customizations)}
+                            onClick={() => handleRemoveItem(item.id, item.customizations)}
                             className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-3 w-3" />

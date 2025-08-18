@@ -20,73 +20,6 @@ export interface OrderDetails {
   restaurant_id: string;
 }
 
-// Function to preserve cart during page reloads
-const preserveCartOnReload = (restaurantId: string, cartItems: CartItem[]) => {
-  console.log('Preserving cart before reload for restaurant:', restaurantId, 'items:', cartItems);
-  
-  if (cartItems.length > 0) {
-    // Store cart with timestamp to prevent stale data
-    const cartWithTimestamp = {
-      items: cartItems,
-      timestamp: Date.now(),
-      restaurantId: restaurantId
-    };
-    
-    try {
-      localStorage.setItem(`cart_preserve_${restaurantId}`, JSON.stringify(cartWithTimestamp));
-      console.log('Cart preserved successfully');
-    } catch (error) {
-      console.error('Failed to preserve cart:', error);
-    }
-  }
-};
-
-// Function to restore cart after page reload
-const restoreCartAfterReload = (restaurantId: string): CartItem[] => {
-  console.log('Attempting to restore cart for restaurant:', restaurantId);
-  
-  try {
-    const preservedCart = localStorage.getItem(`cart_preserve_${restaurantId}`);
-    
-    if (preservedCart) {
-      const parsed = JSON.parse(preservedCart);
-      const isRecent = (Date.now() - parsed.timestamp) < 10000; // 10 seconds
-      
-      if (isRecent && parsed.restaurantId === restaurantId && parsed.items) {
-        console.log('Restored cart from preserve storage:', parsed.items);
-        
-        // Clean up the preserve storage after successful restore
-        localStorage.removeItem(`cart_preserve_${restaurantId}`);
-        
-        // Also update the regular cart storage
-        localStorage.setItem(`cart_${restaurantId}`, JSON.stringify(parsed.items));
-        
-        return parsed.items;
-      } else {
-        console.log('Preserved cart expired or invalid, cleaning up');
-        localStorage.removeItem(`cart_preserve_${restaurantId}`);
-      }
-    }
-    
-    // Fall back to regular cart storage
-    const regularCart = localStorage.getItem(`cart_${restaurantId}`);
-    if (regularCart) {
-      const items = JSON.parse(regularCart);
-      console.log('Restored cart from regular storage:', items);
-      return items;
-    }
-    
-  } catch (error) {
-    console.error('Error restoring cart:', error);
-    // Clean up corrupted data
-    localStorage.removeItem(`cart_preserve_${restaurantId}`);
-    localStorage.removeItem(`cart_${restaurantId}`);
-  }
-  
-  console.log('No cart to restore');
-  return [];
-};
-
 export const useCart = (restaurantId: string) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<'now' | 'later'>('now');
@@ -102,8 +35,49 @@ export const useCart = (restaurantId: string) => {
   useEffect(() => {
     const loadCart = () => {
       console.log('Loading cart for restaurant:', restaurantId);
-      const restoredItems = restoreCartAfterReload(restaurantId);
-      setCartItems(restoredItems);
+      
+      try {
+        // First check for preserved cart (from reload)
+        const preservedCart = localStorage.getItem(`cart_preserve_${restaurantId}`);
+        
+        if (preservedCart) {
+          const parsed = JSON.parse(preservedCart);
+          const isRecent = (Date.now() - parsed.timestamp) < 30000; // 30 seconds
+          
+          if (isRecent && parsed.restaurantId === restaurantId && parsed.items) {
+            console.log('Restored cart from preserve storage:', parsed.items);
+            setCartItems(parsed.items);
+            
+            // Clean up the preserve storage after successful restore
+            localStorage.removeItem(`cart_preserve_${restaurantId}`);
+            
+            // Update the regular cart storage
+            localStorage.setItem(`cart_${restaurantId}`, JSON.stringify(parsed.items));
+            return;
+          } else {
+            console.log('Preserved cart expired or invalid, cleaning up');
+            localStorage.removeItem(`cart_preserve_${restaurantId}`);
+          }
+        }
+        
+        // Fall back to regular cart storage
+        const regularCart = localStorage.getItem(`cart_${restaurantId}`);
+        if (regularCart) {
+          const items = JSON.parse(regularCart);
+          console.log('Restored cart from regular storage:', items);
+          setCartItems(items);
+          return;
+        }
+        
+      } catch (error) {
+        console.error('Error restoring cart:', error);
+        // Clean up corrupted data
+        localStorage.removeItem(`cart_preserve_${restaurantId}`);
+        localStorage.removeItem(`cart_${restaurantId}`);
+      }
+      
+      console.log('No cart to restore');
+      setCartItems([]);
     };
     
     loadCart();
@@ -126,58 +100,81 @@ export const useCart = (restaurantId: string) => {
     }
   }, [cartItems, restaurantId]);
 
+  // Function to preserve cart during page reloads
+  const preserveCartBeforeReload = useCallback((items: CartItem[]) => {
+    console.log('Preserving cart before reload for restaurant:', restaurantId, 'items:', items);
+    
+    if (items.length >= 0) { // Changed from > 0 to >= 0 to handle empty carts too
+      const cartWithTimestamp = {
+        items: items,
+        timestamp: Date.now(),
+        restaurantId: restaurantId
+      };
+      
+      try {
+        localStorage.setItem(`cart_preserve_${restaurantId}`, JSON.stringify(cartWithTimestamp));
+        console.log('Cart preserved successfully');
+        return true;
+      } catch (error) {
+        console.error('Failed to preserve cart:', error);
+        return false;
+      }
+    }
+    return true;
+  }, [restaurantId]);
+
   const addToCart = useCallback((item: Omit<CartItem, 'quantity'>) => {
     console.log('Adding to cart:', item);
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(cartItem => 
-        cartItem.id === item.id && 
-        cartItem.customizations === item.customizations
+    
+    const existingItem = cartItems.find(cartItem => 
+      cartItem.id === item.id && 
+      cartItem.customizations === item.customizations
+    );
+    
+    let updatedItems;
+    if (existingItem) {
+      updatedItems = cartItems.map(cartItem =>
+        cartItem.id === item.id && cartItem.customizations === item.customizations
+          ? { ...cartItem, quantity: cartItem.quantity + 1 }
+          : cartItem
       );
-      
-      let updated;
-      if (existingItem) {
-        updated = prevItems.map(cartItem =>
-          cartItem.id === item.id && cartItem.customizations === item.customizations
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-        console.log('Updated existing item quantity, new cart:', updated);
-      } else {
-        updated = [...prevItems, { ...item, quantity: 1 }];
-        console.log('Added new item to cart, new cart:', updated);
-      }
-      
-      // Preserve cart before triggering reload
-      preserveCartOnReload(restaurantId, updated);
-      
+      console.log('Updated existing item quantity, new cart:', updatedItems);
+    } else {
+      updatedItems = [...cartItems, { ...item, quantity: 1 }];
+      console.log('Added new item to cart, new cart:', updatedItems);
+    }
+    
+    // Preserve cart before triggering reload
+    if (preserveCartBeforeReload(updatedItems)) {
       // Trigger page reload to refresh cart display
       setTimeout(() => {
         window.location.reload();
       }, 100);
-      
-      return updated;
-    });
-  }, [restaurantId]);
+    } else {
+      // If preservation failed, just update the state normally
+      setCartItems(updatedItems);
+    }
+  }, [cartItems, restaurantId, preserveCartBeforeReload]);
 
   const removeFromCart = useCallback((itemId: string, customizations?: string) => {
     console.log('Removing from cart:', itemId, customizations);
-    setCartItems(prevItems => {
-      const updated = prevItems.filter(item => 
-        !(item.id === itemId && item.customizations === customizations)
-      );
-      console.log('Item removed, new cart:', updated);
-      
-      // Preserve cart before triggering reload
-      preserveCartOnReload(restaurantId, updated);
-      
+    
+    const updated = cartItems.filter(item => 
+      !(item.id === itemId && item.customizations === customizations)
+    );
+    console.log('Item removed, new cart:', updated);
+    
+    // Preserve cart before triggering reload
+    if (preserveCartBeforeReload(updated)) {
       // Trigger page reload to refresh cart display
       setTimeout(() => {
         window.location.reload();
       }, 100);
-      
-      return updated;
-    });
-  }, [restaurantId]);
+    } else {
+      // If preservation failed, just update the state normally
+      setCartItems(updated);
+    }
+  }, [cartItems, restaurantId, preserveCartBeforeReload]);
 
   const updateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
     console.log('Updating quantity:', itemId, 'to', quantity, customizations);
@@ -187,25 +184,24 @@ export const useCart = (restaurantId: string) => {
       return;
     }
     
-    setCartItems(prevItems => {
-      const updated = prevItems.map(item =>
-        item.id === itemId && item.customizations === customizations
-          ? { ...item, quantity }
-          : item
-      );
-      console.log('Quantity updated, new cart:', updated);
-      
-      // Preserve cart before triggering reload
-      preserveCartOnReload(restaurantId, updated);
-      
+    const updated = cartItems.map(item =>
+      item.id === itemId && item.customizations === customizations
+        ? { ...item, quantity }
+        : item
+    );
+    console.log('Quantity updated, new cart:', updated);
+    
+    // Preserve cart before triggering reload
+    if (preserveCartBeforeReload(updated)) {
       // Trigger page reload to refresh cart display
       setTimeout(() => {
         window.location.reload();
       }, 100);
-      
-      return updated;
-    });
-  }, [restaurantId, removeFromCart]);
+    } else {
+      // If preservation failed, just update the state normally
+      setCartItems(updated);
+    }
+  }, [cartItems, restaurantId, removeFromCart, preserveCartBeforeReload]);
 
   const clearCart = useCallback(() => {
     console.log('Clearing cart for restaurant:', restaurantId);

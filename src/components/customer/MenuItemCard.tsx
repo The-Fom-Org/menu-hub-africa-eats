@@ -31,7 +31,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   console.log('MenuItemCard - item:', item.name, 'cartQuantity:', cartQuantity, 'cartItems:', cartItems);
 
   const handleAddToCart = (customizations?: string, specialInstructions?: string) => {
-    console.log('Adding to cart:', item.name, 'customizations:', customizations);
+    console.log('Adding to cart with reload:', item.name, 'customizations:', customizations);
     addToCart({
       id: item.id,
       name: item.name,
@@ -39,17 +39,13 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       customizations,
       special_instructions: specialInstructions,
     });
-    // Page reload is handled by the useCart hook's addToCart function
+    // Reload is handled by the useCart hook's addToCart function
   };
 
   const handleQuantityChange = (newQuantity: number) => {
-    console.log('Updating quantity for:', item.name, 'from', cartQuantity, 'to', newQuantity);
-    if (newQuantity === 0) {
-      updateQuantity(item.id, 0);
-    } else {
-      updateQuantity(item.id, newQuantity);
-    }
-    // Page reload is handled by the useCart hook's updateQuantity function
+    console.log('Updating quantity with reload for:', item.name, 'from', cartQuantity, 'to', newQuantity);
+    updateQuantity(item.id, newQuantity);
+    // Reload is handled by the useCart hook's updateQuantity function
   };
 
   if (!item.is_available) {
