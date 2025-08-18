@@ -39,7 +39,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       customizations,
       special_instructions: specialInstructions,
     });
-    // NO PAGE RELOAD - let React handle the state update
+    // Page reload is handled by the useCart hook's addToCart function
   };
 
   const handleQuantityChange = (newQuantity: number) => {
@@ -49,7 +49,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
     } else {
       updateQuantity(item.id, newQuantity);
     }
-    // NO PAGE RELOAD - let React handle the state update
+    // Page reload is handled by the useCart hook's updateQuantity function
   };
 
   if (!item.is_available) {
