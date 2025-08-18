@@ -3,12 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Crown, Check, RefreshCw, Smartphone, Users, CreditCard, Shield } from 'lucide-react';
+import { Crown, Check, RefreshCw, Smartphone, Users, CreditCard, Shield, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
+import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 
 interface SubscriptionData {
   subscribed: boolean;
