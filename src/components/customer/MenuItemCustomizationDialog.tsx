@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import {
   Dialog,
@@ -11,20 +12,30 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { CustomerMenuItem } from '@/hooks/useCustomerMenuData';
 
 interface MenuItemCustomizationDialogProps {
-  item: CustomerMenuItem;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  item: {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    image_url?: string;
+    is_available: boolean;
+  };
+  isOpen: boolean;
+  onClose: () => void;
   onAddToCart: (customizations?: string, specialInstructions?: string) => void;
+  quantity: number;
+  onQuantityChange: (quantity: number) => void;
 }
 
 export const MenuItemCustomizationDialog = ({
   item,
-  open,
-  onOpenChange,
+  isOpen,
+  onClose,
   onAddToCart,
+  quantity,
+  onQuantityChange,
 }: MenuItemCustomizationDialogProps) => {
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [selectedCustomizations, setSelectedCustomizations] = useState<string[]>([]);
@@ -63,13 +74,13 @@ export const MenuItemCustomizationDialog = ({
     // Reset form
     setSelectedCustomizations([]);
     setSpecialInstructions('');
-    onOpenChange(false);
+    onClose();
   };
 
   const totalPrice = item.price + getCustomizationPrice();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{item.name}</DialogTitle>
@@ -133,7 +144,7 @@ export const MenuItemCustomizationDialog = ({
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={handleAddToCart}>
