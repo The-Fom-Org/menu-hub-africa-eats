@@ -345,12 +345,15 @@ const Checkout = () => {
           paymentMethod,
           paymentInstructions: selectedGateway?.credentials,
           isManualPayment: ['cash', 'mpesa_manual', 'bank_transfer'].includes(paymentMethod),
+          totalAmount: cartTotal, // Pass total amount for M-Pesa instructions
         }
       });
 
       toast({
         title: "Order placed successfully!",
-        description: "You will receive a confirmation shortly.",
+        description: paymentMethod === 'mpesa_manual' 
+          ? "Please complete your M-Pesa payment as instructed" 
+          : "You will receive a confirmation shortly.",
       });
 
     } catch (error) {
@@ -366,6 +369,15 @@ const Checkout = () => {
   };
 
   const isManualPayment = ['cash', 'mpesa_manual', 'bank_transfer'].includes(paymentMethod);
+
+  // Create enhanced payment gateways with total amount for M-Pesa instructions
+  const enhancedGateways = availableGateways.map(gateway => ({
+    ...gateway,
+    credentials: gateway.type === 'mpesa_manual' ? {
+      ...gateway.credentials,
+      totalAmount: cartTotal
+    } : gateway.credentials
+  }));
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -487,7 +499,7 @@ const Checkout = () => {
               <PaymentMethodSelector
                 paymentMethod={paymentMethod}
                 setPaymentMethod={setPaymentMethod}
-                availableGateways={availableGateways}
+                availableGateways={enhancedGateways}
               />
             )}
           </div>
