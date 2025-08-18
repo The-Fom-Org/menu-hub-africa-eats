@@ -62,8 +62,8 @@ const PLANS = [
       'WhatsApp support'
     ],
     popular: true,
-    billing: 'One-time setup fee',
-    commission: 'No monthly commissions'
+    billing: 'Monthly subscription fee',
+    commission: 'No commissions'
   },
   {
     id: 'multi_location',
@@ -82,8 +82,8 @@ const PLANS = [
       'Advanced reporting'
     ],
     popular: false,
-    billing: 'One-time setup fee',
-    commission: 'No monthly commissions'
+    billing: 'Monthly subscription fee',
+    commission: 'No commissions'
   }
 ];
 
@@ -209,7 +209,8 @@ export default function ManageSubscription() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-4">Choose Your MenuHub Package</h1>
             <p className="text-muted-foreground mb-6">
-              Start free, upgrade when you're ready. Affordable, one-time setup with no monthly commissions.
+               Start free, upgrade when you're ready. Affordable monthly subscriptions. Perfect for Kenyan restaurants.
+             
             </p>
 
             {subscriptionData?.subscribed && (
