@@ -75,21 +75,100 @@ export default function AdminDashboard() {
   };
 
   const handleSearch = async () => {
+    if (!query.trim()) {
+      toast({ title: "Search required", description: "Please enter a search term.", variant: "destructive" });
+      return;
+    }
+
+    console.log("[Admin] Starting search for:", query);
     setLoadingSearch(true);
     try {
-      const orFilter = `email.ilike.%${query}%,restaurant_name.ilike.%${query}%`;
-      const { data, error } = await supabase
-        .from("subscribers")
-        .select("*")
-        .or(orFilter)
-        .order("updated_at", { ascending: false })
-        .limit(50);
+      // Search in both subscribers and profiles tables
+      const [subscribersResult, profilesResult] = await Promise.all([
+        supabase
+          .from("subscribers")
+          .select("*")
+          .or(`email.ilike.%${query}%,restaurant_name.ilike.%${query}%`)
+          .order("updated_at", { ascending: false })
+          .limit(25),
+        supabase
+          .from("profiles")
+          .select("user_id, restaurant_name")
+          .ilike("restaurant_name", `%${query}%`)
+          .limit(25)
+      ]);
 
-      if (error) throw error;
-      setSubscribers(data as Subscriber[]);
+      console.log("[Admin] Subscribers search result:", subscribersResult);
+      console.log("[Admin] Profiles search result:", profilesResult);
+
+      if (subscribersResult.error) {
+        console.error("[Admin] Subscribers search error:", subscribersResult.error);
+        throw subscribersResult.error;
+      }
+
+      if (profilesResult.error) {
+        console.error("[Admin] Profiles search error:", profilesResult.error);
+        throw profilesResult.error;
+      }
+
+      // Combine results, prioritizing subscribers data
+      const foundSubscribers = subscribersResult.data as Subscriber[];
+      const foundProfiles = profilesResult.data || [];
+
+      // Auto-fill form if we find a match in profiles but not in subscribers
+      if (foundSubscribers.length === 0 && foundProfiles.length > 0) {
+        const firstProfile = foundProfiles[0];
+        setNewRestaurantId(firstProfile.user_id);
+        setNewRestaurantName(firstProfile.restaurant_name || "");
+        
+        // Try to get user email from auth.users (this might not work due to RLS)
+        try {
+          const { data: authUser } = await supabase.auth.admin.getUserById(firstProfile.user_id);
+          if (authUser.user?.email) {
+            setNewEmail(authUser.user.email);
+          }
+        } catch (error) {
+          console.log("[Admin] Could not fetch user email from auth:", error);
+          // This is expected due to RLS, so we'll leave email empty for manual entry
+        }
+
+        toast({ 
+          title: "Restaurant found", 
+          description: `Found ${firstProfile.restaurant_name}. Form has been pre-filled.`,
+        });
+      } else if (foundSubscribers.length > 0) {
+        // Auto-fill with first subscriber found
+        const firstSubscriber = foundSubscribers[0];
+        setNewEmail(firstSubscriber.email);
+        setNewRestaurantId(firstSubscriber.restaurant_id);
+        setNewRestaurantName(firstSubscriber.restaurant_name || "");
+        setNewPlan((firstSubscriber.subscription_tier as Plan) || "free");
+        setNewManagedBySales(firstSubscriber.managed_by_sales);
+        setNewNotes(firstSubscriber.admin_notes || "");
+
+        toast({ 
+          title: "Subscriber found", 
+          description: `Found existing subscriber ${firstSubscriber.email}. Form has been pre-filled.`,
+        });
+      }
+
+      setSubscribers(foundSubscribers);
+
+      if (foundSubscribers.length === 0 && foundProfiles.length === 0) {
+        toast({ 
+          title: "No results", 
+          description: "No restaurants found matching your search.",
+          variant: "destructive" 
+        });
+      }
+
     } catch (err) {
       console.error("[Admin] search error:", err);
-      toast({ title: "Search failed", description: "Could not fetch subscribers.", variant: "destructive" });
+      toast({ 
+        title: "Search failed", 
+        description: `Could not search restaurants: ${err instanceof Error ? err.message : 'Unknown error'}`, 
+        variant: "destructive" 
+      });
     } finally {
       setLoadingSearch(false);
     }
@@ -110,9 +189,12 @@ export default function AdminDashboard() {
         managed_by_sales: row.managed_by_sales,
       };
 
+      console.log("[Admin] Saving subscriber with payload:", payload);
+
       const { data, error } = await supabase.from("subscribers").upsert(payload).select().maybeSingle();
       if (error) throw error;
 
+      console.log("[Admin] Save successful:", data);
       toast({ title: "Saved", description: `${row.email} updated successfully.` });
     } catch (err) {
       console.error("[Admin] save error:", err);
@@ -127,6 +209,14 @@ export default function AdminDashboard() {
       toast({ title: "Missing fields", description: "Email and Restaurant User ID are required.", variant: "destructive" });
       return;
     }
+    
+    console.log("[Admin] Creating new subscriber record:", {
+      email: newEmail,
+      restaurant_id: newRestaurantId,
+      restaurant_name: newRestaurantName,
+      plan: newPlan
+    });
+
     try {
       const insertPayload = {
         restaurant_id: newRestaurantId,
@@ -139,10 +229,13 @@ export default function AdminDashboard() {
         managed_by_sales: newManagedBySales,
       };
 
+      console.log("[Admin] Insert payload:", insertPayload);
+
       const { data, error } = await supabase.from("subscribers").upsert(insertPayload, { onConflict: "email" }).select().maybeSingle();
       if (error) throw error;
 
-      toast({ title: "Subscriber created", description: `${newEmail} added/updated.` });
+      console.log("[Admin] Create successful:", data);
+      toast({ title: "Subscriber created", description: `${newEmail} added/updated successfully.` });
 
       // Reset form
       setNewEmail("");
@@ -153,13 +246,23 @@ export default function AdminDashboard() {
       setNewNotes("");
 
       // Refresh results if query matches
-      if (query && newEmail.toLowerCase().includes(query.toLowerCase())) {
+      if (query && (newEmail.toLowerCase().includes(query.toLowerCase()) || 
+                   newRestaurantName?.toLowerCase().includes(query.toLowerCase()))) {
         handleSearch();
       }
     } catch (err) {
       console.error("[Admin] create error:", err);
-      toast({ title: "Creation failed", description: "Could not create subscriber.", variant: "destructive" });
+      toast({ title: "Creation failed", description: `Could not create subscriber: ${err instanceof Error ? err.message : 'Unknown error'}`, variant: "destructive" });
     }
+  };
+
+  const clearForm = () => {
+    setNewEmail("");
+    setNewRestaurantId("");
+    setNewRestaurantName("");
+    setNewPlan("free");
+    setNewManagedBySales(true);
+    setNewNotes("");
   };
 
   if (loading || !isAdmin) {
@@ -194,141 +297,164 @@ export default function AdminDashboard() {
                 placeholder="Search by email or restaurant name..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
               <Button onClick={handleSearch} disabled={loadingSearch} className="flex items-center gap-2">
                 <Search className="h-4 w-4" />
                 {loadingSearch ? "Searching..." : "Search"}
               </Button>
             </div>
-            <Separator className="my-4" />
-            <div className="space-y-4">
-              {subscribers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No results yet. Try searching above.</p>
-              ) : (
-                subscribers.map((row) => (
-                  <div key={row.id} className="border rounded-lg p-4">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                      <div>
-                        <div className="font-medium">{row.restaurant_name || "Unnamed Restaurant"}</div>
-                        <div className="text-sm text-muted-foreground">{row.email}</div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {row.managed_by_sales ? "Managed by Sales" : row.billing_method || "—"}
+            
+            {subscribers.length > 0 && (
+              <>
+                <Separator className="my-4" />
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Found {subscribers.length} existing subscriber{subscribers.length !== 1 ? 's' : ''}:
+                  </p>
+                  {subscribers.map((row) => (
+                    <div key={row.id} className="border rounded-lg p-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                          <div className="font-medium">{row.restaurant_name || "Unnamed Restaurant"}</div>
+                          <div className="text-sm text-muted-foreground">{row.email}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {row.managed_by_sales ? "Managed by Sales" : row.billing_method || "—"}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={row.subscription_tier === "advanced" ? "default" : row.subscription_tier === "standard" ? "secondary" : "outline"}>
+                            {planLabel(row.subscription_tier)}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={row.subscription_tier === "advanced" ? "default" : row.subscription_tier === "standard" ? "secondary" : "outline"}>
-                          {planLabel(row.subscription_tier)}
-                        </Badge>
+
+                      <Separator className="my-3" />
+
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Plan</Label>
+                          <Select
+                            value={(row.subscription_tier as Plan) || "free"}
+                            onValueChange={(val) => {
+                              row.subscription_tier = val;
+                              row.subscribed = val !== "free";
+                              // force rerender
+                              setSubscribers((prev) => [...prev]);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose plan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="free">Free</SelectItem>
+                              <SelectItem value="standard">Standard – $30</SelectItem>
+                              <SelectItem value="advanced">Advanced – $80</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Restaurant Name</Label>
+                          <Input
+                            value={row.restaurant_name || ""}
+                            onChange={(e) => {
+                              row.restaurant_name = e.target.value || null;
+                              setSubscribers((prev) => [...prev]);
+                            }}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Managed by Sales</Label>
+                          <Select
+                            value={row.managed_by_sales ? "yes" : "no"}
+                            onValueChange={(v) => {
+                              row.managed_by_sales = v === "yes";
+                              row.billing_method = row.managed_by_sales ? "sales_managed" : row.billing_method;
+                              setSubscribers((prev) => [...prev]);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="yes">Yes</SelectItem>
+                              <SelectItem value="no">No</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
 
-                    <Separator className="my-3" />
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Plan</Label>
-                        <Select
-                          value={(row.subscription_tier as Plan) || "free"}
-                          onValueChange={(val) => {
-                            row.subscription_tier = val;
-                            row.subscribed = val !== "free";
-                            // force rerender
-                            setSubscribers((prev) => [...prev]);
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose plan" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="free">Free</SelectItem>
-                            <SelectItem value="standard">Standard – $30</SelectItem>
-                            <SelectItem value="advanced">Advanced – $80</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Restaurant Name</Label>
-                        <Input
-                          value={row.restaurant_name || ""}
+                      <div className="space-y-2 mt-4">
+                        <Label>Admin Notes</Label>
+                        <Textarea
+                          placeholder='e.g. "Contract signed, billing handled offline"'
+                          value={row.admin_notes || ""}
                           onChange={(e) => {
-                            row.restaurant_name = e.target.value || null;
+                            row.admin_notes = e.target.value || null;
                             setSubscribers((prev) => [...prev]);
                           }}
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Managed by Sales</Label>
-                        <Select
-                          value={row.managed_by_sales ? "yes" : "no"}
-                          onValueChange={(v) => {
-                            row.managed_by_sales = v === "yes";
-                            row.billing_method = row.managed_by_sales ? "sales_managed" : row.billing_method;
-                            setSubscribers((prev) => [...prev]);
-                          }}
+                      <div className="mt-4 flex items-center gap-2">
+                        <Button
+                          onClick={() => saveRow(row)}
+                          disabled={!!savingIds[row.id]}
+                          className="flex items-center gap-2"
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="yes">Yes</SelectItem>
-                            <SelectItem value="no">No</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <Save className="h-4 w-4" />
+                          {savingIds[row.id] ? "Saving..." : "Save"}
+                        </Button>
                       </div>
                     </div>
-
-                    <div className="space-y-2 mt-4">
-                      <Label>Admin Notes</Label>
-                      <Textarea
-                        placeholder='e.g. "Contract signed, billing handled offline"'
-                        value={row.admin_notes || ""}
-                        onChange={(e) => {
-                          row.admin_notes = e.target.value || null;
-                          setSubscribers((prev) => [...prev]);
-                        }}
-                      />
-                    </div>
-
-                    <div className="mt-4 flex items-center gap-2">
-                      <Button
-                        onClick={() => saveRow(row)}
-                        disabled={!!savingIds[row.id]}
-                        className="flex items-center gap-2"
-                      >
-                        <Save className="h-4 w-4" />
-                        {savingIds[row.id] ? "Saving..." : "Save"}
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Create / Attach Subscription Record</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              Create / Attach Subscription Record
+              {(newEmail || newRestaurantId || newRestaurantName) && (
+                <Button variant="outline" size="sm" onClick={clearForm}>
+                  Clear Form
+                </Button>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              To create a subscription record for a user, provide their Email and Restaurant User ID (UUID).
-              You can copy the UUID from Supabase Users.
+              Search for a restaurant above to auto-fill this form, or manually provide their Email and Restaurant User ID (UUID).
             </p>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+                <Label>Email *</Label>
+                <Input 
+                  value={newEmail} 
+                  onChange={(e) => setNewEmail(e.target.value)} 
+                  placeholder="restaurant@email.com"
+                />
               </div>
               <div className="space-y-2">
-                <Label>Restaurant User ID (UUID)</Label>
-                <Input value={newRestaurantId} onChange={(e) => setNewRestaurantId(e.target.value)} placeholder="xxxxxx-xxxx-...." />
+                <Label>Restaurant User ID (UUID) *</Label>
+                <Input 
+                  value={newRestaurantId} 
+                  onChange={(e) => setNewRestaurantId(e.target.value)} 
+                  placeholder="xxxxxx-xxxx-...." 
+                />
               </div>
               <div className="space-y-2">
-                <Label>Restaurant Name (optional)</Label>
-                <Input value={newRestaurantName} onChange={(e) => setNewRestaurantName(e.target.value)} />
+                <Label>Restaurant Name</Label>
+                <Input 
+                  value={newRestaurantName} 
+                  onChange={(e) => setNewRestaurantName(e.target.value)}
+                  placeholder="Restaurant Name"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Plan</Label>
@@ -367,7 +493,7 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2">
               <Button onClick={createNewRecord} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
-                Create / Upsert
+                Create / Upsert Subscriber
               </Button>
               <a
                 href="https://supabase.com/dashboard/project/mrluhxwootpggtptglcd/auth/users"
