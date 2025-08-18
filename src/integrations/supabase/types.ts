@@ -372,7 +372,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      restaurant_public_profiles: {
+        Row: {
+          logo_url: string | null
+          restaurant_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          logo_url?: string | null
+          restaurant_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          logo_url?: string | null
+          restaurant_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
