@@ -23,6 +23,30 @@ interface PaymentGatewayWithCredentials {
   credentials?: any;
 }
 
+// Type for payment methods from database
+interface PaymentMethodsConfig {
+  mpesa_manual?: {
+    enabled: boolean;
+    till_number?: string;
+    paybill_number?: string;
+    account_number?: string;
+  };
+  pesapal?: {
+    enabled: boolean;
+    consumer_key?: string;
+    consumer_secret?: string;
+  };
+  bank_transfer?: {
+    enabled: boolean;
+    bank_name?: string;
+    account_number?: string;
+    account_name?: string;
+  };
+  cash?: {
+    enabled: boolean;
+  };
+}
+
 const Checkout = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -40,7 +64,6 @@ const Checkout = () => {
     clearCart 
   } = useCart(restaurantId || 'default');
 
-  // Get subscription limits to determine available payment methods
   const subscriptionLimits = useSubscriptionLimits(restaurantId || undefined);
 
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -72,47 +95,43 @@ const Checkout = () => {
         
         const allGateways = paymentGatewayRegistry.getAll();
         
-        let allowedGatewayTypes: string[] = [];
-        
+        // For free plan, only allow mpesa_manual and cash
         if (subscriptionLimits.plan === 'free') {
-          allowedGatewayTypes = ['mpesa_manual', 'cash'];
-        } else {
-          allowedGatewayTypes = subscriptionLimits.allowedPaymentMethods;
-        }
-        
-        console.log('Allowed gateway types based on plan:', allowedGatewayTypes);
-
-        if (subscriptionLimits.plan === 'free') {
-          const available: PaymentGatewayWithCredentials[] = allGateways
-            .filter(gateway => allowedGatewayTypes.includes(gateway.type))
-            .map(gateway => ({
-              type: gateway.type,
-              name: gateway.name,
-              requiresCredentials: gateway.requiresCredentials,
-              supportedMethods: gateway.supportedMethods,
-              credentials: {}
-            }));
-
+          console.log('Free plan detected, loading M-Pesa manual and cash only');
+          
           const { data: paymentSettings } = await supabase
             .from('restaurant_payment_settings')
             .select('payment_methods')
             .eq('restaurant_id', restaurantId)
             .maybeSingle();
 
-          if (paymentSettings?.payment_methods?.mpesa_manual) {
-            const mpesaIndex = available.findIndex(g => g.type === 'mpesa_manual');
-            if (mpesaIndex !== -1) {
-              available[mpesaIndex].credentials = paymentSettings.payment_methods.mpesa_manual;
+          const paymentMethods = paymentSettings?.payment_methods as PaymentMethodsConfig || {};
+          console.log('Free plan payment methods from DB:', paymentMethods);
+
+          // Always show mpesa_manual and cash for free plan
+          const available: PaymentGatewayWithCredentials[] = [
+            {
+              type: 'mpesa_manual',
+              name: 'M-Pesa (Manual)',
+              requiresCredentials: false,
+              supportedMethods: ['mpesa'],
+              credentials: paymentMethods.mpesa_manual || {}
+            },
+            {
+              type: 'cash',
+              name: 'Cash Payment',
+              requiresCredentials: false,
+              supportedMethods: ['cash'],
+              credentials: {}
             }
-          }
+          ];
 
           setAvailableGateways(available);
-          if (available.length > 0) {
-            setPaymentMethod(available[0].type);
-          }
+          setPaymentMethod('mpesa_manual');
           return;
         }
 
+        // For paid plans, show all enabled payment methods
         const { data, error } = await supabase
           .from('restaurant_payment_settings')
           .select('payment_methods')
@@ -123,14 +142,14 @@ const Checkout = () => {
           console.error('Error loading payment settings:', error);
         }
 
-        const paymentMethods = data?.payment_methods || {};
-        console.log('Payment methods from DB:', paymentMethods);
+        const paymentMethods = data?.payment_methods as PaymentMethodsConfig || {};
+        console.log('Paid plan payment methods from DB:', paymentMethods);
         
         const available: PaymentGatewayWithCredentials[] = allGateways
           .filter(gateway => {
-            const config = paymentMethods[gateway.type];
+            const config = paymentMethods[gateway.type as keyof PaymentMethodsConfig];
             const isEnabledInSettings = config?.enabled;
-            const isAllowedByPlan = allowedGatewayTypes.includes(gateway.type);
+            const isAllowedByPlan = subscriptionLimits.allowedPaymentMethods.includes(gateway.type);
             console.log(`Gateway ${gateway.type}: enabled=${isEnabledInSettings}, allowed=${isAllowedByPlan}`);
             return isEnabledInSettings && isAllowedByPlan;
           })
@@ -139,53 +158,35 @@ const Checkout = () => {
             name: gateway.name,
             requiresCredentials: gateway.requiresCredentials,
             supportedMethods: gateway.supportedMethods,
-            credentials: paymentMethods[gateway.type] || {}
+            credentials: paymentMethods[gateway.type as keyof PaymentMethodsConfig] || {}
           }));
 
         console.log('Available gateways after filtering:', available);
-
         setAvailableGateways(available);
         
         if (available.length > 0) {
           setPaymentMethod(available[0].type);
-        } else {
-          const fallbackGateways = allGateways
-            .filter(g => ['cash', 'mpesa_manual'].includes(g.type))
-            .map(gateway => ({
-              type: gateway.type,
-              name: gateway.name,
-              requiresCredentials: gateway.requiresCredentials,
-              supportedMethods: gateway.supportedMethods,
-              credentials: {}
-            }));
-          
-          setAvailableGateways(fallbackGateways);
-          if (fallbackGateways.length > 0) {
-            setPaymentMethod(fallbackGateways[0].type);
-          }
         }
       } catch (error) {
         console.error('Error loading payment settings:', error);
-        const allGateways = paymentGatewayRegistry.getAll();
-        const defaultAvailable = allGateways
-          .filter(g => ['cash', 'mpesa_manual'].includes(g.type))
-          .map(gateway => ({
-            type: gateway.type,
-            name: gateway.name,
-            requiresCredentials: gateway.requiresCredentials,
-            supportedMethods: gateway.supportedMethods,
+        // Fallback to basic methods
+        const fallbackGateways = [
+          {
+            type: 'cash',
+            name: 'Cash Payment',
+            requiresCredentials: false,
+            supportedMethods: ['cash'],
             credentials: {}
-          }));
+          }
+        ];
         
-        setAvailableGateways(defaultAvailable);
-        if (defaultAvailable.length > 0) {
-          setPaymentMethod(defaultAvailable[0].type);
-        }
+        setAvailableGateways(fallbackGateways);
+        setPaymentMethod('cash');
       }
     };
 
     loadPaymentSettings();
-  }, [restaurantId, subscriptionLimits.plan, subscriptionLimits.isLoading]);
+  }, [restaurantId, subscriptionLimits.plan, subscriptionLimits.isLoading, subscriptionLimits.allowedPaymentMethods]);
 
   // Redirect if cart is empty
   if (cartItems.length === 0) {
