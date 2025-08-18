@@ -13,9 +13,31 @@ import { Shield, LogIn } from "lucide-react";
 export default function AdminLogin() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@menuhub.com");
+  const [password, setPassword] = useState("AdminPass123!");
   const [loading, setLoading] = useState(false);
+
+  const createAdminUser = async () => {
+    try {
+      const response = await fetch('/functions/v1/create-admin-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({ title: "Admin user created", description: "You can now sign in with the admin credentials." });
+      } else {
+        toast({ title: "Creation failed", description: result.error, variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('Create admin error:', error);
+      toast({ title: "Creation failed", description: "Could not create admin user.", variant: "destructive" });
+    }
+  };
 
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,16 +48,22 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
+      console.log('Attempting admin login with:', email);
+      
       // Clean up any previous session limbo
       cleanupAuthState();
       try {
         await supabase.auth.signOut({ scope: "global" });
       } catch (_err) {
-        // ignore
+        console.log('Signout error (ignoring):', _err);
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      console.log('Sign in result:', { data, error });
+      
       if (error) {
+        console.error('Sign in error:', error);
         toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
         return;
       }
@@ -46,6 +74,8 @@ export default function AdminLogin() {
         return;
       }
 
+      console.log('User signed in:', user.id, user.email);
+
       // Verify admin membership (RLS allows users to read their own admin row)
       const { data: adminRow, error: adminError } = await supabase
         .from("admin_users")
@@ -53,7 +83,10 @@ export default function AdminLogin() {
         .eq("user_id", user.id)
         .maybeSingle();
 
+      console.log('Admin verification:', { adminRow, adminError });
+
       if (adminError) {
+        console.error('Admin verification error:', adminError);
         toast({ title: "Access check failed", description: adminError.message, variant: "destructive" });
         // Optional: sign out on failure to verify
         try {
@@ -133,10 +166,20 @@ export default function AdminLogin() {
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              For convenience, you can use: admin@menuhub.com / AdminPass123!
-            </p>
+          <div className="mt-4 space-y-2">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">
+                Default credentials: admin@menuhub.com / AdminPass123!
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={createAdminUser}
+            >
+              Create Admin User (if needed)
+            </Button>
           </div>
         </CardContent>
       </Card>
