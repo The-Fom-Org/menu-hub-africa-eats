@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface CartDrawerProps {
   restaurantId: string;
@@ -24,13 +24,17 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const cart = useCart(restaurantId);
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [cartTotal, setCartTotal] = useState(0);
 
-  // CRITICAL: Subscribe directly to cartItems and updateCounter to ensure re-renders
-  const { cartItems, updateCounter } = cart;
-  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-
-  console.log('CartDrawer render - updateCounter:', updateCounter, 'cartCount:', cartCount, 'cartItems length:', cartItems.length);
+  // Force re-render when cart changes
+  useEffect(() => {
+    const count = cart.getCartCount();
+    const total = cart.getCartTotal();
+    setCartCount(count);
+    setCartTotal(total);
+    console.log('Cart updated - count:', count, 'total:', total, 'items:', cart.cartItems.length);
+  }, [cart.cartItems, cart.updateTrigger]);
 
   const handleCheckout = () => {
     if (cartCount === 0) return;
@@ -56,15 +60,15 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
         </Button>
       </SheetTrigger>
       
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
-        <SheetHeader className="flex-shrink-0">
+      <SheetContent side="right" className="w-full sm:max-w-md">
+        <SheetHeader>
           <SheetTitle>Your Order</SheetTitle>
           <SheetDescription>
             {cartCount === 0 ? 'Your cart is empty' : 'Review your items before checkout'}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full">
           {cartCount === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -77,7 +81,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
             <>
               <ScrollArea className="flex-1 -mx-6 px-6">
                 <div className="space-y-4 mt-6">
-                  {cartItems.map((item, index) => (
+                  {cart.cartItems.map((item, index) => (
                     <div key={`${item.id}-${item.customizations}-${index}`} className="space-y-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -127,13 +131,13 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           </Button>
                         </div>
                       </div>
-                      {index < cartItems.length - 1 && <Separator />}
+                      {index < cart.cartItems.length - 1 && <Separator />}
                     </div>
                   ))}
                 </div>
               </ScrollArea>
 
-              <div className="flex-shrink-0 space-y-4 pt-4 border-t mt-4">
+              <div className="space-y-4 pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">Total:</span>
                   <span className="font-bold text-lg">KSh {cartTotal.toFixed(2)}</span>
@@ -155,4 +159,3 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     </Sheet>
   );
 };
-

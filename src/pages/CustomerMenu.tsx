@@ -11,14 +11,12 @@ import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import { useCart } from '@/hooks/useCart';
 import { MenuItemCard } from '@/components/customer/MenuItemCard';
 import { CartDrawer } from '@/components/customer/CartDrawer';
-import { useSubscriptionLimits } from '@/hooks/useSubscriptionLimits';
 
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const [searchParams] = useSearchParams();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId!);
   const { setOrderType } = useCart(restaurantId!);
-  const { canUsePreOrders } = useSubscriptionLimits();
   const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -32,10 +30,9 @@ const CustomerMenu = () => {
       setOrderType('now');
     } else {
       setCustomerFlow('direct');
-      // Only allow "later" orders if the restaurant supports pre-orders
-      setOrderType(canUsePreOrders ? 'later' : 'now');
+      setOrderType('later');
     }
-  }, [searchParams, setOrderType, canUsePreOrders]);
+  }, [searchParams, setOrderType]);
 
   // Filter items based on search term
   const filteredCategories = categories.map(category => ({
@@ -195,7 +192,7 @@ const CustomerMenu = () => {
                     Now
                   </Badge>
                 </>
-              ) : canUsePreOrders ? (
+              ) : (
                 <>
                   <Clock 
                     className="h-5 w-5" 
@@ -214,27 +211,6 @@ const CustomerMenu = () => {
                     }}
                   >
                     Later
-                  </Badge>
-                </>
-              ) : (
-                <>
-                  <MapPin 
-                    className="h-5 w-5" 
-                    style={{ color: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
-                  />
-                  <div>
-                    <p className="font-medium text-sm">Order Now</p>
-                    <p className="text-xs text-muted-foreground">Your order will be prepared for immediate service</p>
-                  </div>
-                  <Badge 
-                    variant="default" 
-                    className="ml-auto"
-                    style={{ 
-                      backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))',
-                      color: 'white'
-                    }}
-                  >
-                    Now
                   </Badge>
                 </>
               )}

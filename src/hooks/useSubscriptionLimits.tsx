@@ -11,8 +11,6 @@ export interface SubscriptionLimits {
   currentMenuItemCount: number;
   canAddMenuItem: boolean;
   canEnablePaymentMethod: (method: string) => boolean;
-  canUsePreOrders: boolean; // New: whether pre-orders are allowed
-  requiresUpgradeForPreOrders: boolean; // New: whether upgrade is needed for pre-orders
   isLoading: boolean;
 }
 
@@ -72,18 +70,15 @@ export const useSubscriptionLimits = (): SubscriptionLimits => {
   const planLimits = {
     free: {
       maxMenuItems: 15,
-      allowedPaymentMethods: ['mpesa_manual', 'cash', 'bank_transfer'], // Allow manual payments
-      canUsePreOrders: false, // No pre-orders for free plan
+      allowedPaymentMethods: ['mpesa_manual', 'cash']
     },
     standard: {
       maxMenuItems: null, // unlimited
-      allowedPaymentMethods: ['pesapal', 'mpesa_manual', 'bank_transfer', 'cash'],
-      canUsePreOrders: true, // Pre-orders allowed
+      allowedPaymentMethods: ['pesapal', 'mpesa_manual', 'bank_transfer', 'cash']
     },
     advanced: {
       maxMenuItems: null, // unlimited
-      allowedPaymentMethods: ['pesapal', 'mpesa_manual', 'bank_transfer', 'cash'],
-      canUsePreOrders: true, // Pre-orders allowed
+      allowedPaymentMethods: ['pesapal', 'mpesa_manual', 'bank_transfer', 'cash']
     }
   };
 
@@ -102,8 +97,6 @@ export const useSubscriptionLimits = (): SubscriptionLimits => {
     currentMenuItemCount,
     canAddMenuItem,
     canEnablePaymentMethod,
-    canUsePreOrders: currentLimits.canUsePreOrders,
-    requiresUpgradeForPreOrders: !currentLimits.canUsePreOrders,
     isLoading
   };
 };

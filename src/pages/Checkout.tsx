@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,11 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, Clock, MapPin } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
-import { useSubscriptionLimits } from '@/hooks/useSubscriptionLimits';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector';
-import { UpgradePrompt } from '@/components/checkout/UpgradePrompt';
 import { paymentGatewayRegistry } from '@/lib/payment-gateways/registry';
 
 interface PaymentGatewayWithCredentials {
@@ -41,20 +38,15 @@ const Checkout = () => {
     clearCart 
   } = useCart(restaurantId);
 
-  const subscriptionLimits = useSubscriptionLimits();
-
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [isProcessing, setIsProcessing] = useState(false);
   const [availableGateways, setAvailableGateways] = useState<PaymentGatewayWithCredentials[]>([]);
-  const [isLoadingPaymentMethods, setIsLoadingPaymentMethods] = useState(true);
 
   // Load payment settings for this restaurant
   useEffect(() => {
     const loadPaymentSettings = async () => {
       try {
-        setIsLoadingPaymentMethods(true);
         console.log('Loading payment settings for restaurant:', restaurantId);
-        
         const { data, error } = await supabase
           .from('restaurant_payment_settings')
           .select('payment_methods')
@@ -70,19 +62,10 @@ const Checkout = () => {
         
         const allGateways = paymentGatewayRegistry.getAll();
         console.log('All available gateways:', allGateways);
-        console.log('Subscription limits:', subscriptionLimits);
         
-        // Filter and map available gateways based on restaurant settings AND subscription limits
+        // Filter and map available gateways based on restaurant settings
         const available: PaymentGatewayWithCredentials[] = allGateways
           .filter(gateway => {
-            // Check if gateway is allowed by subscription plan
-            const allowedByPlan = subscriptionLimits.canEnablePaymentMethod(gateway.type);
-            if (!allowedByPlan) {
-              console.log(`Gateway ${gateway.type} not allowed by plan ${subscriptionLimits.plan}`);
-              return false;
-            }
-
-            // Check if gateway is enabled by restaurant settings
             const config = paymentMethods[gateway.type];
             const isEnabled = config?.enabled || gateway.type === 'cash';
             console.log(`Gateway ${gateway.type}: enabled=${isEnabled}, config=`, config);
@@ -98,25 +81,18 @@ const Checkout = () => {
 
         console.log('Available gateways after filtering:', available);
 
-        // If no payment methods configured, add default allowed methods
+        // If no payment methods configured, default to cash
         if (available.length === 0) {
-          const defaultMethods = ['cash'];
-          if (subscriptionLimits.canEnablePaymentMethod('mpesa_manual')) {
-            defaultMethods.push('mpesa_manual', 'bank_transfer');
+          const cashGateway = allGateways.find(g => g.type === 'cash');
+          if (cashGateway) {
+            available.push({
+              type: cashGateway.type,
+              name: cashGateway.name,
+              requiresCredentials: cashGateway.requiresCredentials,
+              supportedMethods: cashGateway.supportedMethods,
+              credentials: {}
+            });
           }
-
-          defaultMethods.forEach(methodType => {
-            const gateway = allGateways.find(g => g.type === methodType);
-            if (gateway) {
-              available.push({
-                type: gateway.type,
-                name: gateway.name,
-                requiresCredentials: gateway.requiresCredentials,
-                supportedMethods: gateway.supportedMethods,
-                credentials: {}
-              });
-            }
-          });
         }
 
         setAvailableGateways(available);
@@ -139,15 +115,11 @@ const Checkout = () => {
           }]);
           setPaymentMethod('cash');
         }
-      } finally {
-        setIsLoadingPaymentMethods(false);
       }
     };
 
-    if (!subscriptionLimits.isLoading) {
-      loadPaymentSettings();
-    }
-  }, [restaurantId, subscriptionLimits]);
+    loadPaymentSettings();
+  }, [restaurantId]);
 
   // Redirect if cart is empty
   if (cartItems.length === 0) {
@@ -166,16 +138,6 @@ const Checkout = () => {
   }
 
   const handleOrderTypeChange = (type: 'now' | 'later') => {
-    // Check if pre-orders are allowed for this plan
-    if (type === 'later' && subscriptionLimits.requiresUpgradeForPreOrders) {
-      toast({
-        title: "Upgrade Required",
-        description: "Pre-orders require a Standard or Advanced plan",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setOrderType(type);
     if (type === 'now') {
       setCustomerInfo({ name: '', phone: '', preferred_time: '' });
@@ -311,7 +273,7 @@ const Checkout = () => {
         }
       }
 
-      // For manual payment methods, show success page
+      // For other payment methods, show success page
       clearCart();
       navigate('/order-success', { 
         state: { 
@@ -321,7 +283,6 @@ const Checkout = () => {
           },
           paymentMethod,
           paymentInstructions: selectedGateway?.credentials,
-          isManualPayment: ['cash', 'mpesa_manual', 'bank_transfer'].includes(paymentMethod),
         }
       });
 
@@ -343,7 +304,6 @@ const Checkout = () => {
   };
 
   const cartTotal = getCartTotal();
-  const isManualPayment = ['cash', 'mpesa_manual', 'bank_transfer'].includes(paymentMethod);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -364,7 +324,7 @@ const Checkout = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 pb-32">
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Order Details */}
           <div className="space-y-6">
@@ -390,38 +350,18 @@ const Checkout = () => {
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem 
-                      value="later" 
-                      id="later" 
-                      disabled={subscriptionLimits.requiresUpgradeForPreOrders}
-                    />
-                    <Label 
-                      htmlFor="later" 
-                      className={`flex items-center gap-2 cursor-pointer ${
-                        subscriptionLimits.requiresUpgradeForPreOrders ? 'opacity-50' : ''
-                      }`}
-                    >
+                    <RadioGroupItem value="later" id="later" />
+                    <Label htmlFor="later" className="flex items-center gap-2 cursor-pointer">
                       <Clock className="h-4 w-4" />
                       Pre-order for Later
-                      {subscriptionLimits.requiresUpgradeForPreOrders && (
-                        <span className="text-xs text-amber-600 font-medium">(Upgrade Required)</span>
-                      )}
                     </Label>
                   </div>
                 </RadioGroup>
               </CardContent>
             </Card>
 
-            {/* Upgrade Prompt for Pre-orders */}
-            {subscriptionLimits.requiresUpgradeForPreOrders && (
-              <UpgradePrompt
-                feature="Pre-orders"
-                description="Allow customers to schedule orders for pickup at their preferred time. This feature requires automatic payment processing."
-              />
-            )}
-
             {/* Customer Information (for pre-orders) */}
-            {orderType === 'later' && !subscriptionLimits.requiresUpgradeForPreOrders && (
+            {orderType === 'later' && (
               <Card>
                 <CardHeader>
                   <CardTitle>Customer Information</CardTitle>
@@ -463,30 +403,16 @@ const Checkout = () => {
             )}
 
             {/* Payment Method */}
-            {isLoadingPaymentMethods ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Loading Payment Methods...</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="animate-pulse space-y-4">
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
-                    <div className="h-4 bg-muted rounded w-1/2"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <PaymentMethodSelector
-                paymentMethod={paymentMethod}
-                setPaymentMethod={setPaymentMethod}
-                availableGateways={availableGateways}
-              />
-            )}
+            <PaymentMethodSelector
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+              availableGateways={availableGateways}
+            />
           </div>
 
-          {/* Order Summary - Fixed positioning */}
-          <div className="space-y-6">
-            <Card className="lg:sticky lg:top-24">
+          {/* Order Summary */}
+          <div>
+            <Card className="sticky top-24">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
@@ -519,30 +445,20 @@ const Checkout = () => {
                   <span>Total:</span>
                   <span>KSh {cartTotal.toFixed(2)}</span>
                 </div>
+
+                <Button 
+                  onClick={handlePayment}
+                  disabled={isProcessing}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isProcessing ? 'Processing...' : `Complete Order - KSh ${cartTotal.toFixed(2)}`}
+                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-
-      {/* Fixed Bottom Checkout Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg p-4 z-50">
-        <div className="max-w-4xl mx-auto">
-          <Button 
-            onClick={handlePayment}
-            disabled={isProcessing || isLoadingPaymentMethods}
-            className="w-full"
-            size="lg"
-          >
-            {isProcessing 
-              ? 'Processing...' 
-              : isManualPayment 
-                ? `Place Order - KSh ${cartTotal.toFixed(2)}` 
-                : `Pay Now - KSh ${cartTotal.toFixed(2)}`
-            }
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };
