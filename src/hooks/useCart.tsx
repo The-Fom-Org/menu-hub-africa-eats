@@ -28,133 +28,120 @@ export const useCart = (restaurantId: string) => {
     phone: '',
     preferred_time: '',
   });
+  const [updateCounter, setUpdateCounter] = useState(0); // Force re-renders
 
-  console.log('useCart hook initialized for restaurant:', restaurantId);
-
-  // Load cart from localStorage on mount and when restaurantId changes
+  // Load cart from localStorage on mount
   useEffect(() => {
     const loadCart = () => {
-      console.log('Loading cart for restaurant:', restaurantId);
-      
-      try {
-        const savedCart = localStorage.getItem(`cart_${restaurantId}`);
-        if (savedCart) {
-          const items = JSON.parse(savedCart);
-          console.log('Restored cart from localStorage:', items);
-          setCartItems(items);
-        } else {
-          console.log('No saved cart found');
-          setCartItems([]);
+      const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+      if (savedCart) {
+        try {
+          const parsed = JSON.parse(savedCart);
+          setCartItems(parsed);
+          console.log('Cart loaded from localStorage:', parsed);
+        } catch (error) {
+          console.error('Error loading cart from localStorage:', error);
+          localStorage.removeItem(`cart_${restaurantId}`);
         }
-      } catch (error) {
-        console.error('Error restoring cart:', error);
-        setCartItems([]);
       }
     };
     
     loadCart();
   }, [restaurantId]);
 
-  // Save cart to localStorage whenever cartItems changes
+  // Save cart to localStorage and trigger update whenever cartItems changes
   useEffect(() => {
-    console.log('Cart items changed, saving to localStorage:', cartItems);
-    
-    try {
-      if (cartItems.length > 0) {
+    if (cartItems.length > 0) {
+      try {
         localStorage.setItem(`cart_${restaurantId}`, JSON.stringify(cartItems));
-        console.log('Cart saved to localStorage for restaurant:', restaurantId);
-      } else {
-        localStorage.removeItem(`cart_${restaurantId}`);
-        console.log('Empty cart, removed from localStorage for restaurant:', restaurantId);
+        console.log('Cart saved to localStorage:', cartItems);
+      } catch (error) {
+        console.error('Error saving cart to localStorage:', error);
       }
-    } catch (error) {
-      console.error('Error saving cart to localStorage:', error);
+    } else {
+      localStorage.removeItem(`cart_${restaurantId}`);
     }
+    
+    // Force components to re-render
+    setUpdateCounter(prev => prev + 1);
   }, [cartItems, restaurantId]);
 
   const addToCart = useCallback((item: Omit<CartItem, 'quantity'>) => {
     console.log('Adding to cart:', item);
-    
     setCartItems(prevItems => {
       const existingItem = prevItems.find(cartItem => 
         cartItem.id === item.id && 
         cartItem.customizations === item.customizations
       );
       
-      let updatedItems;
       if (existingItem) {
-        updatedItems = prevItems.map(cartItem =>
+        return prevItems.map(cartItem =>
           cartItem.id === item.id && cartItem.customizations === item.customizations
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
-        console.log('Updated existing item quantity, new cart:', updatedItems);
       } else {
-        updatedItems = [...prevItems, { ...item, quantity: 1 }];
-        console.log('Added new item to cart, new cart:', updatedItems);
+        return [...prevItems, { ...item, quantity: 1 }];
       }
-      
-      return updatedItems;
     });
   }, []);
 
   const removeFromCart = useCallback((itemId: string, customizations?: string) => {
     console.log('Removing from cart:', itemId, customizations);
-    
-    setCartItems(prevItems => {
-      const updated = prevItems.filter(item => 
+    setCartItems(prevItems => 
+      prevItems.filter(item => 
         !(item.id === itemId && item.customizations === customizations)
-      );
-      console.log('Item removed, new cart:', updated);
-      return updated;
-    });
+      )
+    );
   }, []);
 
   const updateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
-    console.log('Updating quantity:', itemId, 'to', quantity, customizations);
-    
+    console.log('Updating quantity:', itemId, quantity, customizations);
     if (quantity <= 0) {
       removeFromCart(itemId, customizations);
       return;
     }
     
-    setCartItems(prevItems => {
-      const updated = prevItems.map(item =>
+    setCartItems(prevItems =>
+      prevItems.map(item =>
         item.id === itemId && item.customizations === customizations
           ? { ...item, quantity }
           : item
-      );
-      console.log('Quantity updated, new cart:', updated);
-      return updated;
-    });
+      )
+    );
   }, [removeFromCart]);
 
   const clearCart = useCallback(() => {
-    console.log('Clearing cart for restaurant:', restaurantId);
+    console.log('Clearing cart');
     setCartItems([]);
     localStorage.removeItem(`cart_${restaurantId}`);
   }, [restaurantId]);
 
-  // Calculate totals
-  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+  // Direct calculations instead of memoized
+  const getCartTotal = useCallback(() => {
+    const total = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    console.log('Cart total calculated:', total);
+    return total;
+  }, [cartItems]);
 
-  console.log('useCart render - cartItems:', cartItems.length, 'total:', cartTotal, 'count:', cartCount);
+  const getCartCount = useCallback(() => {
+    const count = cartItems.reduce((count, item) => count + item.quantity, 0);
+    console.log('Cart count calculated:', count);
+    return count;
+  }, [cartItems]);
 
   const getOrderDetails = useCallback((): OrderDetails => ({
     items: cartItems,
-    total: cartTotal,
+    total: getCartTotal(),
     order_type: orderType,
     customer_name: orderType === 'later' ? customerInfo.name : undefined,
     customer_phone: orderType === 'later' ? customerInfo.phone : undefined,
     preferred_time: orderType === 'later' ? customerInfo.preferred_time : undefined,
     restaurant_id: restaurantId,
-  }), [cartItems, cartTotal, orderType, customerInfo, restaurantId]);
+  }), [cartItems, getCartTotal, orderType, customerInfo, restaurantId]);
 
   return {
     cartItems,
-    cartTotal,
-    cartCount,
     orderType,
     setOrderType,
     customerInfo,
@@ -163,6 +150,9 @@ export const useCart = (restaurantId: string) => {
     removeFromCart,
     updateQuantity,
     clearCart,
+    getCartTotal,
+    getCartCount,
     getOrderDetails,
+    updateCounter, // Expose for components that need to react to changes
   };
 };

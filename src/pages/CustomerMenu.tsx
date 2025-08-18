@@ -1,63 +1,72 @@
-
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { UtensilsCrossed, Search } from 'lucide-react';
-import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
-import { CartDrawer } from '@/components/customer/CartDrawer';
-import { MenuItemCard } from '@/components/customer/MenuItemCard';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { QrCode, Clock, MapPin, Search } from 'lucide-react';
+import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import { useCart } from '@/hooks/useCart';
+import { MenuItemCard } from '@/components/customer/MenuItemCard';
+import { CartDrawer } from '@/components/customer/CartDrawer';
+import { useSubscriptionLimits } from '@/hooks/useSubscriptionLimits';
 
 const CustomerMenu = () => {
-  const { restaurantId } = useParams();
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  console.log('CustomerMenu - restaurantId from URL params:', restaurantId);
-  
-  if (!restaurantId) {
-    console.error('No restaurant ID in URL params');
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">Restaurant not found</p>
-            <Button onClick={() => window.location.href = '/'}>
-              Go to Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const { restaurantId } = useParams<{ restaurantId: string }>();
+  const [searchParams] = useSearchParams();
+  const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId!);
+  const { setOrderType } = useCart(restaurantId!);
+  const { canUsePreOrders } = useSubscriptionLimits();
+  const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId);
-  const { cartCount } = useCart(restaurantId);
+  useEffect(() => {
+    // Detect customer flow based on URL parameters or referrer
+    const qrParam = searchParams.get('qr');
+    const tableParam = searchParams.get('table');
+    
+    if (qrParam === 'true' || tableParam) {
+      setCustomerFlow('qr');
+      setOrderType('now');
+    } else {
+      setCustomerFlow('direct');
+      // Only allow "later" orders if the restaurant supports pre-orders
+      setOrderType(canUsePreOrders ? 'later' : 'now');
+    }
+  }, [searchParams, setOrderType, canUsePreOrders]);
 
-  console.log('CustomerMenu - restaurantInfo:', restaurantInfo, 'categories:', categories?.length, 'cartCount:', cartCount);
-
-  // Filter items based on search query
-  const filteredCategories = categories?.map(category => ({
+  // Filter items based on search term
+  const filteredCategories = categories.map(category => ({
     ...category,
     menu_items: category.menu_items?.filter(item => 
-      item.is_available && 
-      (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       item.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase())
     ) || []
-  })).filter(category => category.menu_items && category.menu_items.length > 0) || [];
+  })).filter(category => 
+    // Show category if it has matching items OR if no search term
+    !searchTerm || category.menu_items.length > 0
+  );
+
+  // Use filtered categories for display
+  const categoriesToShow = searchTerm ? filteredCategories : categories;
+
+  // Find the first category with items for search results
+  const defaultActiveTab = searchTerm 
+    ? categoriesToShow.find(cat => cat.menu_items && cat.menu_items.length > 0)?.id || categoriesToShow[0]?.id
+    : categoriesToShow[0]?.id;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-8">
-            <div className="h-48 bg-muted rounded-lg"></div>
-            <div className="h-8 bg-muted rounded w-1/3"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-64 bg-muted rounded-lg"></div>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+          <Skeleton className="h-48 w-full rounded-lg" />
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-64" />
+            <div className="grid gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 w-full" />
               ))}
             </div>
           </div>
@@ -67,193 +76,246 @@ const CustomerMenu = () => {
   }
 
   if (error) {
-    console.error('Error loading customer menu:', error);
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">Failed to load menu</p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
+        <Alert className="max-w-md">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     );
   }
 
-  if (!restaurantInfo) {
-    console.error('Restaurant not found');
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">Restaurant not found</p>
-            <Button onClick={() => window.location.href = '/'}>
-              Go to Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const totalAvailableItems = categories?.reduce((total, category) => {
-    return total + (category.menu_items?.filter(item => item.is_available).length || 0);
-  }, 0) || 0;
+  // Apply custom branding colors as CSS variables
+  const brandingStyles = restaurantInfo ? {
+    '--brand-primary': restaurantInfo.primary_color || 'hsl(25 85% 55%)',
+    '--brand-secondary': restaurantInfo.secondary_color || 'hsl(120 50% 25%)',
+  } as React.CSSProperties : {};
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Hero Section with Cover Image */}
-      {restaurantInfo.cover_image_url && (
-        <div className="relative h-64 md:h-80 lg:h-96 overflow-hidden">
-          <img
-            src={restaurantInfo.cover_image_url}
+    <div className="min-h-screen bg-gradient-subtle" style={brandingStyles}>
+      {/* Cover Image Section */}
+      {restaurantInfo?.cover_image_url && (
+        <div className="relative h-48 overflow-hidden">
+          <img 
+            src={restaurantInfo.cover_image_url} 
             alt={`${restaurantInfo.name} cover`}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="max-w-6xl mx-auto">
-              <div className="flex items-end gap-4">
-                {restaurantInfo.logo_url && (
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white overflow-hidden bg-white flex-shrink-0">
-                    <img
-                      src={restaurantInfo.logo_url}
-                      alt={`${restaurantInfo.name} logo`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className="text-white">
-                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">
-                    {restaurantInfo.name}
-                  </h1>
-                  {restaurantInfo.description && (
-                    <p className="text-white/90 mt-2 text-sm md:text-base">
-                      {restaurantInfo.description}
-                    </p>
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center text-white">
+              <h1 className="text-3xl font-bold mb-2">{restaurantInfo.name}</h1>
+              {restaurantInfo.tagline && (
+                <p className="text-lg opacity-90">{restaurantInfo.tagline}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="bg-card border-b shadow-sm sticky top-0 z-40">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              {restaurantInfo?.logo_url ? (
+                <img 
+                  src={restaurantInfo.logo_url} 
+                  alt={restaurantInfo.name}
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+              ) : (
+                <div 
+                  className="h-12 w-12 rounded-full flex items-center justify-center text-white"
+                  style={{ backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
+                >
+                  {customerFlow === 'qr' ? (
+                    <QrCode className="h-6 w-6" />
+                  ) : (
+                    <Clock className="h-6 w-6" />
                   )}
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header without cover image */}
-      {!restaurantInfo.cover_image_url && (
-        <header className="bg-card border-b shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 py-6">
-            <div className="flex items-center gap-4">
-              {restaurantInfo.logo_url && (
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                  <img
-                    src={restaurantInfo.logo_url}
-                    alt={`${restaurantInfo.name} logo`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
               )}
-              <div className="flex-1">
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                  {restaurantInfo.name}
+              <div>
+                <h1 className="font-bold text-xl text-foreground">
+                  {restaurantInfo?.name}
                 </h1>
-                {restaurantInfo.description && (
-                  <p className="text-muted-foreground mt-1">
-                    {restaurantInfo.description}
-                  </p>
-                )}
+                <p className="text-sm text-muted-foreground">
+                  {restaurantInfo?.tagline || (customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later')}
+                </p>
               </div>
             </div>
+            
+            <CartDrawer restaurantId={restaurantId!} />
           </div>
-        </header>
-      )}
-
-      {/* Fixed Cart and Search Bar */}
-      <div className="sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search menu items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <CartDrawer restaurantId={restaurantId} />
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search menu items..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </div>
+      </header>
+
+      {/* Flow Indicator */}
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <Card 
+          className="border-l-4"
+          style={{ 
+            borderLeftColor: customerFlow === 'qr' 
+              ? restaurantInfo?.primary_color || 'hsl(var(--primary))' 
+              : restaurantInfo?.secondary_color || 'hsl(var(--secondary))'
+          }}
+        >
+          <CardContent className="py-4">
+            <div className="flex items-center space-x-3">
+              {customerFlow === 'qr' ? (
+                <>
+                  <MapPin 
+                    className="h-5 w-5" 
+                    style={{ color: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Dining In</p>
+                    <p className="text-xs text-muted-foreground">Your order will be prepared for immediate service</p>
+                  </div>
+                  <Badge 
+                    variant="default" 
+                    className="ml-auto"
+                    style={{ 
+                      backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))',
+                      color: 'white'
+                    }}
+                  >
+                    Now
+                  </Badge>
+                </>
+              ) : canUsePreOrders ? (
+                <>
+                  <Clock 
+                    className="h-5 w-5" 
+                    style={{ color: restaurantInfo?.secondary_color || 'hsl(var(--secondary))' }}
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Pre-ordering</p>
+                    <p className="text-xs text-muted-foreground">Schedule your meal for pickup or delivery</p>
+                  </div>
+                  <Badge 
+                    variant="secondary" 
+                    className="ml-auto"
+                    style={{ 
+                      backgroundColor: restaurantInfo?.secondary_color || 'hsl(var(--secondary))',
+                      color: 'white'
+                    }}
+                  >
+                    Later
+                  </Badge>
+                </>
+              ) : (
+                <>
+                  <MapPin 
+                    className="h-5 w-5" 
+                    style={{ color: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Order Now</p>
+                    <p className="text-xs text-muted-foreground">Your order will be prepared for immediate service</p>
+                  </div>
+                  <Badge 
+                    variant="default" 
+                    className="ml-auto"
+                    style={{ 
+                      backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))',
+                      color: 'white'
+                    }}
+                  >
+                    Now
+                  </Badge>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
-        {/* Menu Display */}
-        {totalAvailableItems === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <div className="space-y-4">
-                <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
-                  <UtensilsCrossed className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-foreground">No items available</h3>
-                  <p className="text-muted-foreground mt-2">
-                    This restaurant hasn't added any menu items yet, or all items are currently unavailable.
-                  </p>
-                </div>
-              </div>
+      {/* Menu Content */}
+      <main className="max-w-4xl mx-auto px-4 pb-8">
+        {searchTerm && categoriesToShow.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">No items found matching "{searchTerm}"</p>
             </CardContent>
           </Card>
-        ) : filteredCategories.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <div className="space-y-4">
-                <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
-                  <Search className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-foreground">No items found</h3>
-                  <p className="text-muted-foreground mt-2">
-                    Try adjusting your search terms to find what you're looking for.
-                  </p>
-                </div>
-              </div>
+        ) : categories.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">No menu items available at the moment.</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            {filteredCategories.map((category) => (
-              <div key={category.id} className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-foreground">{category.name}</h2>
-                  <Badge variant="secondary" className="text-xs">
-                    {category.menu_items?.length || 0} item{(category.menu_items?.length || 0) !== 1 ? 's' : ''}
-                  </Badge>
+          <Tabs key={searchTerm} defaultValue={defaultActiveTab} className="space-y-6">
+            <TabsList className="w-full justify-start overflow-x-auto">
+              {categoriesToShow.map((category) => (
+                <TabsTrigger 
+                  key={category.id} 
+                  value={category.id} 
+                  className="whitespace-nowrap data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-white"
+                >
+                  {category.name}
+                  {searchTerm && category.menu_items && category.menu_items.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      {category.menu_items.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {categoriesToShow.map((category) => (
+              <TabsContent key={category.id} value={category.id} className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-xl">{category.name}</CardTitle>
+                    {category.description && (
+                      <p className="text-muted-foreground">{category.description}</p>
+                    )}
+                    {searchTerm && category.menu_items && category.menu_items.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Found {category.menu_items.length} item{category.menu_items.length !== 1 ? 's' : ''} matching "{searchTerm}"
+                      </p>
+                    )}
+                  </CardHeader>
+                </Card>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {category.menu_items && category.menu_items.length > 0 ? (
+                    category.menu_items.map((item) => (
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        restaurantId={restaurantId!}
+                      />
+                    ))
+                  ) : (
+                    <Card className="sm:col-span-2">
+                      <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                          {searchTerm ? `No items found matching "${searchTerm}" in this category.` : 'No items in this category yet.'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {category.menu_items?.map((item) => (
-                    <MenuItemCard 
-                      key={item.id} 
-                      item={item} 
-                      restaurantId={restaurantId}
-                    />
-                  ))}
-                </div>
-              </div>
+              </TabsContent>
             ))}
-          </div>
+          </Tabs>
         )}
       </main>
-
-      {/* Fixed Cart Button for Mobile */}
-      {cartCount > 0 && (
-        <div className="fixed bottom-4 right-4 z-50 md:hidden">
-          <CartDrawer restaurantId={restaurantId} />
-        </div>
-      )}
     </div>
   );
 };

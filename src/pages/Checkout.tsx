@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import { useSubscriptionLimits } from '@/hooks/useSubscriptionLimits';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector';
+import { UpgradePrompt } from '@/components/checkout/UpgradePrompt';
 import { paymentGatewayRegistry } from '@/lib/payment-gateways/registry';
 
 interface PaymentGatewayWithCredentials {
@@ -26,32 +28,11 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  
-  // FIX: Get the actual restaurant ID from URL params instead of defaulting to 'default'
-  const restaurantId = searchParams.get('restaurantId');
-  
-  console.log('Checkout page - restaurantId from URL:', restaurantId);
-  
-  // If no restaurant ID, redirect back
-  if (!restaurantId) {
-    console.error('No restaurant ID provided in URL');
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">Invalid restaurant ID</p>
-            <Button onClick={() => navigate('/')}>
-              Go to Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const restaurantId = searchParams.get('restaurantId') || 'default';
   
   const { 
     cartItems, 
-    cartTotal,
+    getCartTotal, 
     orderType, 
     setOrderType, 
     customerInfo, 
@@ -67,16 +48,13 @@ const Checkout = () => {
   const [availableGateways, setAvailableGateways] = useState<PaymentGatewayWithCredentials[]>([]);
   const [isLoadingPaymentMethods, setIsLoadingPaymentMethods] = useState(true);
 
-  console.log('Checkout - cartItems:', cartItems.length, 'cartTotal:', cartTotal);
-
-  // Load payment settings
+  // Load payment settings for this restaurant
   useEffect(() => {
     const loadPaymentSettings = async () => {
       try {
         setIsLoadingPaymentMethods(true);
         console.log('Loading payment settings for restaurant:', restaurantId);
-
-        // Load payment settings from database
+        
         const { data, error } = await supabase
           .from('restaurant_payment_settings')
           .select('payment_methods')
@@ -92,16 +70,12 @@ const Checkout = () => {
         
         const allGateways = paymentGatewayRegistry.getAll();
         console.log('All available gateways:', allGateways);
+        console.log('Subscription limits:', subscriptionLimits);
         
-        // Filter and map available gateways
+        // Filter and map available gateways based on restaurant settings AND subscription limits
         const available: PaymentGatewayWithCredentials[] = allGateways
           .filter(gateway => {
             // Check if gateway is allowed by subscription plan
-            if (subscriptionLimits.isLoading) {
-              // Allow basic payment methods while loading
-              return ['cash', 'mpesa_manual', 'bank_transfer'].includes(gateway.type);
-            }
-            
             const allowedByPlan = subscriptionLimits.canEnablePaymentMethod(gateway.type);
             if (!allowedByPlan) {
               console.log(`Gateway ${gateway.type} not allowed by plan ${subscriptionLimits.plan}`);
@@ -126,8 +100,10 @@ const Checkout = () => {
 
         // If no payment methods configured, add default allowed methods
         if (available.length === 0) {
-          console.log('No payment methods found, adding defaults');
-          const defaultMethods = ['cash', 'mpesa_manual', 'bank_transfer'];
+          const defaultMethods = ['cash'];
+          if (subscriptionLimits.canEnablePaymentMethod('mpesa_manual')) {
+            defaultMethods.push('mpesa_manual', 'bank_transfer');
+          }
 
           defaultMethods.forEach(methodType => {
             const gateway = allGateways.find(g => g.type === methodType);
@@ -149,31 +125,29 @@ const Checkout = () => {
         if (available.length > 0) {
           setPaymentMethod(available[0].type);
         }
-
-        console.log('Payment methods loaded successfully:', available);
       } catch (error) {
         console.error('Error loading payment settings:', error);
         // Fallback to cash only
         const cashGateway = paymentGatewayRegistry.get('cash');
         if (cashGateway) {
-          const fallbackGateways = [{
+          setAvailableGateways([{
             type: cashGateway.type,
             name: cashGateway.name,
             requiresCredentials: cashGateway.requiresCredentials,
             supportedMethods: cashGateway.supportedMethods,
             credentials: {}
-          }];
-          setAvailableGateways(fallbackGateways);
+          }]);
           setPaymentMethod('cash');
-          console.log('Using fallback payment methods:', fallbackGateways);
         }
       } finally {
         setIsLoadingPaymentMethods(false);
       }
     };
 
-    loadPaymentSettings();
-  }, [restaurantId, subscriptionLimits.isLoading]);
+    if (!subscriptionLimits.isLoading) {
+      loadPaymentSettings();
+    }
+  }, [restaurantId, subscriptionLimits]);
 
   // Redirect if cart is empty
   if (cartItems.length === 0) {
@@ -192,7 +166,13 @@ const Checkout = () => {
   }
 
   const handleOrderTypeChange = (type: 'now' | 'later') => {
+    // Check if pre-orders are allowed for this plan
     if (type === 'later' && subscriptionLimits.requiresUpgradeForPreOrders) {
+      toast({
+        title: "Upgrade Required",
+        description: "Pre-orders require a Standard or Advanced plan",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -246,39 +226,30 @@ const Checkout = () => {
       const orderId = `ORDER-${Date.now()}`;
 
       console.log('Creating order with details:', orderDetails);
-      console.log('Restaurant ID:', restaurantId);
-      console.log('Payment method:', paymentMethod);
 
-      // CREATE ORDER IN DATABASE
-      const orderData = {
-        id: orderId,
-        restaurant_id: restaurantId,
-        customer_name: orderDetails.customer_name,
-        customer_phone: orderDetails.customer_phone,
-        order_type: orderDetails.order_type,
-        payment_method: paymentMethod,
-        payment_status: 'pending',
-        order_status: 'pending',
-        total_amount: orderDetails.total,
-        scheduled_time: orderDetails.preferred_time ? new Date(orderDetails.preferred_time).toISOString() : null,
-      };
-
-      console.log('Inserting order data:', orderData);
-
+      // Create order in database
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .insert(orderData)
+        .insert({
+          id: orderId,
+          restaurant_id: restaurantId,
+          customer_name: orderDetails.customer_name,
+          customer_phone: orderDetails.customer_phone,
+          order_type: orderDetails.order_type,
+          payment_method: paymentMethod,
+          payment_status: 'pending',
+          order_status: 'pending',
+          total_amount: orderDetails.total,
+          scheduled_time: orderDetails.preferred_time ? new Date(orderDetails.preferred_time).toISOString() : null,
+        })
         .select()
         .single();
 
-      if (orderError) {
-        console.error('Order creation error:', orderError);
-        throw new Error(`Order creation failed: ${orderError.message}`);
-      }
+      if (orderError) throw orderError;
 
       console.log('Order created successfully:', order);
 
-      // CREATE ORDER ITEMS
+      // Create order items
       const orderItems = cartItems.map(item => ({
         order_id: orderId,
         menu_item_id: item.id,
@@ -287,20 +258,15 @@ const Checkout = () => {
         customizations: item.customizations ? { customizations: item.customizations } : {},
       }));
 
-      console.log('Inserting order items:', orderItems);
-
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) {
-        console.error('Order items creation error:', itemsError);
-        throw new Error(`Order items creation failed: ${itemsError.message}`);
-      }
+      if (itemsError) throw itemsError;
 
       console.log('Order items created successfully');
 
-      // HANDLE PAYMENT BASED ON METHOD
+      // Handle payment based on method
       const selectedGateway = availableGateways.find(g => g.type === paymentMethod);
       console.log('Selected payment gateway:', selectedGateway);
       
@@ -308,7 +274,7 @@ const Checkout = () => {
         if (paymentMethod === 'pesapal') {
           // Initialize Pesapal payment
           try {
-            console.log('Initializing Pesapal payment...');
+            console.log('Initializing Pesapal payment with credentials:', selectedGateway.credentials);
             const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
               body: {
                 amount: orderDetails.total,
@@ -324,10 +290,7 @@ const Checkout = () => {
               }
             });
 
-            if (error) {
-              console.error('Pesapal initialization error:', error);
-              throw error;
-            }
+            if (error) throw error;
 
             console.log('Pesapal initialization response:', data);
 
@@ -348,7 +311,7 @@ const Checkout = () => {
         }
       }
 
-      // FOR MANUAL PAYMENT METHODS, SHOW SUCCESS PAGE
+      // For manual payment methods, show success page
       clearCart();
       navigate('/order-success', { 
         state: { 
@@ -359,22 +322,19 @@ const Checkout = () => {
           paymentMethod,
           paymentInstructions: selectedGateway?.credentials,
           isManualPayment: ['cash', 'mpesa_manual', 'bank_transfer'].includes(paymentMethod),
-          totalAmount: cartTotal,
         }
       });
 
       toast({
         title: "Order placed successfully!",
-        description: paymentMethod === 'mpesa_manual' 
-          ? "Please complete your M-Pesa payment as instructed" 
-          : "You will receive a confirmation shortly.",
+        description: "You will receive a confirmation shortly.",
       });
 
     } catch (error) {
-      console.error('Order creation failed with full error:', error);
+      console.error('Order creation failed:', error);
       toast({
         title: "Order failed",
-        description: error instanceof Error ? error.message : "Please try again or contact support.",
+        description: "Please try again or contact support.",
         variant: "destructive",
       });
     } finally {
@@ -382,18 +342,8 @@ const Checkout = () => {
     }
   };
 
+  const cartTotal = getCartTotal();
   const isManualPayment = ['cash', 'mpesa_manual', 'bank_transfer'].includes(paymentMethod);
-
-  // Create enhanced payment gateways with total amount for M-Pesa instructions
-  const enhancedGateways = availableGateways.map(gateway => ({
-    ...gateway,
-    credentials: gateway.type === 'mpesa_manual' ? {
-      ...gateway.credentials,
-      totalAmount: cartTotal
-    } : gateway.credentials
-  }));
-
-  console.log('Enhanced gateways with totalAmount:', enhancedGateways);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -439,19 +389,36 @@ const Checkout = () => {
                       Order for Now (Dining In)
                     </Label>
                   </div>
-                  {/* Only show pre-order option if allowed by subscription */}
-                  {!subscriptionLimits.requiresUpgradeForPreOrders && (
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="later" id="later" />
-                      <Label htmlFor="later" className="flex items-center gap-2 cursor-pointer">
-                        <Clock className="h-4 w-4" />
-                        Pre-order for Later
-                      </Label>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem 
+                      value="later" 
+                      id="later" 
+                      disabled={subscriptionLimits.requiresUpgradeForPreOrders}
+                    />
+                    <Label 
+                      htmlFor="later" 
+                      className={`flex items-center gap-2 cursor-pointer ${
+                        subscriptionLimits.requiresUpgradeForPreOrders ? 'opacity-50' : ''
+                      }`}
+                    >
+                      <Clock className="h-4 w-4" />
+                      Pre-order for Later
+                      {subscriptionLimits.requiresUpgradeForPreOrders && (
+                        <span className="text-xs text-amber-600 font-medium">(Upgrade Required)</span>
+                      )}
+                    </Label>
+                  </div>
                 </RadioGroup>
               </CardContent>
             </Card>
+
+            {/* Upgrade Prompt for Pre-orders */}
+            {subscriptionLimits.requiresUpgradeForPreOrders && (
+              <UpgradePrompt
+                feature="Pre-orders"
+                description="Allow customers to schedule orders for pickup at their preferred time. This feature requires automatic payment processing."
+              />
+            )}
 
             {/* Customer Information (for pre-orders) */}
             {orderType === 'later' && !subscriptionLimits.requiresUpgradeForPreOrders && (
@@ -512,7 +479,7 @@ const Checkout = () => {
               <PaymentMethodSelector
                 paymentMethod={paymentMethod}
                 setPaymentMethod={setPaymentMethod}
-                availableGateways={enhancedGateways}
+                availableGateways={availableGateways}
               />
             )}
           </div>

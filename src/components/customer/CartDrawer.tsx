@@ -25,24 +25,17 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
-  const { cartItems, cartCount, cartTotal } = cart;
+  // CRITICAL: Subscribe directly to cartItems and updateCounter to ensure re-renders
+  const { cartItems, updateCounter } = cart;
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-  console.log('CartDrawer render - cartCount:', cartCount, 'cartTotal:', cartTotal, 'cartItems length:', cartItems.length);
+  console.log('CartDrawer render - updateCounter:', updateCounter, 'cartCount:', cartCount, 'cartItems length:', cartItems.length);
 
   const handleCheckout = () => {
     if (cartCount === 0) return;
     setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
-  };
-
-  const handleQuantityUpdate = (itemId: string, quantity: number, customizations?: string) => {
-    console.log('CartDrawer - updating quantity:', itemId, 'to', quantity);
-    cart.updateQuantity(itemId, quantity, customizations);
-  };
-
-  const handleRemoveItem = (itemId: string, customizations?: string) => {
-    console.log('CartDrawer - removing item:', itemId);
-    cart.removeFromCart(itemId, customizations);
   };
 
   return (
@@ -108,7 +101,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleQuantityUpdate(item.id, item.quantity - 1, item.customizations)}
+                            onClick={() => cart.updateQuantity(item.id, item.quantity - 1, item.customizations)}
                             className="h-7 w-7 p-0"
                           >
                             <Minus className="h-3 w-3" />
@@ -119,7 +112,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleQuantityUpdate(item.id, item.quantity + 1, item.customizations)}
+                            onClick={() => cart.updateQuantity(item.id, item.quantity + 1, item.customizations)}
                             className="h-7 w-7 p-0"
                           >
                             <Plus className="h-3 w-3" />
@@ -127,7 +120,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRemoveItem(item.id, item.customizations)}
+                            onClick={() => cart.removeFromCart(item.id, item.customizations)}
                             className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -162,3 +155,4 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     </Sheet>
   );
 };
+
