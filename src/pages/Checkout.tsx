@@ -221,17 +221,15 @@ const Checkout = () => {
     
     try {
       const orderDetails = getOrderDetails();
-      const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
+      
       console.log('Creating order with details:', orderDetails);
       console.log('Using restaurant ID:', restaurantId);
 
-      // Create order in database
+      // Create order in database - let Supabase generate the UUID
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
-          id: orderId,
-          restaurant_id: restaurantId, // Use the actual restaurant UUID
+          restaurant_id: restaurantId,
           customer_name: orderDetails.customer_name,
           customer_phone: orderDetails.customer_phone,
           order_type: orderDetails.order_type,
@@ -253,7 +251,7 @@ const Checkout = () => {
 
       // Create order items
       const orderItems = cartItems.map(item => ({
-        order_id: orderId,
+        order_id: order.id,
         menu_item_id: item.id,
         quantity: item.quantity,
         unit_price: item.price,
@@ -283,7 +281,7 @@ const Checkout = () => {
             body: {
               amount: orderDetails.total,
               currency: 'KES',
-              orderId: orderId,
+              orderId: order.id,
               description: `Order from Restaurant`,
               customerInfo: {
                 name: orderDetails.customer_name || 'Customer',
@@ -320,7 +318,7 @@ const Checkout = () => {
         state: { 
           orderDetails: {
             ...orderDetails,
-            orderId,
+            orderId: order.id,
           },
           paymentMethod,
           paymentInstructions: selectedGateway?.credentials,

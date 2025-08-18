@@ -38,8 +38,8 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
 
     toast({
       title: "Added to cart",
-      description: `${item.name} has been added to your cart`,
-      duration: 2000,
+      description: `${item.name} has been added to your cart. Please reload the page for the cart to update.`,
+      duration: 3000,
     });
   }, [addToCart, item, toast]);
 
@@ -51,8 +51,8 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       updateQuantity(item.id, quantity + 1);
       toast({
         title: "Quantity updated",
-        description: `${item.name} quantity increased`,
-        duration: 1500,
+        description: `${item.name} quantity increased. Please reload the page for the cart to update.`,
+        duration: 3000,
       });
     }
   }, [quantity, handleAddToCart, updateQuantity, item, toast]);
@@ -63,8 +63,8 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       updateQuantity(item.id, quantity - 1);
       toast({
         title: "Quantity updated",
-        description: quantity === 1 ? `${item.name} removed from cart` : `${item.name} quantity decreased`,
-        duration: 1500,
+        description: quantity === 1 ? `${item.name} removed from cart. Please reload the page for the cart to update.` : `${item.name} quantity decreased. Please reload the page for the cart to update.`,
+        duration: 3000,
       });
     }
   }, [quantity, updateQuantity, item, toast]);
