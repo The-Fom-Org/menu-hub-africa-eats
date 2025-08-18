@@ -30,12 +30,12 @@ const CustomerMenu = () => {
     );
   }
 
-  const { categories, restaurant, isLoading, error } = useCustomerMenuData(restaurantId);
+  const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId);
   const { cartCount } = useCart(restaurantId);
 
-  console.log('CustomerMenu - restaurant:', restaurant, 'categories:', categories?.length, 'cartCount:', cartCount);
+  console.log('CustomerMenu - restaurantInfo:', restaurantInfo, 'categories:', categories?.length, 'cartCount:', cartCount);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-subtle">
         <div className="max-w-6xl mx-auto px-4 py-8">
@@ -68,7 +68,7 @@ const CustomerMenu = () => {
     );
   }
 
-  if (!restaurant) {
+  if (!restaurantInfo) {
     console.error('Restaurant not found');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -95,9 +95,9 @@ const CustomerMenu = () => {
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{restaurant.name}</h1>
-              {restaurant.description && (
-                <p className="text-muted-foreground mt-1">{restaurant.description}</p>
+              <h1 className="text-2xl font-bold text-foreground">{restaurantInfo.name}</h1>
+              {restaurantInfo.description && (
+                <p className="text-muted-foreground mt-1">{restaurantInfo.description}</p>
               )}
             </div>
             <CartDrawer restaurantId={restaurantId} />
