@@ -11,6 +11,7 @@ import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
 import Analytics from './pages/Analytics';
 import Orders from './pages/Orders';
+import QRCode from './pages/QRCode';
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ function App() {
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/orders" element={<Orders />} />
+          <Route path="/qr-code" element={<QRCode />} />
         </Routes>
       </Router>
     </QueryClientProvider>
