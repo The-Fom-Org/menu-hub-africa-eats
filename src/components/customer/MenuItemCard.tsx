@@ -20,23 +20,14 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   const [showCustomization, setShowCustomization] = useState(false);
 
   // Find cart item without customizations for the quick add/remove buttons
+  // Use updateTrigger to ensure we get fresh data
   const cartItem = cartItems.find(cartItem => cartItem.id === item.id && !cartItem.customizations);
   const quantity = cartItem?.quantity || 0;
 
-  const getBadgeDetails = (badge: string) => {
-    switch (badge) {
-      case 'most_popular':
-        return { text: 'Most Popular ⭐', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
-      case 'chefs_pick':
-        return { text: "Chef's Pick 🔥", className: 'bg-red-100 text-red-800 border-red-200' };
-      case 'customer_favorite':
-        return { text: 'Customer Favorite ❤️', className: 'bg-pink-100 text-pink-800 border-pink-200' };
-      default:
-        return null;
-    }
-  };
+  console.log(`MenuItemCard ${item.name} - updateTrigger:`, updateTrigger, 'quantity:', quantity, 'cartItems:', cartItems);
 
   const handleAddToCart = useCallback((customizations?: string, specialInstructions?: string) => {
+    console.log('Adding item to cart:', item.name, customizations, specialInstructions);
     addToCart({
       id: item.id,
       name: item.name,
@@ -47,110 +38,73 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
 
     toast({
       title: "Added to cart",
-      description: `${item.name} added successfully!`,
-      duration: 2000,
+      description: `${item.name} has been added to your cart. Please reload the page for the cart to update.`,
+      duration: 3000,
     });
   }, [addToCart, item, toast]);
 
   const handleQuickAdd = useCallback(() => {
+    console.log('Quick add clicked for:', item.name, 'current quantity:', quantity);
     if (quantity === 0) {
       handleAddToCart();
     } else {
       updateQuantity(item.id, quantity + 1);
       toast({
         title: "Quantity updated",
-        description: `${item.name} quantity increased!`,
-        duration: 2000,
+        description: `${item.name} quantity increased. Please reload the page for the cart to update.`,
+        duration: 3000,
       });
     }
   }, [quantity, handleAddToCart, updateQuantity, item, toast]);
 
   const handleDecrease = useCallback(() => {
+    console.log('Decrease clicked for:', item.name, 'current quantity:', quantity);
     if (quantity > 0) {
       updateQuantity(item.id, quantity - 1);
       toast({
-        title: "Quantity updated", 
-        description: quantity === 1 ? `${item.name} removed from cart` : `${item.name} quantity decreased`,
-        duration: 2000,
+        title: "Quantity updated",
+        description: quantity === 1 ? `${item.name} removed from cart. Please reload the page for the cart to update.` : `${item.name} quantity decreased. Please reload the page for the cart to update.`,
+        duration: 3000,
       });
     }
   }, [quantity, updateQuantity, item, toast]);
 
-  const badgeDetails = getBadgeDetails((item as any).popularity_badge);
-
   return (
     <>
-      <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-card border border-border/50">
-        {/* Image Container */}
+      <Card className="overflow-hidden hover:shadow-warm transition-all duration-300">
         {item.image_url && (
-          <div className="relative aspect-[4/3] overflow-hidden">
+          <div className="aspect-[16/9] overflow-hidden bg-muted">
             <img 
               src={item.image_url} 
               alt={item.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
             />
-            
-            {/* Badge Overlay */}
-            {badgeDetails && (
-              <Badge 
-                variant="secondary" 
-                className={`absolute top-3 left-3 ${badgeDetails.className} shadow-md`}
-              >
-                {badgeDetails.text}
-              </Badge>
-            )}
-            
-            {/* Price Badge */}
-            <Badge 
-              variant="default" 
-              className="absolute bottom-3 right-3 bg-white/95 text-foreground shadow-lg text-base font-bold px-3 py-1"
-            >
-              KSh {item.price.toFixed(2)}
-            </Badge>
           </div>
         )}
         
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <CardTitle className="text-lg font-bold text-foreground leading-tight">
+            <CardTitle className="text-lg font-semibold text-foreground">
               {item.name}
             </CardTitle>
-            {!item.image_url && (
-              <div className="flex flex-col items-end gap-1">
-                <Badge variant="default" className="text-base font-bold">
-                  KSh {item.price.toFixed(2)}
-                </Badge>
-                {badgeDetails && (
-                  <Badge variant="secondary" className={`${badgeDetails.className} text-xs`}>
-                    {badgeDetails.text}
-                  </Badge>
-                )}
-              </div>
-            )}
+            <Badge variant="secondary" className="ml-2">
+              KSh {item.price.toFixed(2)}
+            </Badge>
           </div>
-          
-          {/* Marketing Description (Psychology-focused) */}
-          {(item as any).persuasion_description ? (
-            <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-              {(item as any).persuasion_description}
-            </p>
-          ) : item.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {item.description.length > 50 ? 
-                `${item.description.substring(0, 50)}...` : 
-                item.description
-              }
+          {item.description && (
+            <p className="text-sm text-muted-foreground mt-2">
+              {item.description}
             </p>
           )}
         </CardHeader>
 
         <CardContent className="pt-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowCustomization(true)}
-              className="flex-1 hover:bg-accent hover:scale-105 transition-all duration-200"
+              className="flex-1 mr-2"
             >
               Customize
             </Button>
@@ -159,31 +113,31 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
               <Button
                 onClick={handleQuickAdd}
                 size="sm"
-                className="px-6 bg-primary hover:bg-primary/90 hover:scale-105 transition-all duration-200 shadow-md font-semibold"
+                className="px-4"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Add to Cart
+                Add
               </Button>
             ) : (
-              <div className="flex items-center gap-2 bg-muted rounded-full p-1">
+              <div className="flex items-center gap-2">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={handleDecrease}
-                  className="h-8 w-8 p-0 rounded-full hover:bg-background"
+                  className="h-8 w-8 p-0"
                 >
-                  <Minus className="h-3 w-3" />
+                  <Minus className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-bold w-8 text-center">
+                <span className="text-sm font-medium w-8 text-center">
                   {quantity}
                 </span>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={handleQuickAdd}
-                  className="h-8 w-8 p-0 rounded-full hover:bg-background"
+                  className="h-8 w-8 p-0"
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             )}

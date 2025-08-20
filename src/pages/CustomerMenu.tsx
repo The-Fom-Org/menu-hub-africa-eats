@@ -1,30 +1,24 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { QrCode, Clock, MapPin, Search, Star } from 'lucide-react';
+import { QrCode, Clock, MapPin, Search } from 'lucide-react';
 import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import { useCart } from '@/hooks/useCart';
 import { MenuItemCard } from '@/components/customer/MenuItemCard';
 import { CartDrawer } from '@/components/customer/CartDrawer';
-import { HeroSection } from '@/components/customer/HeroSection';
-import { UpsellSection } from '@/components/customer/UpsellSection';
-import { getCategoryEmoji } from '@/components/customer/CategoryEmojis';
 
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const [searchParams] = useSearchParams();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId!);
-  const { setOrderType, getCartCount } = useCart(restaurantId!);
+  const { setOrderType } = useCart(restaurantId!);
   const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showUpsellSection, setShowUpsellSection] = useState(false);
 
   useEffect(() => {
     // Detect customer flow based on URL parameters or referrer
@@ -40,46 +34,25 @@ const CustomerMenu = () => {
     }
   }, [searchParams, setOrderType]);
 
-  // Show upsell section when user has items in cart
-  useEffect(() => {
-    const cartCount = getCartCount();
-    setShowUpsellSection(cartCount > 0);
-  }, [getCartCount]);
-
   // Filter items based on search term
   const filteredCategories = categories.map(category => ({
     ...category,
     menu_items: category.menu_items?.filter(item => 
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item as any).persuasion_description?.toLowerCase().includes(searchTerm.toLowerCase())
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase())
     ) || []
   })).filter(category => 
+    // Show category if it has matching items OR if no search term
     !searchTerm || category.menu_items.length > 0
-  );
-
-  // Get Chef's Special items
-  const chefSpecialItems = categories.flatMap(category =>
-    (category.menu_items || []).filter((item: any) => item.is_special)
   );
 
   // Use filtered categories for display
   const categoriesToShow = searchTerm ? filteredCategories : categories;
 
-  // Create Chef's Special category if items exist
-  const categoriesWithSpecials = chefSpecialItems.length > 0 ? [
-    {
-      id: 'chefs-specials',
-      name: "Chef's Specials",
-      description: 'Our signature dishes, crafted with love',
-      menu_items: chefSpecialItems
-    },
-    ...categoriesToShow
-  ] : categoriesToShow;
-
+  // Find the first category with items for search results
   const defaultActiveTab = searchTerm 
     ? categoriesToShow.find(cat => cat.menu_items && cat.menu_items.length > 0)?.id || categoriesToShow[0]?.id
-    : categoriesWithSpecials[0]?.id;
+    : categoriesToShow[0]?.id;
 
   if (loading) {
     return (
@@ -116,81 +89,80 @@ const CustomerMenu = () => {
   } as React.CSSProperties : {};
 
   return (
-    <div className="min-h-screen bg-background" style={brandingStyles}>
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b shadow-sm">
+    <div className="min-h-screen bg-gradient-subtle" style={brandingStyles}>
+      {/* Cover Image Section */}
+      {restaurantInfo?.cover_image_url && (
+        <div className="relative h-48 overflow-hidden">
+          <img 
+            src={restaurantInfo.cover_image_url} 
+            alt={`${restaurantInfo.name} cover`}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center text-white">
+              <h1 className="text-3xl font-bold mb-2">{restaurantInfo.name}</h1>
+              {restaurantInfo.tagline && (
+                <p className="text-lg opacity-90">{restaurantInfo.tagline}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="bg-card border-b shadow-sm sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo and Restaurant Info */}
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               {restaurantInfo?.logo_url ? (
                 <img 
                   src={restaurantInfo.logo_url} 
                   alt={restaurantInfo.name}
-                  className="h-12 w-12 rounded-full object-cover shadow-md"
+                  className="h-12 w-12 rounded-full object-cover"
                 />
               ) : (
                 <div 
-                  className="h-12 w-12 rounded-full flex items-center justify-center text-white shadow-md"
+                  className="h-12 w-12 rounded-full flex items-center justify-center text-white"
                   style={{ backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
                 >
-                  <span className="font-bold text-lg">
-                    {restaurantInfo?.name?.charAt(0) || 'R'}
-                  </span>
+                  {customerFlow === 'qr' ? (
+                    <QrCode className="h-6 w-6" />
+                  ) : (
+                    <Clock className="h-6 w-6" />
+                  )}
                 </div>
               )}
               <div>
-                <h1 className="font-bold text-lg text-foreground">
+                <h1 className="font-bold text-xl text-foreground">
                   {restaurantInfo?.name}
                 </h1>
-                <p className="text-xs text-muted-foreground">
-                  {restaurantInfo?.tagline || 'Delicious meals made fresh'}
+                <p className="text-sm text-muted-foreground">
+                  {restaurantInfo?.tagline || (customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later')}
                 </p>
               </div>
             </div>
-
-            {/* Chef's Special Shortcut & Cart */}
-            <div className="flex items-center gap-3">
-              {chefSpecialItems.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="hidden sm:flex items-center gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                  onClick={() => {
-                    const element = document.getElementById('chefs-specials-tab');
-                    element?.click();
-                  }}
-                >
-                  <Star className="h-4 w-4" />
-                  Chef's Special
-                </Button>
-              )}
-              <CartDrawer restaurantId={restaurantId!} />
-            </div>
+            
+            <CartDrawer restaurantId={restaurantId!} />
           </div>
           
           {/* Search Bar */}
-          <div className="relative mt-4">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search delicious items..."
+              placeholder="Search menu items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 border-border/50 focus:border-primary"
+              className="pl-10"
             />
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      {restaurantInfo && !searchTerm && (
-        <HeroSection restaurantInfo={restaurantInfo} customerFlow={customerFlow} />
-      )}
-
       {/* Flow Indicator */}
       <div className="max-w-4xl mx-auto px-4 py-4">
         <Card 
-          className="border-l-4 bg-gradient-to-r from-card to-accent/10"
+          className="border-l-4"
           style={{ 
             borderLeftColor: customerFlow === 'qr' 
               ? restaurantInfo?.primary_color || 'hsl(var(--primary))' 
@@ -206,8 +178,8 @@ const CustomerMenu = () => {
                     style={{ color: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
                   />
                   <div>
-                    <p className="font-medium text-sm">🍽️ Dining In Experience</p>
-                    <p className="text-xs text-muted-foreground">Your order will be prepared fresh and served hot</p>
+                    <p className="font-medium text-sm">Dining In</p>
+                    <p className="text-xs text-muted-foreground">Your order will be prepared for immediate service</p>
                   </div>
                   <Badge 
                     variant="default" 
@@ -217,7 +189,7 @@ const CustomerMenu = () => {
                       color: 'white'
                     }}
                   >
-                    Order Now
+                    Now
                   </Badge>
                 </>
               ) : (
@@ -227,8 +199,8 @@ const CustomerMenu = () => {
                     style={{ color: restaurantInfo?.secondary_color || 'hsl(var(--secondary))' }}
                   />
                   <div>
-                    <p className="font-medium text-sm">⏰ Pre-order & Schedule</p>
-                    <p className="text-xs text-muted-foreground">Order ahead for pickup or delivery at your preferred time</p>
+                    <p className="font-medium text-sm">Pre-ordering</p>
+                    <p className="text-xs text-muted-foreground">Schedule your meal for pickup or delivery</p>
                   </div>
                   <Badge 
                     variant="secondary" 
@@ -238,7 +210,7 @@ const CustomerMenu = () => {
                       color: 'white'
                     }}
                   >
-                    Schedule Order
+                    Later
                   </Badge>
                 </>
               )}
@@ -249,40 +221,27 @@ const CustomerMenu = () => {
 
       {/* Menu Content */}
       <main className="max-w-4xl mx-auto px-4 pb-8">
-        {searchTerm && categoriesWithSpecials.length === 0 ? (
+        {searchTerm && categoriesToShow.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center">
-              <div className="space-y-3">
-                <div className="text-4xl">🔍</div>
-                <p className="text-lg font-medium text-muted-foreground">No items found</p>
-                <p className="text-sm text-muted-foreground">Try searching for something else</p>
-              </div>
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">No items found matching "{searchTerm}"</p>
             </CardContent>
           </Card>
-        ) : categoriesWithSpecials.length === 0 ? (
+        ) : categories.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center">
-              <div className="space-y-3">
-                <div className="text-4xl">🍽️</div>
-                <p className="text-lg font-medium text-muted-foreground">Menu Coming Soon</p>
-                <p className="text-sm text-muted-foreground">We're preparing something delicious for you!</p>
-              </div>
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">No menu items available at the moment.</p>
             </CardContent>
           </Card>
         ) : (
           <Tabs key={searchTerm} defaultValue={defaultActiveTab} className="space-y-6">
-            {/* Category Tabs with Emojis */}
-            <TabsList className="w-full justify-start overflow-x-auto bg-card/50 p-1 h-auto">
-              {categoriesWithSpecials.map((category) => (
+            <TabsList className="w-full justify-start overflow-x-auto">
+              {categoriesToShow.map((category) => (
                 <TabsTrigger 
                   key={category.id} 
-                  id={`${category.id}-tab`}
                   value={category.id} 
-                  className="whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-medium px-4 py-2 rounded-md transition-all duration-200"
+                  className="whitespace-nowrap data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-white"
                 >
-                  <span className="mr-2">
-                    {category.id === 'chefs-specials' ? '⭐' : getCategoryEmoji(category.name)}
-                  </span>
                   {category.name}
                   {searchTerm && category.menu_items && category.menu_items.length > 0 && (
                     <Badge variant="secondary" className="ml-2 text-xs">
@@ -293,32 +252,23 @@ const CustomerMenu = () => {
               ))}
             </TabsList>
 
-            {categoriesWithSpecials.map((category) => (
-              <TabsContent key={category.id} value={category.id} className="space-y-6">
-                {/* Category Header */}
-                <Card className="bg-gradient-to-r from-card to-accent/10">
-                  <CardHeader className="text-center">
-                    <div className="text-4xl mb-2">
-                      {category.id === 'chefs-specials' ? '⭐' : getCategoryEmoji(category.name)}
-                    </div>
-                    <CardTitle className="text-2xl font-bold">
-                      {category.name}
-                    </CardTitle>
+            {categoriesToShow.map((category) => (
+              <TabsContent key={category.id} value={category.id} className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-xl">{category.name}</CardTitle>
                     {category.description && (
-                      <p className="text-muted-foreground text-lg">
-                        {category.description}
-                      </p>
+                      <p className="text-muted-foreground">{category.description}</p>
                     )}
                     {searchTerm && category.menu_items && category.menu_items.length > 0 && (
-                      <Badge variant="outline" className="mx-auto">
-                        {category.menu_items.length} item{category.menu_items.length !== 1 ? 's' : ''} found
-                      </Badge>
+                      <p className="text-sm text-muted-foreground">
+                        Found {category.menu_items.length} item{category.menu_items.length !== 1 ? 's' : ''} matching "{searchTerm}"
+                      </p>
                     )}
                   </CardHeader>
                 </Card>
 
-                {/* Menu Items Grid */}
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {category.menu_items && category.menu_items.length > 0 ? (
                     category.menu_items.map((item) => (
                       <MenuItemCard
@@ -329,16 +279,10 @@ const CustomerMenu = () => {
                     ))
                   ) : (
                     <Card className="sm:col-span-2">
-                      <CardContent className="py-12 text-center">
-                        <div className="space-y-3">
-                          <div className="text-4xl">🍽️</div>
-                          <p className="text-muted-foreground">
-                            {searchTerm ? 
-                              `No items found matching "${searchTerm}" in this category.` : 
-                              'No items in this category yet.'
-                            }
-                          </p>
-                        </div>
+                      <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                          {searchTerm ? `No items found matching "${searchTerm}" in this category.` : 'No items in this category yet.'}
+                        </p>
                       </CardContent>
                     </Card>
                   )}
@@ -346,13 +290,6 @@ const CustomerMenu = () => {
               </TabsContent>
             ))}
           </Tabs>
-        )}
-
-        {/* Upsell Section */}
-        {showUpsellSection && !searchTerm && (
-          <div className="mt-12">
-            <UpsellSection categories={categories} restaurantId={restaurantId!} />
-          </div>
         )}
       </main>
     </div>

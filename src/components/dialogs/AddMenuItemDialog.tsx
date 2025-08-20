@@ -1,60 +1,78 @@
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
-import { useMenuData } from '@/hooks/useMenuData';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
+import { Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
 
 interface AddMenuItemDialogProps {
   categoryId: string;
-  onItemAdded?: () => void;
+  categoryName: string;
+  onAddItem: (categoryId: string, item: any) => Promise<any>;
+  trigger?: React.ReactNode;
 }
 
-export const AddMenuItemDialog = ({ categoryId, onItemAdded }: AddMenuItemDialogProps) => {
+export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger }: AddMenuItemDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [persuasionDescription, setPersuasionDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [isSpecial, setIsSpecial] = useState(false);
-  const [popularityBadge, setPopularityBadge] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const { addMenuItem } = useMenuData();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { canAddMenuItem, plan, maxMenuItems, currentMenuItemCount } = useSubscriptionLimits();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !price) return;
 
-    setIsLoading(true);
+    if (!canAddMenuItem) {
+      toast({
+        title: "Item limit reached",
+        description: `Free plan is limited to ${maxMenuItems} menu items. Upgrade to add more.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
     try {
-      const result = await addMenuItem(categoryId, {
+      const result = await onAddItem(categoryId, {
         name: name.trim(),
         description: description.trim(),
-        persuasion_description: persuasionDescription.trim(),
         price: parseFloat(price),
-        image_url: imageUrl.trim() || undefined,
-        is_available: true,
-        is_special: isSpecial,
-        popularity_badge: popularityBadge || undefined,
+        image_url: imageUrl || null,
+        is_available: isAvailable,
       });
-
+      
       if (result) {
         toast({
-          title: "Menu item added",
-          description: `${name} has been added to your menu.`,
+          title: "Item added",
+          description: `${name} has been added to ${categoryName}.`,
         });
+        setName("");
+        setDescription("");
+        setPrice("");
+        setImageUrl("");
+        setIsAvailable(true);
         setOpen(false);
-        resetForm();
-        onItemAdded?.();
+      } else {
+        throw new Error("Failed to add item");
       }
     } catch (error) {
       toast({
@@ -63,127 +81,102 @@ export const AddMenuItemDialog = ({ categoryId, onItemAdded }: AddMenuItemDialog
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
-
-  const resetForm = () => {
-    setName('');
-    setDescription('');
-    setPersuasionDescription('');
-    setPrice('');
-    setImageUrl('');
-    setIsSpecial(false);
-    setPopularityBadge('');
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Item
-        </Button>
+        {trigger || (
+          <Button size="sm" disabled={!canAddMenuItem}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Item
+          </Button>
+        )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Menu Item</DialogTitle>
+          <DialogTitle>Add Item to {categoryName}</DialogTitle>
+          <DialogDescription>
+            Add a new menu item to this category.
+            {plan === 'free' && maxMenuItems && (
+              <span className="block mt-1 text-xs text-muted-foreground">
+                {currentMenuItemCount}/{maxMenuItems} items used
+              </span>
+            )}
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Item Name *</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Grilled Chicken Burger"
-              required
-            />
-          </div>
 
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Detailed description of the item..."
-              rows={2}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="persuasion-description">Marketing Description (≤10 words)</Label>
-            <Input
-              id="persuasion-description"
-              value={persuasionDescription}
-              onChange={(e) => setPersuasionDescription(e.target.value)}
-              placeholder="e.g., Smoky grilled chicken with creamy garlic sauce"
-              maxLength={60}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Short, sensory description for customer appeal
-            </p>
-          </div>
-
-          <div>
-            <Label htmlFor="price">Price (KSh) *</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0.00"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="image">Image URL</Label>
-            <Input
-              id="image"
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="special"
-              checked={isSpecial}
-              onCheckedChange={setIsSpecial}
-            />
-            <Label htmlFor="special">Mark as Chef's Special</Label>
-          </div>
-
-          <div>
-            <Label htmlFor="badge">Popularity Badge</Label>
-            <Select value={popularityBadge} onValueChange={setPopularityBadge}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a badge (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No badge</SelectItem>
-                <SelectItem value="most_popular">Most Popular ⭐</SelectItem>
-                <SelectItem value="chefs_pick">Chef's Pick 🔥</SelectItem>
-                <SelectItem value="customer_favorite">Customer Favorite ❤️</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Adding...' : 'Add Item'}
-            </Button>
-          </div>
-        </form>
+        {!canAddMenuItem ? (
+          <UpgradePrompt
+            title="Menu Item Limit Reached"
+            description={`Your free plan is limited to ${maxMenuItems} menu items. Upgrade to Standard or Advanced plan to add unlimited menu items.`}
+            feature="unlimited menu items"
+          />
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="item-name">Item Name</Label>
+              <Input
+                id="item-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Nyama Choma"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="item-description">Description</Label>
+              <Textarea
+                id="item-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of the dish"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="item-price">Price (KSh)</Label>
+              <Input
+                id="item-price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Item Image</Label>
+              <ImageUpload
+                bucket="menu-images"
+                path="items/"
+                value={imageUrl}
+                onChange={setImageUrl}
+                placeholder="Upload menu item image"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="item-available"
+                checked={isAvailable}
+                onCheckedChange={setIsAvailable}
+              />
+              <Label htmlFor="item-available">Available</Label>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading || !name.trim() || !price}>
+                {loading ? "Adding..." : "Add Item"}
+              </Button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
