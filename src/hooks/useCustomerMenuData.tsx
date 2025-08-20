@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -9,6 +10,12 @@ export interface CustomerMenuItem {
   is_available: boolean;
   category_id: string;
   image_url?: string;
+  // New persuasion-related fields
+  persuasion_description?: string | null;
+  is_chef_special?: boolean | null;
+  popularity_badge?: 'most-popular' | 'chef-pick' | 'bestseller' | null;
+  // For upsell categorization and filtering
+  category_name?: string;
 }
 
 export interface CustomerMenuCategory {
@@ -54,11 +61,18 @@ export const useCustomerMenuData = (restaurantId: string) => {
 
       if (categoriesError) throw categoriesError;
 
-      // Filter only available items
-      const filteredCategories = categoriesData?.map((category: any) => ({
+      // Filter only available items and attach category_name for convenience in UI
+      const filteredCategories: CustomerMenuCategory[] = (categoriesData?.map((category: any) => ({
         ...category,
-        menu_items: category.menu_items?.filter((item: any) => item.is_available) || []
-      })) || [];
+        menu_items: (category.menu_items?.filter((item: any) => item.is_available) || []).map((item: any) => ({
+          ...item,
+          // Ensure optional fields exist to satisfy UI typings
+          persuasion_description: item.persuasion_description ?? null,
+          is_chef_special: item.is_chef_special ?? null,
+          popularity_badge: item.popularity_badge ?? null,
+          category_name: category.name,
+        })) as CustomerMenuItem[],
+      })) || []);
 
       setCategories(filteredCategories);
 
@@ -73,12 +87,11 @@ export const useCustomerMenuData = (restaurantId: string) => {
         setRestaurantInfo({
           id: restaurantId,
           name: profileData.restaurant_name || "MenuHub Restaurant",
-          description: "Delicious meals made with love", // Default since not queried
+          description: "Delicious meals made with love",
           logo_url: profileData.logo_url,
           cover_image_url: profileData.cover_image_url,
           primary_color: profileData.primary_color,
           secondary_color: profileData.secondary_color,
-          // Sensitive fields not exposed to public customer menu
         });
       } else {
         setRestaurantInfo({

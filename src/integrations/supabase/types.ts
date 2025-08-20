@@ -43,6 +43,7 @@ export type Database = {
       }
       menu_categories: {
         Row: {
+          category_name: string | null
           created_at: string
           description: string | null
           id: string
@@ -51,6 +52,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category_name?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -59,6 +61,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category_name?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -76,7 +79,10 @@ export type Database = {
           id: string
           image_url: string | null
           is_available: boolean
+          is_chef_special: boolean | null
           name: string
+          persuasion_description: string | null
+          popularity_badge: string | null
           price: number
           updated_at: string
         }
@@ -87,7 +93,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean
+          is_chef_special?: boolean | null
           name: string
+          persuasion_description?: string | null
+          popularity_badge?: string | null
           price: number
           updated_at?: string
         }
@@ -98,7 +107,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean
+          is_chef_special?: boolean | null
           name?: string
+          persuasion_description?: string | null
+          popularity_badge?: string | null
           price?: number
           updated_at?: string
         }
