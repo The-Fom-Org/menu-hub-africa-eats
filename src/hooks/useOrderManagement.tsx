@@ -18,6 +18,7 @@ export interface Order {
     id: string;
     quantity: number;
     unit_price: number;
+    customizations?: Record<string, any>;
     menu_item: {
       name: string;
       price: number;
