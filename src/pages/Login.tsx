@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,6 @@ const Login = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -52,8 +51,8 @@ const Login = () => {
           description: "Successfully logged in. Redirecting to your dashboard...",
         });
         
-        // Use React Router navigation instead of window.location.href
-        navigate("/dashboard");
+        // Force a full reload after auth to ensure a clean state
+        window.location.href = "/dashboard";
       }
     } catch (error: any) {
       toast({

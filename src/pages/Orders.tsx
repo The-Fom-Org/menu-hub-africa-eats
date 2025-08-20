@@ -329,12 +329,12 @@ const Orders = () => {
                         </div>
                       </div>
 
-                      {/* Notes - safely handle potentially missing notes property */}
-                      {(order as any).notes && (
+                      {/* Notes */}
+                      {order.notes && (
                         <div>
                           <h4 className="font-medium mb-2">Special Instructions</h4>
                           <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                            {(order as any).notes}
+                            {order.notes}
                           </p>
                         </div>
                       )}
