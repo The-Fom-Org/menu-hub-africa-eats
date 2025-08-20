@@ -173,13 +173,20 @@ export const PaymentMethodSelector = ({
       <CardContent>
         <RadioGroup 
           value={paymentMethod} 
-          onValueChange={setPaymentMethod}
+          onValueChange={(value) => {
+            console.log('Payment method changed to:', value);
+            setPaymentMethod(value);
+          }}
           className="space-y-4"
         >
           {availableGateways.map((gateway) => (
             <div key={gateway.type} className="space-y-2">
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value={gateway.type} id={gateway.type} />
+                <RadioGroupItem 
+                  value={gateway.type} 
+                  id={gateway.type}
+                  checked={paymentMethod === gateway.type}
+                />
                 <Label htmlFor={gateway.type} className="flex items-center gap-2 cursor-pointer">
                   {getPaymentIcon(gateway.type)}
                   {gateway.name}

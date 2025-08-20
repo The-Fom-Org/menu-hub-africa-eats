@@ -127,7 +127,10 @@ const Checkout = () => {
           ];
 
           setAvailableGateways(available);
-          setPaymentMethod('mpesa_manual');
+          // Set default payment method to the first available
+          if (available.length > 0 && !paymentMethod) {
+            setPaymentMethod(available[0].type);
+          }
           return;
         }
 
@@ -164,7 +167,8 @@ const Checkout = () => {
         console.log('Available gateways after filtering:', available);
         setAvailableGateways(available);
         
-        if (available.length > 0) {
+        // Set default payment method to the first available if none is selected
+        if (available.length > 0 && !paymentMethod) {
           setPaymentMethod(available[0].type);
         }
       } catch (error) {
@@ -181,7 +185,9 @@ const Checkout = () => {
         ];
         
         setAvailableGateways(fallbackGateways);
-        setPaymentMethod('cash');
+        if (!paymentMethod) {
+          setPaymentMethod('cash');
+        }
       }
     };
 
@@ -323,6 +329,22 @@ const Checkout = () => {
       }
 
       clearCart();
+      
+      // Show success notification first
+      toast({
+        title: "Order placed successfully!",
+        description: "You will receive a confirmation shortly.",
+      });
+
+      // Show reload notification with primary color
+      setTimeout(() => {
+        toast({
+          title: "Please reload the page",
+          description: "To see the latest updates",
+          className: "border-primary text-primary-foreground bg-primary",
+        });
+      }, 1000);
+
       navigate('/order-success', { 
         state: { 
           orderDetails: {
@@ -332,11 +354,6 @@ const Checkout = () => {
           paymentMethod,
           paymentInstructions: selectedGateway?.credentials,
         }
-      });
-
-      toast({
-        title: "Order placed successfully!",
-        description: "You will receive a confirmation shortly.",
       });
 
     } catch (error) {
