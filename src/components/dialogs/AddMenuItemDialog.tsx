@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 import { Plus } from "lucide-react";
@@ -30,9 +31,12 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [persuasionDescription, setPersuasionDescription] = useState("");
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [isAvailable, setIsAvailable] = useState(true);
+  const [isChefSpecial, setIsChefSpecial] = useState(false);
+  const [popularityBadge, setPopularityBadge] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { canAddMenuItem, plan, maxMenuItems, currentMenuItemCount } = useSubscriptionLimits();
@@ -55,9 +59,12 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
       const result = await onAddItem(categoryId, {
         name: name.trim(),
         description: description.trim(),
+        persuasion_description: persuasionDescription.trim(),
         price: parseFloat(price),
         image_url: imageUrl || null,
         is_available: isAvailable,
+        is_chef_special: isChefSpecial,
+        popularity_badge: popularityBadge || null,
       });
       
       if (result) {
@@ -67,9 +74,12 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
         });
         setName("");
         setDescription("");
+        setPersuasionDescription("");
         setPrice("");
         setImageUrl("");
         setIsAvailable(true);
+        setIsChefSpecial(false);
+        setPopularityBadge("");
         setOpen(false);
       } else {
         throw new Error("Failed to add item");
@@ -95,7 +105,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Item to {categoryName}</DialogTitle>
           <DialogDescription>
@@ -126,6 +136,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
                 required
               />
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="item-description">Description</Label>
               <Textarea
@@ -136,6 +147,21 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
                 rows={3}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="persuasion-description">Persuasion Description (≤ 10 words)</Label>
+              <Input
+                id="persuasion-description"
+                value={persuasionDescription}
+                onChange={(e) => setPersuasionDescription(e.target.value)}
+                placeholder="e.g., Smoky grilled chicken with creamy garlic sauce"
+                maxLength={60}
+              />
+              <p className="text-xs text-muted-foreground">
+                Short, sensory description for customer appeal
+              </p>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="item-price">Price (KSh)</Label>
               <Input
@@ -149,6 +175,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
                 required
               />
             </div>
+            
             <div className="space-y-2">
               <Label>Item Image</Label>
               <ImageUpload
@@ -159,6 +186,31 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
                 placeholder="Upload menu item image"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="popularity-badge">Popularity Badge</Label>
+              <Select value={popularityBadge} onValueChange={setPopularityBadge}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select badge (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No badge</SelectItem>
+                  <SelectItem value="most-popular">Most Popular ⭐</SelectItem>
+                  <SelectItem value="chef-pick">Chef's Pick 🔥</SelectItem>
+                  <SelectItem value="bestseller">Bestseller 🏆</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="chef-special"
+                checked={isChefSpecial}
+                onCheckedChange={setIsChefSpecial}
+              />
+              <Label htmlFor="chef-special">Chef's Special</Label>
+            </div>
+            
             <div className="flex items-center space-x-2">
               <Switch
                 id="item-available"
@@ -167,6 +219,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
               />
               <Label htmlFor="item-available">Available</Label>
             </div>
+            
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
