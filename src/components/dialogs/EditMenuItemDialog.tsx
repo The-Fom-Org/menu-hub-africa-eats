@@ -1,66 +1,71 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { ImageUpload } from "@/components/ui/image-upload";
-import { useToast } from "@/hooks/use-toast";
 
-interface MenuItem {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  image_url?: string;
-  is_available: boolean;
-}
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch'; 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MenuItem, useMenuData } from '@/hooks/useMenuData';
+import { useToast } from '@/hooks/use-toast';
 
 interface EditMenuItemDialogProps {
-  item: MenuItem;
+  item: MenuItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateItem: (itemId: string, updates: Partial<MenuItem>) => Promise<any>;
 }
 
-export const EditMenuItemDialog = ({ item, open, onOpenChange, onUpdateItem }: EditMenuItemDialogProps) => {
-  const [name, setName] = useState(item.name);
-  const [description, setDescription] = useState(item.description || "");
-  const [price, setPrice] = useState(item.price.toString());
-  const [imageUrl, setImageUrl] = useState(item.image_url || "");
-  const [isAvailable, setIsAvailable] = useState(item.is_available);
-  const [loading, setLoading] = useState(false);
+export const EditMenuItemDialog = ({ item, open, onOpenChange }: EditMenuItemDialogProps) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [persuasionDescription, setPersuasionDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [isSpecial, setIsSpecial] = useState(false);
+  const [popularityBadge, setPopularityBadge] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { updateMenuItem, deleteMenuItem } = useMenuData();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (item) {
+      setName(item.name);
+      setDescription(item.description || '');
+      setPersuasionDescription((item as any).persuasion_description || '');
+      setPrice(item.price.toString());
+      setImageUrl(item.image_url || '');
+      setIsAvailable(item.is_available);
+      setIsSpecial((item as any).is_special || false);
+      setPopularityBadge((item as any).popularity_badge || '');
+    }
+  }, [item]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !price) return;
+    if (!item || !name.trim() || !price) return;
 
-    setLoading(true);
+    setIsLoading(true);
     try {
-      const result = await onUpdateItem(item.id, {
+      const result = await updateMenuItem(item.id, {
         name: name.trim(),
         description: description.trim(),
+        persuasion_description: persuasionDescription.trim(),
         price: parseFloat(price),
-        image_url: imageUrl || null,
+        image_url: imageUrl.trim() || undefined,
         is_available: isAvailable,
+        is_special: isSpecial,
+        popularity_badge: popularityBadge || undefined,
       });
-      
+
       if (result) {
         toast({
-          title: "Item updated",
-          description: `${name} has been updated successfully.`,
+          title: "Menu item updated",
+          description: `${name} has been updated.`,
         });
         onOpenChange(false);
-      } else {
-        throw new Error("Failed to update item");
       }
     } catch (error) {
       toast({
@@ -69,78 +74,136 @@ export const EditMenuItemDialog = ({ item, open, onOpenChange, onUpdateItem }: E
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  const handleDelete = async () => {
+    if (!item) return;
+    
+    if (confirm(`Are you sure you want to delete "${item.name}"?`)) {
+      const result = await deleteMenuItem(item.id);
+      if (result) {
+        toast({
+          title: "Menu item deleted",
+          description: `${item.name} has been removed from your menu.`,
+        });
+        onOpenChange(false);
+      }
+    }
+  };
+
+  if (!item) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Menu Item</DialogTitle>
-          <DialogDescription>
-            Update the details for this menu item.
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-item-name">Item Name</Label>
+          <div>
+            <Label htmlFor="name">Item Name *</Label>
             <Input
-              id="edit-item-name"
+              id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Nyama Choma"
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-item-description">Description</Label>
+
+          <div>
+            <Label htmlFor="description">Description</Label>
             <Textarea
-              id="edit-item-description"
+              id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of the dish"
-              rows={3}
+              rows={2}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-item-price">Price (KSh)</Label>
+
+          <div>
+            <Label htmlFor="persuasion-description">Marketing Description (≤10 words)</Label>
             <Input
-              id="edit-item-price"
+              id="persuasion-description"
+              value={persuasionDescription}
+              onChange={(e) => setPersuasionDescription(e.target.value)}
+              placeholder="e.g., Smoky grilled chicken with creamy garlic sauce"
+              maxLength={60}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Short, sensory description for customer appeal
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="price">Price (KSh) *</Label>
+            <Input
+              id="price"
               type="number"
               step="0.01"
               min="0"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="0.00"
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label>Item Image</Label>
-            <ImageUpload
-              bucket="menu-images"
-              path="items/"
+
+          <div>
+            <Label htmlFor="image">Image URL</Label>
+            <Input
+              id="image"
+              type="url"
               value={imageUrl}
-              onChange={setImageUrl}
-              placeholder="Upload menu item image"
+              onChange={(e) => setImageUrl(e.target.value)}
             />
           </div>
+
           <div className="flex items-center space-x-2">
             <Switch
-              id="edit-item-available"
+              id="available"
               checked={isAvailable}
               onCheckedChange={setIsAvailable}
             />
-            <Label htmlFor="edit-item-available">Available</Label>
+            <Label htmlFor="available">Available</Label>
           </div>
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="special"
+              checked={isSpecial}
+              onCheckedChange={setIsSpecial}
+            />
+            <Label htmlFor="special">Mark as Chef's Special</Label>
+          </div>
+
+          <div>
+            <Label htmlFor="badge">Popularity Badge</Label>
+            <Select value={popularityBadge} onValueChange={setPopularityBadge}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a badge (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No badge</SelectItem>
+                <SelectItem value="most_popular">Most Popular ⭐</SelectItem>
+                <SelectItem value="chefs_pick">Chef's Pick 🔥</SelectItem>
+                <SelectItem value="customer_favorite">Customer Favorite ❤️</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-between pt-4">
+            <Button type="button" variant="destructive" onClick={handleDelete}>
+              Delete Item
             </Button>
-            <Button type="submit" disabled={loading || !name.trim() || !price}>
-              {loading ? "Updating..." : "Update Item"}
-            </Button>
+            <div className="space-x-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Updating...' : 'Update Item'}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
