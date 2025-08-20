@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -200,7 +201,8 @@ const Dashboard = () => {
                   </table>
                 </div>
               </CardContent>
-            )}
+            </Card>
+          )}
         </section>
       </main>
     </div>
