@@ -349,10 +349,10 @@ const Checkout = () => {
         state: { 
           orderDetails: {
             ...orderDetails,
-            orderId: order.id,
+            restaurant_id: restaurantId,
           },
           paymentMethod,
-          paymentInstructions: selectedGateway?.credentials,
+          orderId: order.id,
         }
       });
 
