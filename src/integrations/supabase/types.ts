@@ -182,6 +182,7 @@ export type Database = {
           payment_status: string
           restaurant_id: string
           scheduled_time: string | null
+          table_number: string | null
           total_amount: number
           updated_at: string
         }
@@ -197,6 +198,7 @@ export type Database = {
           payment_status?: string
           restaurant_id: string
           scheduled_time?: string | null
+          table_number?: string | null
           total_amount: number
           updated_at?: string
         }
@@ -212,6 +214,7 @@ export type Database = {
           payment_status?: string
           restaurant_id?: string
           scheduled_time?: string | null
+          table_number?: string | null
           total_amount?: number
           updated_at?: string
         }
