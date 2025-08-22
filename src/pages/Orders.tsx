@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, Hash } from 'lucide-react';
 import { format } from 'date-fns';
 
 const Orders = () => {
@@ -112,7 +112,7 @@ const Orders = () => {
                     <div className="flex items-center space-x-4">
                       <CardTitle className="text-lg">
                         Order #{order.id.slice(-6)}
-                      </div>
+                      </CardTitle>
                       <Badge className={getStatusBadgeColor(order.order_status)}>
                         {order.order_status.charAt(0).toUpperCase() + order.order_status.slice(1)}
                       </Badge>
