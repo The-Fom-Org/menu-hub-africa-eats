@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -260,6 +261,7 @@ const Checkout = () => {
       const orderDetails = getOrderDetails();
       
       console.log('Creating order with details:', orderDetails);
+      console.log('Payment method:', paymentMethod);
       console.log('Using restaurant ID:', restaurantId);
 
       const orderData = {
@@ -283,15 +285,16 @@ const Checkout = () => {
         customizations: item.customizations ? { customizations: item.customizations } : {},
       }));
 
-      // Use the new order creation handler
+      // Create the order first
       const order = await createOrderWithItems(orderData, orderItems);
-
-      console.log('Order and items created successfully:', order);
+      console.log('Order created successfully:', order);
 
       const selectedGateway = availableGateways.find(g => g.type === paymentMethod);
       console.log('Selected payment gateway:', selectedGateway);
       
-      if (selectedGateway && paymentMethod === 'pesapal') {
+      // Handle different payment methods
+      if (paymentMethod === 'pesapal' && selectedGateway) {
+        // Handle Pesapal automatic payment
         try {
           console.log('Initializing Pesapal payment with credentials:', selectedGateway.credentials);
           const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
@@ -314,8 +317,12 @@ const Checkout = () => {
           console.log('Pesapal initialization response:', data);
 
           if (data.success && data.redirect_url) {
+            // Clear cart before redirect
+            clearCart();
             window.location.href = data.redirect_url;
             return;
+          } else {
+            throw new Error('Pesapal payment initialization failed');
           }
         } catch (pesapalError) {
           console.error('Pesapal payment failed:', pesapalError);
@@ -326,41 +333,44 @@ const Checkout = () => {
           });
           return;
         }
-      }
-
-      clearCart();
-      
-      // Show success notification first
-      toast({
-        title: "Order placed successfully!",
-        description: "You will receive a confirmation shortly.",
-      });
-
-      // Show reload notification with primary color
-      setTimeout(() => {
+      } else {
+        // Handle manual payments (cash, mpesa_manual, bank_transfer)
+        console.log('Processing manual payment method:', paymentMethod);
+        
+        // Clear cart for manual payments
+        clearCart();
+        
+        // Show success notification
         toast({
-          title: "Please reload the page",
-          description: "To see the latest updates",
-          className: "border-primary text-primary-foreground bg-primary",
+          title: "Order placed successfully!",
+          description: "You will receive a confirmation shortly.",
         });
-      }, 1000);
 
-      navigate('/order-success', { 
-        state: { 
-          orderDetails: {
-            ...orderDetails,
-            orderId: order.id,
-          },
-          paymentMethod,
-          paymentInstructions: selectedGateway?.credentials,
-        }
-      });
+        // Navigate to success page with order details
+        navigate('/order-success', { 
+          state: { 
+            orderDetails: {
+              ...orderDetails,
+              orderId: order.id,
+            },
+            paymentMethod,
+            paymentInstructions: selectedGateway?.credentials,
+          }
+        });
+      }
 
     } catch (error) {
       console.error('Order creation failed:', error);
+      
+      // More detailed error logging
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
       toast({
         title: "Order failed",
-        description: "Please try again or contact support.",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
     } finally {
@@ -517,7 +527,7 @@ const Checkout = () => {
                   className="w-full"
                   size="lg"
                 >
-                  {isProcessing ? 'Processing...' : `Complete Order - KSh ${cartTotal.toFixed(2)}`}
+                  {isProcessing ? 'Processing...' : `Place Order - KSh ${cartTotal.toFixed(2)}`}
                 </Button>
               </CardContent>
             </Card>
