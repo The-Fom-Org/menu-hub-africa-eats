@@ -1,540 +1,377 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCart } from '@/hooks/useCart';
+import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Clock, MapPin } from 'lucide-react';
-import { useCart } from '@/hooks/useCart';
-import { useToast } from '@/hooks/use-toast';
-import { useSubscriptionLimits } from '@/hooks/useSubscriptionLimits';
-import { supabase } from '@/integrations/supabase/client';
-import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector';
-import { paymentGatewayRegistry } from '@/lib/payment-gateways/registry';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard } from 'lucide-react';
 import { createOrderWithItems } from '@/components/checkout/OrderCreationHandler';
+import { useToast } from '@/hooks/use-toast';
+import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
+import NotificationPermissionDialog from '@/components/notifications/NotificationPermissionDialog';
 
-interface PaymentGatewayWithCredentials {
-  type: string;
+interface CartItem {
+  id: string;
   name: string;
-  requiresCredentials: boolean;
-  supportedMethods: string[];
-  credentials?: any;
+  price: number;
+  quantity: number;
+  customizations?: { [key: string]: string | string[] };
 }
 
-// Type for payment methods from database
-interface PaymentMethodsConfig {
-  mpesa_manual?: {
-    enabled: boolean;
-    till_number?: string;
-    paybill_number?: string;
-    account_number?: string;
-  };
-  pesapal?: {
-    enabled: boolean;
-    consumer_key?: string;
-    consumer_secret?: string;
-  };
-  bank_transfer?: {
-    enabled: boolean;
-    bank_name?: string;
-    account_number?: string;
-    account_name?: string;
-  };
-  cash?: {
-    enabled: boolean;
-  };
+interface RestaurantData {
+  id: string;
+  restaurant_name: string | null;
+  description: string | null;
+  logo_url: string | null;
+  cover_image_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  tagline: string | null;
+  phone_number: string | null;
 }
 
 const Checkout = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const restaurantId = searchParams.get('restaurant');
+  const navigate = useNavigate();
+  const { cart, clearCart, getTotalPrice } = useCart();
+  const { restaurantData, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
-  const restaurantId = searchParams.get('restaurantId');
-  
-  const { 
-    cartItems, 
-    getCartTotal, 
-    orderType, 
-    setOrderType, 
-    customerInfo, 
-    setCustomerInfo,
-    getOrderDetails,
-    clearCart 
-  } = useCart(restaurantId || 'default');
+  const { isSupported, permission, requestPermission, subscribeToPush } = usePushNotifications();
 
-  const subscriptionLimits = useSubscriptionLimits(restaurantId || undefined);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [orderType, setOrderType] = useState<'now' | 'later'>('now');
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [availableGateways, setAvailableGateways] = useState<PaymentGatewayWithCredentials[]>([]);
-
-  // Validate restaurant ID
   useEffect(() => {
     if (!restaurantId) {
-      toast({
-        title: "Invalid restaurant",
-        description: "Please select a valid restaurant menu",
-        variant: "destructive",
-      });
       navigate('/');
       return;
     }
-    console.log('Using restaurant ID:', restaurantId);
-  }, [restaurantId, navigate, toast]);
 
-  // Load payment settings based on subscription plan
-  useEffect(() => {
-    const loadPaymentSettings = async () => {
-      if (!restaurantId || subscriptionLimits.isLoading) return;
+    if (cart.length === 0) {
+      toast({
+        title: "Empty cart",
+        description: "Your cart is empty. Please add items before checkout.",
+        variant: "destructive",
+      });
+      navigate(`/menu/${restaurantId}`);
+      return;
+    }
+  }, [cart, restaurantId, navigate, toast]);
 
-      try {
-        console.log('Loading payment settings for restaurant:', restaurantId);
-        console.log('Subscription plan:', subscriptionLimits.plan);
+  const handleOrderSubmission = async () => {
+    if (!validateForm()) return;
+
+    try {
+      setLoading(true);
+
+      const orderData = {
+        restaurant_id: restaurantId!,
+        customer_name: customerName || null,
+        customer_phone: customerPhone || null,
+        order_type: orderType,
+        payment_method: paymentMethod,
+        payment_status: 'pending',
+        order_status: 'pending',
+        total_amount: getTotalPrice(),
+        scheduled_time: orderType === 'later' ? new Date(scheduledTime).toISOString() : null,
+      };
+
+      const orderItems = cart.map(item => ({
+        menu_item_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        customizations: item.customizations || {},
+      }));
+
+      const order = await createOrderWithItems(orderData, orderItems);
+      
+      if (order) {
+        setPendingOrderId(order.id);
         
-        const allGateways = paymentGatewayRegistry.getAll();
-        
-        // For free plan, only allow mpesa_manual and cash
-        if (subscriptionLimits.plan === 'free') {
-          console.log('Free plan detected, loading M-Pesa manual and cash only');
-          
-          const { data: paymentSettings } = await supabase
-            .from('restaurant_payment_settings')
-            .select('payment_methods')
-            .eq('restaurant_id', restaurantId)
-            .maybeSingle();
-
-          const paymentMethods = paymentSettings?.payment_methods as PaymentMethodsConfig || {};
-          console.log('Free plan payment methods from DB:', paymentMethods);
-
-          // Always show mpesa_manual and cash for free plan
-          const available: PaymentGatewayWithCredentials[] = [
-            {
-              type: 'mpesa_manual',
-              name: 'M-Pesa (Manual)',
-              requiresCredentials: false,
-              supportedMethods: ['mpesa'],
-              credentials: paymentMethods.mpesa_manual || {}
-            },
-            {
-              type: 'cash',
-              name: 'Cash Payment',
-              requiresCredentials: false,
-              supportedMethods: ['cash'],
-              credentials: {}
-            }
-          ];
-
-          setAvailableGateways(available);
-          // Set default payment method to the first available
-          if (available.length > 0 && !paymentMethod) {
-            setPaymentMethod(available[0].type);
-          }
-          return;
-        }
-
-        // For paid plans, show all enabled payment methods
-        const { data, error } = await supabase
-          .from('restaurant_payment_settings')
-          .select('payment_methods')
-          .eq('restaurant_id', restaurantId)
-          .maybeSingle();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error loading payment settings:', error);
-        }
-
-        const paymentMethods = data?.payment_methods as PaymentMethodsConfig || {};
-        console.log('Paid plan payment methods from DB:', paymentMethods);
-        
-        const available: PaymentGatewayWithCredentials[] = allGateways
-          .filter(gateway => {
-            const config = paymentMethods[gateway.type as keyof PaymentMethodsConfig];
-            const isEnabledInSettings = config?.enabled;
-            const isAllowedByPlan = subscriptionLimits.allowedPaymentMethods.includes(gateway.type);
-            console.log(`Gateway ${gateway.type}: enabled=${isEnabledInSettings}, allowed=${isAllowedByPlan}`);
-            return isEnabledInSettings && isAllowedByPlan;
-          })
-          .map(gateway => ({
-            type: gateway.type,
-            name: gateway.name,
-            requiresCredentials: gateway.requiresCredentials,
-            supportedMethods: gateway.supportedMethods,
-            credentials: paymentMethods[gateway.type as keyof PaymentMethodsConfig] || {}
-          }));
-
-        console.log('Available gateways after filtering:', available);
-        setAvailableGateways(available);
-        
-        // Set default payment method to the first available if none is selected
-        if (available.length > 0 && !paymentMethod) {
-          setPaymentMethod(available[0].type);
-        }
-      } catch (error) {
-        console.error('Error loading payment settings:', error);
-        // Fallback to basic methods
-        const fallbackGateways = [
-          {
-            type: 'cash',
-            name: 'Cash Payment',
-            requiresCredentials: false,
-            supportedMethods: ['cash'],
-            credentials: {}
-          }
-        ];
-        
-        setAvailableGateways(fallbackGateways);
-        if (!paymentMethod) {
-          setPaymentMethod('cash');
+        // Show notification permission dialog if supported and not already granted
+        if (isSupported && permission !== 'granted' && permission !== 'denied') {
+          setShowNotificationDialog(true);
+        } else if (permission === 'granted') {
+          // Subscribe to notifications if permission already granted
+          await subscribeToPush(order.id);
+          completeCheckout(order.id);
+        } else {
+          // No notification support or denied, proceed directly
+          completeCheckout(order.id);
         }
       }
-    };
+    } catch (error) {
+      console.error('Order creation failed:', error);
+      toast({
+        title: "Order failed",
+        description: error instanceof Error ? error.message : "Failed to create order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadPaymentSettings();
-  }, [restaurantId, subscriptionLimits.plan, subscriptionLimits.isLoading, subscriptionLimits.allowedPaymentMethods]);
+  const completeCheckout = (orderId: string) => {
+    clearCart();
+    toast({
+      title: "Order placed successfully!",
+      description: "You'll receive updates on your order status.",
+    });
+    navigate(`/order-success?order=${orderId}&restaurant=${restaurantId}`);
+  };
 
-  // Redirect if cart is empty
-  if (cartItems.length === 0) {
+  const handleNotificationAllow = async () => {
+    const granted = await requestPermission();
+    if (granted && pendingOrderId) {
+      await subscribeToPush(pendingOrderId);
+    }
+    if (pendingOrderId) {
+      completeCheckout(pendingOrderId);
+    }
+    return granted;
+  };
+
+  const handleNotificationDeny = () => {
+    if (pendingOrderId) {
+      completeCheckout(pendingOrderId);
+    }
+  };
+
+  const validateForm = () => {
+    if (!paymentMethod) {
+      toast({
+        title: "Payment method required",
+        description: "Please select a payment method.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (orderType === 'later' && !scheduledTime) {
+      toast({
+        title: "Pickup time required",
+        description: "Please select a pickup time for pre-orders.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  if (dataLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">Your cart is empty</p>
-            <Button onClick={() => navigate(-1)}>
-              Go back to menu
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  const handleOrderTypeChange = (type: 'now' | 'later') => {
-    setOrderType(type);
-    if (type === 'now') {
-      setCustomerInfo({ name: '', phone: '', preferred_time: '' });
-    }
-  };
-
-  const handleCustomerInfoChange = (field: string, value: string) => {
-    setCustomerInfo(prev => ({ ...prev, [field]: value }));
-  };
-
-  const validateForm = () => {
-    if (orderType === 'later') {
-      if (!customerInfo.name.trim()) {
-        toast({
-          title: "Name required",
-          description: "Please enter your name for pre-orders",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!customerInfo.phone.trim()) {
-        toast({
-          title: "Phone required",
-          description: "Please enter your phone number for pre-orders",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!customerInfo.preferred_time.trim()) {
-        toast({
-          title: "Time required",
-          description: "Please select your preferred pickup time",
-          variant: "destructive",
-        });
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const handlePayment = async () => {
-    if (!validateForm() || !restaurantId) return;
-
-    setIsProcessing(true);
-    
-    try {
-      const orderDetails = getOrderDetails();
-      
-      console.log('Creating order with details:', orderDetails);
-      console.log('Payment method:', paymentMethod);
-      console.log('Using restaurant ID:', restaurantId);
-
-      const orderData = {
-        restaurant_id: restaurantId,
-        customer_name: orderDetails.customer_name || null,
-        customer_phone: orderDetails.customer_phone || null,
-        order_type: orderDetails.order_type,
-        payment_method: paymentMethod,
-        payment_status: 'pending',
-        order_status: 'pending',
-        total_amount: orderDetails.total,
-        scheduled_time: orderDetails.preferred_time ? new Date(orderDetails.preferred_time).toISOString() : null,
-      };
-
-      console.log('Order data to insert:', orderData);
-
-      const orderItems = cartItems.map(item => ({
-        menu_item_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-        customizations: item.customizations ? { customizations: item.customizations } : {},
-      }));
-
-      // Create the order first
-      const order = await createOrderWithItems(orderData, orderItems);
-      console.log('Order created successfully:', order);
-
-      const selectedGateway = availableGateways.find(g => g.type === paymentMethod);
-      console.log('Selected payment gateway:', selectedGateway);
-      
-      // Handle different payment methods
-      if (paymentMethod === 'pesapal' && selectedGateway) {
-        // Handle Pesapal automatic payment
-        try {
-          console.log('Initializing Pesapal payment with credentials:', selectedGateway.credentials);
-          const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
-            body: {
-              amount: orderDetails.total,
-              currency: 'KES',
-              orderId: order.id,
-              description: `Order from Restaurant`,
-              customerInfo: {
-                name: orderDetails.customer_name || 'Customer',
-                email: 'customer@example.com',
-                phone: orderDetails.customer_phone || '',
-              },
-              credentials: selectedGateway.credentials,
-            }
-          });
-
-          if (error) throw error;
-
-          console.log('Pesapal initialization response:', data);
-
-          if (data.success && data.redirect_url) {
-            // Clear cart before redirect
-            clearCart();
-            window.location.href = data.redirect_url;
-            return;
-          } else {
-            throw new Error('Pesapal payment initialization failed');
-          }
-        } catch (pesapalError) {
-          console.error('Pesapal payment failed:', pesapalError);
-          toast({
-            title: "Payment initialization failed",
-            description: "Please try a different payment method",
-            variant: "destructive",
-          });
-          return;
-        }
-      } else {
-        // Handle manual payments (cash, mpesa_manual, bank_transfer)
-        console.log('Processing manual payment method:', paymentMethod);
-        
-        // Clear cart for manual payments
-        clearCart();
-        
-        // Show success notification
-        toast({
-          title: "Order placed successfully!",
-          description: "You will receive a confirmation shortly.",
-        });
-
-        // Navigate to success page with order details
-        navigate('/order-success', { 
-          state: { 
-            orderDetails: {
-              ...orderDetails,
-              orderId: order.id,
-            },
-            paymentMethod,
-            paymentInstructions: selectedGateway?.credentials,
-          }
-        });
-      }
-
-    } catch (error) {
-      console.error('Order creation failed:', error);
-      
-      // More detailed error logging
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
-      
-      toast({
-        title: "Order failed",
-        description: error instanceof Error ? error.message : "Please try again or contact support.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const cartTotal = getCartTotal();
+  if (!restaurantData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Restaurant not found</h2>
+          <Button onClick={() => navigate('/')}>Go Home</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <header className="bg-card border-b shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Menu
-            </Button>
-            <h1 className="text-xl font-bold text-foreground">Checkout</h1>
+    <>
+      <div className="min-h-screen bg-background">
+        <header className="bg-card border-b shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center space-x-4">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate(`/menu/${restaurantId}`)}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Menu
+              </Button>
+              <h1 className="text-2xl font-bold text-foreground">Checkout</h1>
+              <Badge variant="outline" className="ml-auto">
+                {cart.length} item{cart.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Order Details */}
-          <div className="space-y-6">
-            {/* Order Type Selection */}
+        <main className="max-w-4xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Order Details */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Order Type
+                <CardTitle className="flex items-center space-x-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  <span>Order Summary</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <RadioGroup 
-                  value={orderType} 
-                  onValueChange={handleOrderTypeChange}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="now" id="now" />
-                    <Label htmlFor="now" className="flex items-center gap-2 cursor-pointer">
-                      <MapPin className="h-4 w-4" />
-                      Order for Now (Dining In)
-                    </Label>
+              <CardContent className="space-y-4">
+                {cart.map((item) => (
+                  <div key={`${item.id}-${JSON.stringify(item.customizations)}`} className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        KSh {item.price.toFixed(2)} × {item.quantity}
+                      </p>
+                      {item.customizations && Object.keys(item.customizations).length > 0 && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {Object.entries(item.customizations).map(([key, value]) => (
+                            <span key={key} className="block">
+                              {key}: {Array.isArray(value) ? value.join(', ') : String(value)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <p className="font-medium">
+                      KSh {(item.price * item.quantity).toFixed(2)}
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="later" id="later" />
-                    <Label htmlFor="later" className="flex items-center gap-2 cursor-pointer">
-                      <Clock className="h-4 w-4" />
-                      Pre-order for Later
-                    </Label>
-                  </div>
-                </RadioGroup>
+                ))}
+                
+                <Separator />
+                
+                <div className="flex justify-between items-center text-lg font-semibold">
+                  <span>Total</span>
+                  <span>KSh {getTotalPrice().toFixed(2)}</span>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Customer Information (for pre-orders) */}
-            {orderType === 'later' && (
+            {/* Customer & Order Details */}
+            <div className="space-y-6">
+              {/* Customer Information */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Customer Information</CardTitle>
+                  <CardTitle className="flex items-center space-x-2">
+                    <User className="h-5 w-5" />
+                    <span>Customer Information</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Full Name *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="customerName">Name (Optional)</Label>
                     <Input
-                      id="name"
-                      value={customerInfo.name}
-                      onChange={(e) => handleCustomerInfoChange('name', e.target.value)}
-                      placeholder="Enter your full name"
-                      className="mt-1"
+                      id="customerName"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Enter your name"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="phone">Phone Number *</Label>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="customerPhone">Phone Number (Optional)</Label>
                     <Input
-                      id="phone"
-                      value={customerInfo.phone}
-                      onChange={(e) => handleCustomerInfoChange('phone', e.target.value)}
-                      placeholder="+254 700 000 000"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="time">Preferred Pickup Time *</Label>
-                    <Input
-                      id="time"
-                      type="datetime-local"
-                      value={customerInfo.preferred_time}
-                      onChange={(e) => handleCustomerInfoChange('preferred_time', e.target.value)}
-                      className="mt-1"
-                      min={new Date().toISOString().slice(0, 16)}
+                      id="customerPhone"
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="Enter your phone number"
                     />
                   </div>
                 </CardContent>
               </Card>
-            )}
 
-            {/* Payment Method */}
-            <PaymentMethodSelector
-              paymentMethod={paymentMethod}
-              setPaymentMethod={setPaymentMethod}
-              availableGateways={availableGateways}
-            />
-          </div>
-
-          {/* Order Summary */}
-          <div>
-            <Card className="sticky top-24">
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {cartItems.map((item, index) => (
-                  <div key={`${item.id}-${item.customizations}-${index}`}>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{item.name}</p>
-                        {item.customizations && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {item.customizations}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          Qty: {item.quantity}
-                        </p>
-                      </div>
-                      <p className="font-medium text-sm">
-                        KSh {(item.price * item.quantity).toFixed(2)}
-                      </p>
+              {/* Order Type */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Clock className="h-5 w-5" />
+                    <span>Order Type</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <RadioGroup value={orderType} onValueChange={(value: 'now' | 'later') => setOrderType(value)}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="now" id="now" />
+                      <Label htmlFor="now">Order Now (Dine In)</Label>
                     </div>
-                    {index < cartItems.length - 1 && <Separator className="mt-3" />}
-                  </div>
-                ))}
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="later" id="later" />
+                      <Label htmlFor="later">Pre-order (Schedule Pickup)</Label>
+                    </div>
+                  </RadioGroup>
+                  
+                  {orderType === 'later' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="scheduledTime">Pickup Time</Label>
+                      <Input
+                        id="scheduledTime"
+                        type="datetime-local"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        min={new Date().toISOString().slice(0, 16)}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                <Separator />
-                
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>Total:</span>
-                  <span>KSh {cartTotal.toFixed(2)}</span>
-                </div>
+              {/* Payment Method */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <CreditCard className="h-5 w-5" />
+                    <span>Payment Method</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PaymentMethodSelector
+                    restaurantId={restaurantId!}
+                    selectedMethod={paymentMethod}
+                    onMethodChange={setPaymentMethod}
+                    orderAmount={getTotalPrice()}
+                  />
+                </CardContent>
+              </Card>
 
-                <Button 
-                  onClick={handlePayment}
-                  disabled={isProcessing}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isProcessing ? 'Processing...' : `Place Order - KSh ${cartTotal.toFixed(2)}`}
-                </Button>
-              </CardContent>
-            </Card>
+              {/* Place Order Button */}
+              <Button
+                onClick={handleOrderSubmission}
+                disabled={loading}
+                size="lg"
+                className="w-full"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                    Placing Order...
+                  </>
+                ) : (
+                  `Place Order - KSh ${getTotalPrice().toFixed(2)}`
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+
+      <NotificationPermissionDialog
+        open={showNotificationDialog}
+        onOpenChange={setShowNotificationDialog}
+        onAllow={handleNotificationAllow}
+        onDeny={handleNotificationDeny}
+      />
+    </>
   );
 };
 

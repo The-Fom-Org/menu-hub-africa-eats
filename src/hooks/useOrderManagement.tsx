@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -85,6 +84,25 @@ export const useOrderManagement = (restaurantId: string) => {
         )
       );
 
+      // Send push notification
+      const orderToUpdate = orders.find(order => order.id === orderId);
+      if (orderToUpdate) {
+        try {
+          await supabase.functions.invoke('send-order-status-push', {
+            body: {
+              orderId,
+              orderStatus: status,
+              customerName: orderToUpdate.customer_name,
+              totalAmount: orderToUpdate.total_amount,
+            },
+          });
+          console.log('Push notification sent for order status update');
+        } catch (pushError) {
+          console.error('Failed to send push notification:', pushError);
+          // Don't show error to user as the main operation succeeded
+        }
+      }
+
       toast({
         title: "Order updated",
         description: `Order status changed to ${status}`,
@@ -123,6 +141,24 @@ export const useOrderManagement = (restaurantId: string) => {
             : order
         )
       );
+
+      // Send push notification for confirmation
+      const orderToUpdate = orders.find(order => order.id === orderId);
+      if (orderToUpdate) {
+        try {
+          await supabase.functions.invoke('send-order-status-push', {
+            body: {
+              orderId,
+              orderStatus: 'confirmed',
+              customerName: orderToUpdate.customer_name,
+              totalAmount: orderToUpdate.total_amount,
+            },
+          });
+          console.log('Push notification sent for order confirmation');
+        } catch (pushError) {
+          console.error('Failed to send push notification:', pushError);
+        }
+      }
 
       toast({
         title: "Payment confirmed",
