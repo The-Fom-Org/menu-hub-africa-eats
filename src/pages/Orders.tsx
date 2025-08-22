@@ -10,11 +10,12 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, Hash } from 'lucide-react';
 import { format } from 'date-fns';
+import OrderTableNumberEditor from '@/components/orders/OrderTableNumberEditor';
 
 const Orders = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { orders, loading, updateOrderStatus, markOrderPaid } = useOrderManagement(user?.id || '');
+  const { orders, loading, updateOrderStatus, markOrderPaid, updateTableNumber } = useOrderManagement(user?.id || '');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -130,6 +131,17 @@ const Orders = () => {
                       <p className="font-semibold text-lg">
                         KSh {order.total_amount.toFixed(2)}
                       </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <div className="flex items-center gap-2">
+                      <Hash className="h-4 w-4 text-muted-foreground" />
+                      <OrderTableNumberEditor
+                        orderId={order.id}
+                        value={order.table_number || null}
+                        onSave={(newVal) => updateTableNumber(order.id, newVal)}
+                      />
                     </div>
                   </div>
                 </CardHeader>

@@ -14,6 +14,7 @@ export interface Order {
   total_amount: number;
   created_at: string;
   scheduled_time?: string;
+  table_number?: string | null;
   order_items?: Array<{
     id: string;
     quantity: number;
@@ -140,6 +141,41 @@ export const useOrderManagement = (restaurantId: string) => {
     }
   };
 
+  const updateTableNumber = async (orderId: string, tableNumber: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ table_number: tableNumber })
+        .eq('id', orderId)
+        .eq('restaurant_id', restaurantId);
+
+      if (error) throw error;
+
+      setOrders(prev =>
+        prev.map(order =>
+          order.id === orderId
+            ? { ...order, table_number: tableNumber }
+            : order
+        )
+      );
+
+      toast({
+        title: "Table updated",
+        description: tableNumber ? `Table set to ${tableNumber}` : "Table cleared",
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating table number:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update table number. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (restaurantId) {
       fetchOrders();
@@ -176,6 +212,7 @@ export const useOrderManagement = (restaurantId: string) => {
     loading,
     updateOrderStatus,
     markOrderPaid,
+    updateTableNumber,
     refetch: fetchOrders
   };
 };
