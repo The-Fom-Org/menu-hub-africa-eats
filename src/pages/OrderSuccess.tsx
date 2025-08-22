@@ -1,21 +1,39 @@
+
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, Clock, MapPin, Phone, Mail, MessageCircle, Home } from 'lucide-react';
-import { OrderDetails } from '@/hooks/useCart';
 
 interface OrderSuccessState {
-  orderDetails: OrderDetails;
-  paymentMethod: 'mpesa' | 'card';
-  orderId: string;
+  orderDetails: {
+    restaurant_id: string;
+    customer_name?: string;
+    customer_phone?: string;
+    order_type: string;
+    total: number;
+    items: Array<{
+      id: string;
+      name: string;
+      price: number;
+      quantity: number;
+      customizations?: string;
+      special_instructions?: string;
+    }>;
+    preferred_time?: string;
+    orderId?: string;
+  };
+  paymentMethod: string;
+  orderId?: string;
 }
 
 const OrderSuccess = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const state = location.state as OrderSuccessState;
+
+  console.log('OrderSuccess state:', state);
 
   // Redirect if no order data
   if (!state?.orderDetails) {
@@ -34,6 +52,7 @@ const OrderSuccess = () => {
   }
 
   const { orderDetails, paymentMethod, orderId } = state;
+  const finalOrderId = orderId || orderDetails.orderId || 'unknown';
 
   const handleSendWhatsApp = () => {
     // Simulate WhatsApp confirmation
@@ -58,10 +77,10 @@ const OrderSuccess = () => {
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
               <CheckCircle className="h-6 w-6" />
-              <h1 className="text-xl font-bold">Order Confirmed!</h1>
+              <h1 className="text-xl font-bold">Order Placed Successfully!</h1>
             </div>
             <p className="text-muted-foreground">
-              Your order has been successfully placed and payment received
+              Your order has been placed and will be processed shortly
             </p>
           </div>
         </div>
@@ -96,7 +115,7 @@ const OrderSuccess = () => {
                 )}
               </div>
               <Badge variant="default" className="bg-green-600">
-                Order #{orderId.slice(-6)}
+                Order #{finalOrderId.toString().slice(-6)}
               </Badge>
             </div>
           </CardContent>
@@ -115,11 +134,11 @@ const OrderSuccess = () => {
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <span className="text-sm font-medium">
-                        {orderDetails.customer_name?.charAt(0).toUpperCase()}
+                        {orderDetails.customer_name?.charAt(0).toUpperCase() || 'C'}
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium">{orderDetails.customer_name}</p>
+                      <p className="font-medium">{orderDetails.customer_name || 'Customer'}</p>
                       <p className="text-sm text-muted-foreground">{orderDetails.customer_phone}</p>
                     </div>
                   </div>
@@ -127,7 +146,7 @@ const OrderSuccess = () => {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
-                      Pickup: {new Date(orderDetails.preferred_time || '').toLocaleString()}
+                      Pickup: {orderDetails.preferred_time}
                     </span>
                   </div>
                 </CardContent>
@@ -143,15 +162,18 @@ const OrderSuccess = () => {
                 <div className="flex items-center justify-between">
                   <span>Payment Method:</span>
                   <Badge variant="outline">
-                    {paymentMethod === 'mpesa' ? 'M-Pesa' : 'Card Payment'}
+                    {paymentMethod === 'mpesa_manual' ? 'M-Pesa (Manual)' : 
+                     paymentMethod === 'cash' ? 'Cash Payment' :
+                     paymentMethod === 'bank_transfer' ? 'Bank Transfer' :
+                     paymentMethod}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Transaction ID:</span>
-                  <span className="text-sm font-mono">{orderId}</span>
+                  <span>Order ID:</span>
+                  <span className="text-sm font-mono">#{finalOrderId.toString().slice(-8)}</span>
                 </div>
                 <div className="flex items-center justify-between font-medium">
-                  <span>Amount Paid:</span>
+                  <span>Total Amount:</span>
                   <span>KSh {orderDetails.total.toFixed(2)}</span>
                 </div>
               </CardContent>
@@ -236,7 +258,7 @@ const OrderSuccess = () => {
                 <Separator />
                 
                 <div className="flex justify-between items-center text-lg font-bold">
-                  <span>Total Paid:</span>
+                  <span>Total:</span>
                   <span className="text-green-600">KSh {orderDetails.total.toFixed(2)}</span>
                 </div>
 
@@ -276,7 +298,7 @@ const OrderSuccess = () => {
                 <>
                   <p>• We'll start preparing your order before your scheduled pickup time</p>
                   <p>• You'll receive a notification when your order is ready</p>
-                  <p>• Please arrive at your scheduled time: {new Date(orderDetails.preferred_time || '').toLocaleString()}</p>
+                  <p>• Please arrive at your scheduled time: {orderDetails.preferred_time}</p>
                 </>
               )}
             </div>

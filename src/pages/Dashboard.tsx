@@ -12,7 +12,8 @@ import {
   CreditCard, 
   BarChart3, 
   Crown,
-  Settings
+  Settings,
+  ClipboardList
 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
@@ -60,6 +61,15 @@ export default function Dashboard() {
       href: "/edit-menu",
       color: "text-green-600",
       bgColor: "bg-green-50",
+      available: true
+    },
+    {
+      title: "Orders",
+      description: "View and manage incoming customer orders",
+      icon: ClipboardList,
+      href: "/orders",
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
       available: true
     },
     {

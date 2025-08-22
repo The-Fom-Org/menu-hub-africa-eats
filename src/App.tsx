@@ -19,6 +19,7 @@ import QRCode from "./pages/QRCode";
 import CustomBranding from "./pages/CustomBranding";
 import EnablePayments from "./pages/EnablePayments";
 import Analytics from "./pages/Analytics";
+import Orders from "./pages/Orders";
 import CustomerMenu from "./pages/CustomerMenu";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
@@ -29,7 +30,7 @@ import Cookies from "./pages/Cookies";
 import Refunds from "./pages/Refunds";
 import ManageSubscription from "./pages/ManageSubscription";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminLogin from "./pages/AdminLogin"; // Added
+import AdminLogin from "./pages/AdminLogin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +64,7 @@ function App() {
             <Route path="/custom-branding" element={<CustomBranding />} />
             <Route path="/enable-payments" element={<EnablePayments />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/orders" element={<Orders />} />
             <Route path="/manage-subscription" element={<ManageSubscription />} />
             <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
             <Route path="/checkout" element={<Checkout />} />
@@ -72,7 +74,7 @@ function App() {
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/refunds" element={<Refunds />} />
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin-login" element={<AdminLogin />} /> {/* Added */}
+            <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
