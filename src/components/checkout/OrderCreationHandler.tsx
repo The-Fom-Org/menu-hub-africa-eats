@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -107,7 +106,7 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
       title: "Order created successfully!",
       description: "Your order has been submitted and is being processed.",
     });
-    navigate(`/order-success?orderId=${orderId}`);
+    navigate(`/order-success?order=${orderId}&restaurant=${cartItems[0]?.restaurantId || ''}`);
     setIsCreatingOrder(false);
   };
 
