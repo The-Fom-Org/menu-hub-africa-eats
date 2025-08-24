@@ -23,7 +23,7 @@ interface OrderDetails {
 
 const OrderSuccess = () => {
   const [searchParams] = useSearchParams();
-  const orderId = searchParams.get('order');
+  const customerToken = searchParams.get('token');
   const restaurantId = searchParams.get('restaurant');
   const navigate = useNavigate();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
@@ -31,17 +31,21 @@ const OrderSuccess = () => {
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
-      if (!orderId) return;
+      if (!customerToken) return;
 
       try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', orderId)
-          .single();
+        // Use secure Edge Function to fetch order by customer token
+        const { data, error } = await supabase.functions.invoke('order-lookup', {
+          body: { customerToken }
+        });
 
         if (error) throw error;
-        setOrderDetails(data);
+        
+        if (data.success) {
+          setOrderDetails(data.order);
+        } else {
+          throw new Error('Order not found');
+        }
       } catch (error) {
         console.error('Error fetching order details:', error);
       } finally {
@@ -50,7 +54,7 @@ const OrderSuccess = () => {
     };
 
     fetchOrderDetails();
-  }, [orderId]);
+  }, [customerToken]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -78,7 +82,7 @@ const OrderSuccess = () => {
     }
   };
 
-  if (!orderId || !restaurantId) {
+  if (!customerToken || !restaurantId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">

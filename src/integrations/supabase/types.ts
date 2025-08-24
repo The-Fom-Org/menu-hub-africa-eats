@@ -174,6 +174,7 @@ export type Database = {
           created_at: string
           customer_name: string | null
           customer_phone: string | null
+          customer_token: string
           id: string
           notes: string | null
           order_status: string
@@ -190,6 +191,7 @@ export type Database = {
           created_at?: string
           customer_name?: string | null
           customer_phone?: string | null
+          customer_token?: string
           id?: string
           notes?: string | null
           order_status?: string
@@ -206,6 +208,7 @@ export type Database = {
           created_at?: string
           customer_name?: string | null
           customer_phone?: string | null
+          customer_token?: string
           id?: string
           notes?: string | null
           order_status?: string

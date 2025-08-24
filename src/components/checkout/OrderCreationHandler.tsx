@@ -78,15 +78,15 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
       // Handle push notifications if supported
       if (isSupported && Notification.permission === 'default') {
         console.log('🔔 Showing notification permission dialog');
-        setPendingOrderData({ orderId: order.id, orderData });
+        setPendingOrderData({ orderId: order.id, order, orderData });
         setShowNotificationDialog(true);
       } else if (isSupported && Notification.permission === 'granted') {
         console.log('🔔 Permission already granted, subscribing to push notifications');
         await subscribeToPush(order.id);
-        finalizeOrder(order.id);
+        finalizeOrder(order, orderData);
       } else {
         console.log('🔔 Push notifications not supported or denied');
-        finalizeOrder(order.id);
+        finalizeOrder(order, orderData);
       }
     } catch (error) {
       console.error('❌ Order creation failed:', error);
@@ -99,14 +99,15 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
     }
   };
 
-  const finalizeOrder = (orderId: string) => {
-    console.log('🎉 Finalizing order:', orderId);
+  const finalizeOrder = (order: any, orderData: any) => {
+    console.log('🎉 Finalizing order:', order.id);
     clearCart();
     toast({
       title: "Order created successfully!",
       description: "Your order has been submitted and is being processed.",
     });
-    navigate(`/order-success?order=${orderId}&restaurant=${cartItems[0]?.restaurantId || ''}`);
+    // Pass the customer token instead of the order ID for secure access
+    navigate(`/order-success?token=${order.customer_token}&restaurant=${orderData.restaurantId}`);
     setIsCreatingOrder(false);
   };
 
@@ -128,7 +129,7 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
   const handleNotificationDeny = () => {
     if (pendingOrderData) {
       console.log('🔔 User denied notifications, proceeding without them');
-      finalizeOrder(pendingOrderData.orderId);
+      finalizeOrder(pendingOrderData.order, pendingOrderData.orderData);
       setPendingOrderData(null);
     }
   };
@@ -136,7 +137,7 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
   const handleNotificationDialogClose = () => {
     if (pendingOrderData) {
       console.log('🔔 Notification dialog closed, proceeding without notifications');
-      finalizeOrder(pendingOrderData.orderId);
+      finalizeOrder(pendingOrderData.order, pendingOrderData.orderData);
       setPendingOrderData(null);
     }
     setShowNotificationDialog(false);
