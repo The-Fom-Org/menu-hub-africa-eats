@@ -19,7 +19,7 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
   const navigate = useNavigate();
-  const { clearCart, cartItems, totalAmount } = useCart();
+  const { clearCart, cartItems, getCartTotal } = useCart();
   const { subscribeToPush, requestPermission, isSupported } = usePushNotifications();
   const { toast } = useToast();
 
@@ -28,6 +28,8 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
     setIsCreatingOrder(true);
 
     try {
+      const totalAmount = getCartTotal();
+      
       // Create the order first
       const { data: order, error: orderError } = await supabase
         .from('orders')

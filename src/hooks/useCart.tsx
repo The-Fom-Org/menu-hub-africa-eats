@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface CartItem {
@@ -20,7 +19,7 @@ export interface OrderDetails {
   restaurant_id: string;
 }
 
-export const useCart = (restaurantId: string) => {
+export const useCart = (restaurantId?: string) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<'now' | 'later'>('now');
   const [customerInfo, setCustomerInfo] = useState({
@@ -31,7 +30,7 @@ export const useCart = (restaurantId: string) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(Date.now());
   const isInitialized = useRef(false);
-  const storageKey = `cart_${restaurantId}`;
+  const storageKey = `cart_${restaurantId || 'default'}`;
 
   console.log('🛒 useCart hook render:', {
     restaurantId,
@@ -297,7 +296,7 @@ export const useCart = (restaurantId: string) => {
     customer_name: orderType === 'later' ? customerInfo.name : undefined,
     customer_phone: orderType === 'later' ? customerInfo.phone : undefined,
     preferred_time: orderType === 'later' ? customerInfo.preferred_time : undefined,
-    restaurant_id: restaurantId,
+    restaurant_id: restaurantId || '',
   }), [cartItems, getCartTotal, orderType, customerInfo, restaurantId]);
 
   return {
