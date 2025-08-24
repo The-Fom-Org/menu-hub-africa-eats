@@ -36,6 +36,7 @@ const Checkout = () => {
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [tableNumber, setTableNumber] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [loading, setLoading] = useState(false);
@@ -117,6 +118,7 @@ const Checkout = () => {
         restaurant_id: restaurantId!,
         customer_name: customerName || null,
         customer_phone: customerPhone || null,
+        table_number: tableNumber || null,
         order_type: cart.orderType,
         payment_method: cart.orderType === 'now' ? 'cash' : paymentMethod,
         payment_status: cart.orderType === 'now' ? 'pending' : 'pending',
@@ -376,6 +378,17 @@ const Checkout = () => {
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="Enter your phone number"
+                      className="text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tableNumber" className="text-xs sm:text-sm">Table Number (Optional)</Label>
+                    <Input
+                      id="tableNumber"
+                      value={tableNumber}
+                      onChange={(e) => setTableNumber(e.target.value)}
+                      placeholder="e.g. 12 or T3"
                       className="text-sm"
                     />
                   </div>

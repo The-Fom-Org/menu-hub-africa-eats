@@ -1,309 +1,267 @@
 
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CheckCircle2, Clock, ArrowLeft, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Clock, MapPin, Phone, Mail, MessageCircle, Home } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-interface OrderSuccessState {
-  orderDetails: {
-    restaurant_id: string;
-    customer_name?: string;
-    customer_phone?: string;
-    order_type: string;
-    total: number;
-    items: Array<{
-      id: string;
-      name: string;
-      price: number;
-      quantity: number;
-      customizations?: string;
-      special_instructions?: string;
-    }>;
-    preferred_time?: string;
-    orderId?: string;
-  };
-  paymentMethod: string;
-  orderId?: string;
+interface OrderDetails {
+  id: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  order_type: string;
+  payment_method: string | null;
+  payment_status: string;
+  order_status: string;
+  total_amount: number;
+  created_at: string;
+  scheduled_time: string | null;
+  table_number: string | null;
 }
 
 const OrderSuccess = () => {
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get('order');
+  const restaurantId = searchParams.get('restaurant');
   const navigate = useNavigate();
-  const state = location.state as OrderSuccessState;
+  const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  console.log('OrderSuccess state:', state);
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      if (!orderId) return;
 
-  // Redirect if no order data
-  if (!state?.orderDetails) {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', orderId)
+          .single();
+
+        if (error) throw error;
+        setOrderDetails(data);
+      } catch (error) {
+        console.error('Error fetching order details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrderDetails();
+  }, [orderId]);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'default';
+      case 'preparing':
+        return 'secondary';
+      case 'ready':
+        return 'outline';
+      case 'completed':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
+
+  if (!orderId || !restaurantId) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">No order information found</p>
-            <Button onClick={() => navigate('/')}>
-              Go to Home
-            </Button>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold mb-2">Order not found</h2>
+              <p className="text-muted-foreground mb-4">
+                We couldn't find your order details.
+              </p>
+              <Button onClick={() => navigate(`/menu/${restaurantId}`)}>
+                Back to Menu
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const { orderDetails, paymentMethod, orderId } = state;
-  const finalOrderId = orderId || orderDetails.orderId || 'unknown';
-
-  const handleSendWhatsApp = () => {
-    // Simulate WhatsApp confirmation
-    alert('WhatsApp confirmation would be sent here');
-  };
-
-  const handleSendSMS = () => {
-    // Simulate SMS confirmation
-    alert('SMS confirmation would be sent here');
-  };
-
-  const handleSendEmail = () => {
-    // Simulate email confirmation
-    alert('Email confirmation would be sent here');
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Loading order details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
+    <div className="min-h-screen bg-background">
       <header className="bg-card border-b shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
-              <CheckCircle className="h-6 w-6" />
-              <h1 className="text-xl font-bold">Order Placed Successfully!</h1>
-            </div>
-            <p className="text-muted-foreground">
-              Your order has been placed and will be processed shortly
-            </p>
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate(`/menu/${restaurantId}`)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Menu
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground">Order Confirmation</h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Order Status */}
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                {orderDetails.order_type === 'now' ? (
-                  <>
-                    <MapPin className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium">Dining In</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your order is being prepared now
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Clock className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium">Pre-order Scheduled</p>
-                      <p className="text-sm text-muted-foreground">
-                        Ready for pickup at {orderDetails.preferred_time}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-              <Badge variant="default" className="bg-green-600">
-                Order #{finalOrderId.toString().slice(-6)}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Order Details */}
-          <div className="space-y-6">
-            {/* Customer Info */}
-            {orderDetails.order_type === 'later' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Customer Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm font-medium">
-                        {orderDetails.customer_name?.charAt(0).toUpperCase() || 'C'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium">{orderDetails.customer_name || 'Customer'}</p>
-                      <p className="text-sm text-muted-foreground">{orderDetails.customer_phone}</p>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      Pickup: {orderDetails.preferred_time}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Payment Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span>Payment Method:</span>
-                  <Badge variant="outline">
-                    {paymentMethod === 'mpesa_manual' ? 'M-Pesa (Manual)' : 
-                     paymentMethod === 'cash' ? 'Cash Payment' :
-                     paymentMethod === 'bank_transfer' ? 'Bank Transfer' :
-                     paymentMethod}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Order ID:</span>
-                  <span className="text-sm font-mono">#{finalOrderId.toString().slice(-8)}</span>
-                </div>
-                <div className="flex items-center justify-between font-medium">
-                  <span>Total Amount:</span>
-                  <span>KSh {orderDetails.total.toFixed(2)}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Confirmation Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Send Confirmation</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Get your order confirmation via your preferred method
+      <main className="max-w-2xl mx-auto px-4 py-8">
+        <div className="space-y-6">
+          {/* Success Message */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Order Placed Successfully!
+                </h2>
+                <p className="text-muted-foreground">
+                  Thank you for your order. We'll notify you with updates.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSendWhatsApp}
-                    className="flex items-center gap-2"
-                  >
-                    <MessageCircle className="h-4 w-4 text-green-600" />
-                    WhatsApp
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSendSMS}
-                    className="flex items-center gap-2"
-                  >
-                    <Phone className="h-4 w-4" />
-                    SMS
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSendEmail}
-                    className="flex items-center gap-2"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Email
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Order Summary */}
-          <div>
+          {/* Order Details */}
+          {orderDetails && (
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  Order Details
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {orderDetails.items.map((item, index) => (
-                  <div key={`${item.id}-${item.customizations}-${index}`}>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{item.name}</p>
-                        {item.customizations && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {item.customizations}
-                          </p>
-                        )}
-                        {item.special_instructions && (
-                          <p className="text-xs text-muted-foreground italic mt-1">
-                            Note: {item.special_instructions}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          Qty: {item.quantity} × KSh {item.price.toFixed(2)}
-                        </p>
-                      </div>
-                      <p className="font-medium text-sm">
-                        KSh {(item.price * item.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                    {index < orderDetails.items.length - 1 && <Separator className="mt-3" />}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Order ID</p>
+                    <p className="font-mono text-sm">{orderDetails.id.slice(0, 8)}...</p>
                   </div>
-                ))}
-
-                <Separator />
-                
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>Total:</span>
-                  <span className="text-green-600">KSh {orderDetails.total.toFixed(2)}</span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge variant={getStatusBadgeVariant(orderDetails.order_status)}>
+                      {orderDetails.order_status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Amount</p>
+                    <p className="font-semibold">KSh {orderDetails.total_amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Order Type</p>
+                    <p className="capitalize">{orderDetails.order_type}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Placed At</p>
+                    <p className="text-sm">{formatDate(orderDetails.created_at)}</p>
+                  </div>
+                  {orderDetails.scheduled_time && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Pickup Time</p>
+                      <p className="text-sm">{formatDate(orderDetails.scheduled_time)}</p>
+                    </div>
+                  )}
+                  {orderDetails.table_number && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Table Number</p>
+                      <p className="font-semibold">{orderDetails.table_number}</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="pt-4 space-y-3">
-                  <Button 
-                    onClick={() => navigate(`/menu/${orderDetails.restaurant_id}`)}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Order Again
-                  </Button>
-                  <Button 
-                    onClick={() => navigate('/')}
-                    className="w-full"
-                  >
-                    <Home className="h-4 w-4 mr-2" />
-                    Back to Home
-                  </Button>
-                </div>
+                {orderDetails.customer_name && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground">Customer Name</p>
+                    <p>{orderDetails.customer_name}</p>
+                  </div>
+                )}
+
+                {orderDetails.customer_phone && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone Number</p>
+                    <p>{orderDetails.customer_phone}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Next Steps */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                What's Next?
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {orderDetails?.order_type === 'now' ? (
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    • Your order is being prepared
+                  </p>
+                  <p className="text-sm">
+                    • You'll be notified when it's ready
+                  </p>
+                  <p className="text-sm">
+                    • Payment will be collected when you receive your order
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    • We'll confirm your reservation shortly
+                  </p>
+                  <p className="text-sm">
+                    • You'll receive updates about your pre-order
+                  </p>
+                  <p className="text-sm">
+                    • Pick up your order at the scheduled time
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              className="flex-1"
+              onClick={() => navigate(`/menu/${restaurantId}`)}
+            >
+              Order Again
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => navigate(`/menu/${restaurantId}`)}
+            >
+              Back to Menu
+            </Button>
           </div>
         </div>
-
-        {/* Next Steps */}
-        <Card className="bg-muted/50">
-          <CardContent className="py-6">
-            <h3 className="font-semibold mb-3">What happens next?</h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              {orderDetails.order_type === 'now' ? (
-                <>
-                  <p>• Your order is being prepared by the kitchen</p>
-                  <p>• You will be notified when it's ready</p>
-                  <p>• Please remain seated at your table</p>
-                </>
-              ) : (
-                <>
-                  <p>• We'll start preparing your order before your scheduled pickup time</p>
-                  <p>• You'll receive a notification when your order is ready</p>
-                  <p>• Please arrive at your scheduled time: {orderDetails.preferred_time}</p>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </div>
   );
