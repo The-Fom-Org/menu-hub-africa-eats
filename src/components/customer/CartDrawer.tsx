@@ -1,3 +1,4 @@
+
 import {
   Sheet,
   SheetContent,
@@ -10,10 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, RefreshCw } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartDrawerProps {
@@ -25,47 +26,82 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
-  const [cartTotal, setCartTotal] = useState(0);
 
-  // Force re-render when cart changes
-  useEffect(() => {
-    const count = cart.getCartCount();
-    const total = cart.getCartTotal();
-    setCartCount(count);
-    setCartTotal(total);
-    console.log('Cart updated - count:', count, 'total:', total, 'items:', cart.cartItems.length);
-  }, [cart.cartItems]);
+  // Use cart methods directly instead of local state
+  const cartCount = cart.getCartCount();
+  const cartTotal = cart.getCartTotal();
+  const hasItems = cart.cartItems.length > 0;
+
+  console.log('CartDrawer render - items:', cart.cartItems.length, 'count:', cartCount, 'total:', cartTotal);
 
   const handleCheckout = () => {
-    if (cartCount === 0) return;
+    if (!hasItems) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add some items to your cart before checkout.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
     setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
   };
 
-  const handleUpdateQuantity = (itemId: string, quantity: number, customizations?: string) => {
-    cart.updateQuantity(itemId, quantity, customizations);
+  const showReloadNotification = () => {
     toast({
-      title: "Quantity updated",
-      description: "Item quantity has been updated in your cart.",
-      duration: 2000,
+      title: "Cart sync issue",
+      description: (
+        <div className="flex items-center gap-2">
+          <span>Please reload the page to sync your cart</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.reload()}
+            className="ml-2"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Reload
+          </Button>
+        </div>
+      ),
+      duration: 5000,
     });
   };
 
+  const handleUpdateQuantity = (itemId: string, quantity: number, customizations?: string) => {
+    try {
+      cart.updateQuantity(itemId, quantity, customizations);
+      toast({
+        title: "Quantity updated",
+        description: "Item quantity has been updated in your cart.",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      showReloadNotification();
+    }
+  };
+
   const handleRemoveItem = (itemId: string, customizations?: string) => {
-    cart.removeFromCart(itemId, customizations);
-    toast({
-      title: "Item removed",
-      description: "Item has been removed from your cart.",
-      duration: 2000,
-    });
+    try {
+      cart.removeFromCart(itemId, customizations);
+      toast({
+        title: "Item removed",
+        description: "Item has been removed from your cart.",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Error removing item:', error);
+      showReloadNotification();
+    }
   };
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button 
-          variant={cartCount > 0 ? "default" : "outline"} 
+          variant={hasItems ? "default" : "outline"} 
           size="sm" 
           className="relative"
         >
@@ -83,11 +119,11 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
         <SheetHeader>
           <SheetTitle>Your Order</SheetTitle>
           <SheetDescription>
-            {cartCount === 0 ? 'Your cart is empty' : 'Review your items before checkout'}
+            {!hasItems ? 'Your cart is empty' : 'Review your items before checkout'}
           </SheetDescription>
         </SheetHeader>
 
-        {cartCount === 0 ? (
+        {!hasItems ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -165,7 +201,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                 onClick={handleCheckout}
                 className="w-full"
                 size="lg"
-                disabled={cartCount === 0}
+                disabled={!hasItems}
               >
                 Proceed to Checkout
               </Button>
