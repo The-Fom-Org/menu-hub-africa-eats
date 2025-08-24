@@ -1,4 +1,3 @@
-
 import {
   Sheet,
   SheetContent,
@@ -36,7 +35,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     setCartCount(count);
     setCartTotal(total);
     console.log('Cart updated - count:', count, 'total:', total, 'items:', cart.cartItems.length);
-  }, [cart.cartItems, cart.updateTrigger]);
+  }, [cart.cartItems]);
 
   const handleCheckout = () => {
     if (cartCount === 0) return;
@@ -48,7 +47,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     cart.updateQuantity(itemId, quantity, customizations);
     toast({
       title: "Quantity updated",
-      description: "Please reload the page for the cart to update.",
+      description: "Item quantity has been updated in your cart.",
       duration: 2000,
     });
   };
@@ -57,7 +56,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     cart.removeFromCart(itemId, customizations);
     toast({
       title: "Item removed",
-      description: "Please reload the page for the cart to update.",
+      description: "Item has been removed from your cart.",
       duration: 2000,
     });
   };
