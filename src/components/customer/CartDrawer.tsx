@@ -1,4 +1,3 @@
-
 import {
   Sheet,
   SheetContent,
@@ -66,21 +65,50 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   }, [cart, toast]);
 
   const handleCheckout = useCallback(() => {
-    console.log('💳 Checkout process starting - synchronous validation');
+    console.log('💳 ===== CHECKOUT PROCESS START =====');
+    console.log('💳 React state before validation:', {
+      cartItemsLength: cart.cartItems.length,
+      cartItems: cart.cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })),
+      reactStateCount: cart.getCartCount(),
+      reactStateTotal: cart.getCartTotal(),
+      reactStateHasItems: cart.hasItems()
+    });
     
     // Get latest cart state directly from localStorage
+    const latestItems = cart.getLatestCartState();
+    console.log('💳 Latest localStorage state:', {
+      latestItemsLength: latestItems.length,
+      latestItems: latestItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })),
+      latestCount: cart.getCartCount(latestItems),
+      latestTotal: cart.getCartTotal(latestItems),
+      latestHasItems: cart.hasItems(latestItems)
+    });
+    
+    // Validate cart state
     const validation = cart.validateCartState();
-    const latestItems = validation.latestItems;
+    console.log('💳 Cart validation result:', {
+      isValid: validation.isValid,
+      issues: validation.issues,
+      validationLatestItems: validation.latestItems.length,
+      validationItems: validation.latestItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+    });
+
+    // Additional calculations for debugging
     const latestCount = cart.getCartCount(latestItems);
     const latestHasItems = cart.hasItems(latestItems);
+    const reactStateEmpty = cart.cartItems.length === 0;
+    const latestStateEmpty = latestItems.length === 0;
+    const countIsZero = latestCount === 0;
     
-    console.log('🔍 Synchronous checkout validation:', {
-      validation,
-      latestItemsLength: latestItems.length,
+    console.log('💳 Detailed empty checks:', {
+      reactStateEmpty,
+      latestStateEmpty,
+      countIsZero,
       latestCount,
       latestHasItems,
-      reactStateLength: cart.cartItems.length,
-      items: latestItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+      'latestItems.length === 0': latestItems.length === 0,
+      'latestCount === 0': latestCount === 0,
+      '!latestHasItems': !latestHasItems
     });
 
     // If validation fails, offer recovery options
@@ -124,12 +152,24 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     }
 
     // Check if cart is actually empty using latest data
+    console.log('💳 Final empty check conditions:');
+    console.log('💳 - latestItems.length === 0:', latestItems.length === 0);
+    console.log('💳 - latestCount === 0:', latestCount === 0);
+    console.log('💳 - !latestHasItems:', !latestHasItems);
+    console.log('💳 - Combined empty condition:', latestItems.length === 0 || latestCount === 0 || !latestHasItems);
+    
     if (latestItems.length === 0 || latestCount === 0 || !latestHasItems) {
-      console.log('❌ Cart is empty - Latest state:', {
-        itemsLength: latestItems.length,
-        count: latestCount,
-        hasItems: latestHasItems
+      console.log('❌ ===== CART DEEMED EMPTY =====');
+      console.log('❌ Empty check details:', {
+        'latestItems.length': latestItems.length,
+        'latestItems.length === 0': latestItems.length === 0,
+        latestCount,
+        'latestCount === 0': latestCount === 0,
+        latestHasItems,
+        '!latestHasItems': !latestHasItems,
+        'Final condition': latestItems.length === 0 || latestCount === 0 || !latestHasItems
       });
+      
       toast({
         title: "Cart is empty",
         description: "Please add some items to your cart before checkout.",
@@ -140,7 +180,13 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     }
     
     // Cart is valid - proceed to checkout
-    console.log('✅ Cart validation passed, proceeding to checkout');
+    console.log('✅ ===== CART VALIDATION PASSED =====');
+    console.log('✅ Proceeding to checkout with:', {
+      itemsCount: latestItems.length,
+      totalQuantity: latestCount,
+      hasItems: latestHasItems
+    });
+    
     setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
   }, [cart, toast, navigate, restaurantId, handleManualSync, handleEmergencyReset]);
