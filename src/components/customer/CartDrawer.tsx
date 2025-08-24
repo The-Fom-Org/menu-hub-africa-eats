@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2, RefreshCw } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartDrawerProps {
@@ -26,27 +26,26 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [lastCartUpdate, setLastCartUpdate] = useState(Date.now());
 
-  // Use cart methods directly instead of local state
-  const cartCount = cart.getCartCount();
-  const cartTotal = cart.getCartTotal();
-  const hasItems = cart.cartItems.length > 0;
+  // Force re-render when cart items change
+  useEffect(() => {
+    setLastCartUpdate(Date.now());
+  }, [cart.cartItems]);
 
-  console.log('CartDrawer render - items:', cart.cartItems.length, 'count:', cartCount, 'total:', cartTotal);
+  // Direct state checks
+  const cartItems = cart.cartItems;
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const hasItems = cartItems.length > 0;
 
-  const handleCheckout = () => {
-    if (!hasItems) {
-      toast({
-        title: "Cart is empty",
-        description: "Please add some items to your cart before checkout.",
-        variant: "destructive",
-        duration: 3000,
-      });
-      return;
-    }
-    setIsOpen(false);
-    navigate(`/checkout?restaurantId=${restaurantId}`);
-  };
+  console.log('CartDrawer render:', {
+    itemsLength: cartItems.length,
+    cartCount,
+    cartTotal,
+    hasItems,
+    lastUpdate: lastCartUpdate
+  });
 
   const showReloadNotification = () => {
     toast({
@@ -69,14 +68,51 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     });
   };
 
+  const handleCheckout = () => {
+    console.log('Checkout clicked:', { hasItems, cartCount, itemsLength: cartItems.length });
+    
+    if (!hasItems || cartCount === 0) {
+      // Try to sync cart first
+      const synced = cart.syncCart();
+      if (!synced || cart.cartItems.length === 0) {
+        toast({
+          title: "Cart is empty",
+          description: "Please add some items to your cart before checkout.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
+      }
+    }
+    
+    setIsOpen(false);
+    navigate(`/checkout?restaurantId=${restaurantId}`);
+  };
+
   const handleUpdateQuantity = (itemId: string, quantity: number, customizations?: string) => {
     try {
+      console.log('Updating quantity in drawer:', { itemId, quantity, customizations });
       cart.updateQuantity(itemId, quantity, customizations);
-      toast({
-        title: "Quantity updated",
-        description: "Item quantity has been updated in your cart.",
-        duration: 2000,
-      });
+      
+      // Check if update was successful after a brief delay
+      setTimeout(() => {
+        const updatedItem = cart.cartItems.find(item => 
+          item.id === itemId && item.customizations === customizations
+        );
+        
+        if (quantity > 0 && (!updatedItem || updatedItem.quantity !== quantity)) {
+          console.error('Quantity update failed:', { expected: quantity, actual: updatedItem?.quantity });
+          showReloadNotification();
+          return;
+        }
+        
+        toast({
+          title: "Quantity updated",
+          description: "Item quantity has been updated in your cart.",
+          duration: 2000,
+        });
+      }, 150);
+      
     } catch (error) {
       console.error('Error updating quantity:', error);
       showReloadNotification();
@@ -85,12 +121,28 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
 
   const handleRemoveItem = (itemId: string, customizations?: string) => {
     try {
+      console.log('Removing item in drawer:', { itemId, customizations });
       cart.removeFromCart(itemId, customizations);
-      toast({
-        title: "Item removed",
-        description: "Item has been removed from your cart.",
-        duration: 2000,
-      });
+      
+      // Check if removal was successful after a brief delay
+      setTimeout(() => {
+        const removedItem = cart.cartItems.find(item => 
+          item.id === itemId && item.customizations === customizations
+        );
+        
+        if (removedItem) {
+          console.error('Item removal failed:', removedItem);
+          showReloadNotification();
+          return;
+        }
+        
+        toast({
+          title: "Item removed",
+          description: "Item has been removed from your cart.",
+          duration: 2000,
+        });
+      }, 150);
+      
     } catch (error) {
       console.error('Error removing item:', error);
       showReloadNotification();
@@ -135,7 +187,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
           <>
             <ScrollArea className="flex-1 -mx-6 px-6">
               <div className="space-y-4 mt-6">
-                {cart.cartItems.map((item, index) => (
+                {cartItems.map((item, index) => (
                   <div key={`${item.id}-${item.customizations}-${index}`} className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -185,7 +237,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                         </Button>
                       </div>
                     </div>
-                    {index < cart.cartItems.length - 1 && <Separator />}
+                    {index < cartItems.length - 1 && <Separator />}
                   </div>
                 ))}
               </div>
@@ -201,7 +253,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                 onClick={handleCheckout}
                 className="w-full"
                 size="lg"
-                disabled={!hasItems}
+                disabled={!hasItems || cartCount === 0}
               >
                 Proceed to Checkout
               </Button>

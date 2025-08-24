@@ -50,44 +50,56 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   const currentQuantity = cartItem?.quantity || 0;
 
   const handleAddToCart = useCallback((customizations?: string, specialInstructions?: string) => {
-    cart.addToCart({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      customizations,
-      special_instructions: specialInstructions,
-    });
+    try {
+      cart.addToCart({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        customizations,
+        special_instructions: specialInstructions,
+      });
 
-    toast({
-      title: "Added to cart",
-      description: `${item.name} has been added to your cart.`,
-      duration: 2000,
-    });
+      toast({
+        title: "Added to cart",
+        description: `${item.name} has been added to your cart.`,
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
   }, [cart, item, toast]);
 
   const handleQuickAdd = useCallback(() => {
-    if (currentQuantity === 0) {
-      handleAddToCart();
-    } else {
-      cart.updateQuantity(item.id, currentQuantity + 1);
-      toast({
-        title: "Quantity updated",
-        description: `${item.name} quantity increased.`,
-        duration: 1000,
-      });
-    }
-  }, [currentQuantity, handleAddToCart, cart, item, toast]);
+    // Always use handleAddToCart for consistency - it will handle existing items properly
+    handleAddToCart();
+  }, [handleAddToCart]);
 
   const handleDecrease = useCallback(() => {
     if (currentQuantity > 0) {
-      const newQuantity = currentQuantity - 1;
-      cart.updateQuantity(item.id, newQuantity);
-      
-      toast({
-        title: "Quantity updated",
-        description: newQuantity === 0 ? `${item.name} removed from cart.` : `${item.name} quantity decreased.`,
-        duration: 1000,
-      });
+      try {
+        const newQuantity = currentQuantity - 1;
+        cart.updateQuantity(item.id, newQuantity);
+        
+        toast({
+          title: "Quantity updated",
+          description: newQuantity === 0 ? `${item.name} removed from cart.` : `${item.name} quantity decreased.`,
+          duration: 1000,
+        });
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update quantity. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
     }
   }, [currentQuantity, cart, item, toast]);
 
