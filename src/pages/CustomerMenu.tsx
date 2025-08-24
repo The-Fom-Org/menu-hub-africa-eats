@@ -200,7 +200,7 @@ const CustomerMenu = () => {
               setSearchTerm(e.target.value);
               setShowChefSpecials(false);
             }}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2 sm:py-3 text-sm sm:text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            className="bg-secondary hover:bg-primary/90 text-primary-foreground px-8 py-2 sm:py-3 text-sm sm:text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
           />
         </div>
       </div>
