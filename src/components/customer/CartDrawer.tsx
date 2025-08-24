@@ -1,4 +1,3 @@
-
 import {
   Sheet,
   SheetContent,
@@ -14,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2, RefreshCw } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartDrawerProps {
@@ -26,37 +25,36 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [lastCartUpdate, setLastCartUpdate] = useState(Date.now());
 
-  // Force re-render when cart items change
-  useEffect(() => {
-    setLastCartUpdate(Date.now());
-  }, [cart.cartItems]);
-
-  // Direct state checks
+  // Direct state access with detailed logging
   const cartItems = cart.cartItems;
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   const hasItems = cartItems.length > 0;
 
-  console.log('CartDrawer render:', {
-    itemsLength: cartItems.length,
+  console.log('🛒 CartDrawer render:', {
+    restaurantId,
+    cartItemsLength: cartItems.length,
     cartCount,
     cartTotal,
     hasItems,
-    lastUpdate: lastCartUpdate
+    isOpen
   });
 
-  const showReloadNotification = () => {
+  const showReloadNotification = useCallback(() => {
+    console.log('🔄 Showing reload notification');
     toast({
       title: "Cart sync issue",
       description: (
         <div className="flex items-center gap-2">
-          <span>Please reload the page to sync your cart</span>
+          <span>Cart may be out of sync. Please reload the page.</span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              console.log('🔄 User clicked reload button');
+              window.location.reload();
+            }}
             className="ml-2"
           >
             <RefreshCw className="h-3 w-3 mr-1" />
@@ -64,48 +62,91 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
           </Button>
         </div>
       ),
-      duration: 5000,
+      duration: 8000,
     });
-  };
+  }, [toast]);
 
-  const handleCheckout = () => {
-    console.log('Checkout clicked:', { hasItems, cartCount, itemsLength: cartItems.length });
+  const handleCheckout = useCallback(() => {
+    console.log('💳 Checkout clicked:', {
+      hasItems,
+      cartCount,
+      cartItemsLength: cartItems.length,
+      cartTotal
+    });
     
-    if (!hasItems || cartCount === 0) {
+    // Double-check cart state
+    if (!hasItems || cartCount === 0 || cartItems.length === 0) {
+      console.log('🚫 Cart appears empty, attempting sync');
+      
       // Try to sync cart first
       const synced = cart.syncCart();
-      if (!synced || cart.cartItems.length === 0) {
-        toast({
-          title: "Cart is empty",
-          description: "Please add some items to your cart before checkout.",
-          variant: "destructive",
-          duration: 3000,
+      
+      // Check again after sync
+      setTimeout(() => {
+        const newItems = cart.cartItems;
+        const newCount = newItems.reduce((count, item) => count + item.quantity, 0);
+        
+        console.log('🔍 After sync check:', {
+          synced,
+          newItemsLength: newItems.length,
+          newCount
         });
-        return;
-      }
+        
+        if (!synced || newItems.length === 0 || newCount === 0) {
+          console.log('❌ Cart is still empty after sync');
+          toast({
+            title: "Cart is empty",
+            description: "Please add some items to your cart before checkout.",
+            variant: "destructive",
+            duration: 3000,
+          });
+          return;
+        }
+        
+        console.log('✅ Cart has items after sync, proceeding to checkout');
+        setIsOpen(false);
+        navigate(`/checkout?restaurantId=${restaurantId}`);
+      }, 200);
+      
+      return;
     }
     
+    console.log('✅ Cart has items, proceeding to checkout');
     setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
-  };
+  }, [hasItems, cartCount, cartItems.length, cartTotal, cart, toast, navigate, restaurantId]);
 
-  const handleUpdateQuantity = (itemId: string, quantity: number, customizations?: string) => {
+  const handleUpdateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
+    console.log('🔄 CartDrawer updating quantity:', { itemId, quantity, customizations });
+    
     try {
-      console.log('Updating quantity in drawer:', { itemId, quantity, customizations });
       cart.updateQuantity(itemId, quantity, customizations);
       
-      // Check if update was successful after a brief delay
+      // Verify update after a delay
       setTimeout(() => {
         const updatedItem = cart.cartItems.find(item => 
           item.id === itemId && item.customizations === customizations
         );
         
+        console.log('🔍 Quantity update verification:', {
+          expected: quantity,
+          found: updatedItem,
+          actual: updatedItem?.quantity
+        });
+        
         if (quantity > 0 && (!updatedItem || updatedItem.quantity !== quantity)) {
-          console.error('Quantity update failed:', { expected: quantity, actual: updatedItem?.quantity });
+          console.error('❌ Quantity update verification failed');
           showReloadNotification();
           return;
         }
         
+        if (quantity === 0 && updatedItem) {
+          console.error('❌ Item should be removed but still exists');
+          showReloadNotification();
+          return;
+        }
+        
+        console.log('✅ Quantity update verified successfully');
         toast({
           title: "Quantity updated",
           description: "Item quantity has been updated in your cart.",
@@ -114,28 +155,36 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
       }, 150);
       
     } catch (error) {
-      console.error('Error updating quantity:', error);
+      console.error('❌ Error updating quantity in CartDrawer:', error);
       showReloadNotification();
     }
-  };
+  }, [cart, toast, showReloadNotification]);
 
-  const handleRemoveItem = (itemId: string, customizations?: string) => {
+  const handleRemoveItem = useCallback((itemId: string, customizations?: string) => {
+    console.log('🗑️ CartDrawer removing item:', { itemId, customizations });
+    
     try {
-      console.log('Removing item in drawer:', { itemId, customizations });
       cart.removeFromCart(itemId, customizations);
       
-      // Check if removal was successful after a brief delay
+      // Verify removal after a delay
       setTimeout(() => {
         const removedItem = cart.cartItems.find(item => 
           item.id === itemId && item.customizations === customizations
         );
         
+        console.log('🔍 Item removal verification:', {
+          itemId,
+          customizations,
+          stillExists: !!removedItem
+        });
+        
         if (removedItem) {
-          console.error('Item removal failed:', removedItem);
+          console.error('❌ Item removal verification failed - item still exists');
           showReloadNotification();
           return;
         }
         
+        console.log('✅ Item removal verified successfully');
         toast({
           title: "Item removed",
           description: "Item has been removed from your cart.",
@@ -144,10 +193,10 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
       }, 150);
       
     } catch (error) {
-      console.error('Error removing item:', error);
+      console.error('❌ Error removing item in CartDrawer:', error);
       showReloadNotification();
     }
-  };
+  }, [cart, toast, showReloadNotification]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -255,7 +304,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                 size="lg"
                 disabled={!hasItems || cartCount === 0}
               >
-                Proceed to Checkout
+                Proceed to Checkout ({cartCount} items)
               </Button>
             </div>
           </>

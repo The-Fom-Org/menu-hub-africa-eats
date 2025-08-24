@@ -49,7 +49,21 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   const cartItem = cart.cartItems.find(cartItem => cartItem.id === item.id && !cartItem.customizations);
   const currentQuantity = cartItem?.quantity || 0;
 
-  const handleAddToCart = useCallback((customizations?: string, specialInstructions?: string) => {
+  console.log('🍽️ MenuItemCard render:', {
+    itemId: item.id,
+    itemName: item.name,
+    currentQuantity,
+    cartItem: cartItem ? 'found' : 'not found'
+  });
+
+  const handleAddToCart = useCallback(async (customizations?: string, specialInstructions?: string) => {
+    console.log('➕ MenuItemCard: Adding to cart:', {
+      itemId: item.id,
+      itemName: item.name,
+      customizations,
+      specialInstructions
+    });
+
     try {
       cart.addToCart({
         id: item.id,
@@ -59,13 +73,32 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
         special_instructions: specialInstructions,
       });
 
-      toast({
-        title: "Added to cart",
-        description: `${item.name} has been added to your cart.`,
-        duration: 2000,
-      });
+      // Wait a bit to ensure state is updated
+      setTimeout(() => {
+        const updatedItem = cart.cartItems.find(cartItem => 
+          cartItem.id === item.id && cartItem.customizations === customizations
+        );
+        
+        if (updatedItem) {
+          console.log('✅ Item successfully added, showing success toast');
+          toast({
+            title: "Added to cart",
+            description: `${item.name} has been added to your cart.`,
+            duration: 2000,
+          });
+        } else {
+          console.error('❌ Item was not found in cart after adding');
+          toast({
+            title: "Error",
+            description: "Failed to add item to cart. Please try again.",
+            variant: "destructive",
+            duration: 3000,
+          });
+        }
+      }, 100);
+
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('❌ Error adding to cart:', error);
       toast({
         title: "Error",
         description: "Failed to add item to cart. Please try again.",
@@ -76,23 +109,51 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   }, [cart, item, toast]);
 
   const handleQuickAdd = useCallback(() => {
-    // Always use handleAddToCart for consistency - it will handle existing items properly
+    console.log('⚡ Quick add clicked for item:', item.id);
     handleAddToCart();
   }, [handleAddToCart]);
 
   const handleDecrease = useCallback(() => {
+    console.log('➖ Decrease clicked for item:', { itemId: item.id, currentQuantity });
+    
     if (currentQuantity > 0) {
       try {
         const newQuantity = currentQuantity - 1;
         cart.updateQuantity(item.id, newQuantity);
         
-        toast({
-          title: "Quantity updated",
-          description: newQuantity === 0 ? `${item.name} removed from cart.` : `${item.name} quantity decreased.`,
-          duration: 1000,
-        });
+        setTimeout(() => {
+          const updatedItem = cart.cartItems.find(cartItem => 
+            cartItem.id === item.id && !cartItem.customizations
+          );
+          const actualQuantity = updatedItem?.quantity || 0;
+          
+          if (newQuantity === 0 && !updatedItem) {
+            console.log('✅ Item successfully removed from cart');
+            toast({
+              title: "Quantity updated",
+              description: `${item.name} removed from cart.`,
+              duration: 1000,
+            });
+          } else if (actualQuantity === newQuantity) {
+            console.log('✅ Quantity successfully decreased');
+            toast({
+              title: "Quantity updated",
+              description: `${item.name} quantity decreased.`,
+              duration: 1000,
+            });
+          } else {
+            console.error('❌ Quantity update failed:', { expected: newQuantity, actual: actualQuantity });
+            toast({
+              title: "Error",
+              description: "Failed to update quantity. Please try again.",
+              variant: "destructive",
+              duration: 3000,
+            });
+          }
+        }, 100);
+        
       } catch (error) {
-        console.error('Error updating quantity:', error);
+        console.error('❌ Error updating quantity:', error);
         toast({
           title: "Error",
           description: "Failed to update quantity. Please try again.",
