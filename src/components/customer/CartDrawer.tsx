@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2, RefreshCw } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartDrawerProps {
@@ -28,21 +28,29 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Direct state access with detailed logging
-  const cartItems = cart.cartItems;
-  const cartCount = cart.getCartCount();
-  const cartTotal = cart.getCartTotal();
-  const hasItems = cart.hasItems();
-
-  console.log('🛒 CartDrawer render:', {
-    restaurantId,
-    cartItemsLength: cartItems.length,
-    cartCount,
-    cartTotal,
-    hasItems,
-    isOpen,
-    isProcessing
-  });
+  // Memoized cart state to ensure consistency
+  const cartState = useMemo(() => {
+    const items = cart.cartItems || [];
+    const count = items.reduce((sum, item) => sum + item.quantity, 0);
+    const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const isEmpty = items.length === 0 || count === 0;
+    
+    console.log('🛒 CartDrawer memoized state:', {
+      restaurantId,
+      itemsLength: items.length,
+      totalCount: count,
+      totalAmount: total,
+      isEmpty,
+      items: items.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+    });
+    
+    return {
+      items,
+      count,
+      total,
+      isEmpty
+    };
+  }, [cart.cartItems, restaurantId]);
 
   const showReloadNotification = useCallback(() => {
     console.log('🔄 Showing reload notification');
@@ -70,59 +78,30 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   }, [toast]);
 
   const handleCheckout = useCallback(async () => {
-    console.log('💳 Checkout clicked:', {
-      hasItems,
-      cartCount,
-      cartItemsLength: cartItems.length,
-      cartTotal
+    console.log('💳 Checkout clicked - Current cart state:', {
+      isEmpty: cartState.isEmpty,
+      itemsLength: cartState.items.length,
+      totalCount: cartState.count,
+      totalAmount: cartState.total
     });
     
-    // Check if cart is empty
-    if (!hasItems || cartCount === 0 || cartItems.length === 0) {
-      console.log('🚫 Cart appears empty, attempting sync');
-      
-      // Try to sync cart first
-      const synced = cart.syncCart();
-      
-      if (!synced) {
-        showReloadNotification();
-        return;
-      }
-      
-      // Check again after sync with a short delay
-      setTimeout(() => {
-        const newCount = cart.getCartCount();
-        const newHasItems = cart.hasItems();
-        
-        console.log('🔍 After sync check:', {
-          synced,
-          newCount,
-          newHasItems
-        });
-        
-        if (!newHasItems || newCount === 0) {
-          console.log('❌ Cart is still empty after sync');
-          toast({
-            title: "Cart is empty",
-            description: "Please add some items to your cart before checkout.",
-            variant: "destructive",
-            duration: 3000,
-          });
-          return;
-        }
-        
-        console.log('✅ Cart has items after sync, proceeding to checkout');
-        setIsOpen(false);
-        navigate(`/checkout?restaurantId=${restaurantId}`);
-      }, 100);
-      
+    // Simple check - if cart is empty, show error
+    if (cartState.isEmpty) {
+      console.log('❌ Cart is empty, cannot proceed to checkout');
+      toast({
+        title: "Cart is empty",
+        description: "Please add some items to your cart before checkout.",
+        variant: "destructive",
+        duration: 3000,
+      });
       return;
     }
     
+    // If we have items, proceed to checkout
     console.log('✅ Cart has items, proceeding to checkout');
     setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
-  }, [hasItems, cartCount, cartItems.length, cartTotal, cart, toast, navigate, restaurantId, showReloadNotification]);
+  }, [cartState, toast, navigate, restaurantId]);
 
   const handleUpdateQuantity = useCallback(async (itemId: string, quantity: number, customizations?: string) => {
     console.log('🔄 CartDrawer updating quantity:', { itemId, quantity, customizations });
@@ -216,15 +195,15 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button 
-          variant={hasItems ? "default" : "outline"} 
+          variant={!cartState.isEmpty ? "default" : "outline"} 
           size="sm" 
           className="relative"
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
           Cart
-          {cartCount > 0 && (
+          {cartState.count > 0 && (
             <Badge variant="secondary" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-              {cartCount}
+              {cartState.count}
             </Badge>
           )}
         </Button>
@@ -234,11 +213,11 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
         <SheetHeader>
           <SheetTitle>Your Order</SheetTitle>
           <SheetDescription>
-            {!hasItems ? 'Your cart is empty' : 'Review your items before checkout'}
+            {cartState.isEmpty ? 'Your cart is empty' : 'Review your items before checkout'}
           </SheetDescription>
         </SheetHeader>
 
-        {!hasItems ? (
+        {cartState.isEmpty ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -250,7 +229,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
           <>
             <ScrollArea className="flex-1 -mx-6 px-6">
               <div className="space-y-4 mt-6">
-                {cartItems.map((item, index) => (
+                {cartState.items.map((item, index) => (
                   <div key={`${item.id}-${item.customizations}-${index}`} className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -303,7 +282,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                         </Button>
                       </div>
                     </div>
-                    {index < cartItems.length - 1 && <Separator />}
+                    {index < cartState.items.length - 1 && <Separator />}
                   </div>
                 ))}
               </div>
@@ -312,16 +291,16 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
             <div className="space-y-4 pt-4 border-t mt-auto">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Total:</span>
-                <span className="font-bold text-lg">KSh {cartTotal.toFixed(2)}</span>
+                <span className="font-bold text-lg">KSh {cartState.total.toFixed(2)}</span>
               </div>
               
               <Button 
                 onClick={handleCheckout}
                 className="w-full"
                 size="lg"
-                disabled={!hasItems || cartCount === 0 || isProcessing}
+                disabled={cartState.isEmpty || isProcessing}
               >
-                {isProcessing ? 'Processing...' : `Proceed to Checkout (${cartCount} items)`}
+                {isProcessing ? 'Processing...' : `Proceed to Checkout (${cartState.count} items)`}
               </Button>
             </div>
           </>
