@@ -43,7 +43,7 @@ export const EditMenuItemDialog = ({ item, open, onOpenChange, onUpdateItem }: E
   const [imageUrl, setImageUrl] = useState(item.image_url || "");
   const [isAvailable, setIsAvailable] = useState(item.is_available);
   const [isChefSpecial, setIsChefSpecial] = useState(item.is_chef_special || false);
-  const [popularityBadge, setPopularityBadge] = useState(item.popularity_badge || "");
+  const [popularityBadge, setPopularityBadge] = useState(item.popularity_badge || "none");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -61,7 +61,7 @@ export const EditMenuItemDialog = ({ item, open, onOpenChange, onUpdateItem }: E
         image_url: imageUrl || null,
         is_available: isAvailable,
         is_chef_special: isChefSpecial,
-        popularity_badge: popularityBadge || null,
+        popularity_badge: popularityBadge === "none" ? null : popularityBadge,
       });
       
       if (result) {
@@ -162,7 +162,7 @@ export const EditMenuItemDialog = ({ item, open, onOpenChange, onUpdateItem }: E
                 <SelectValue placeholder="Select badge (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No badge</SelectItem>
+                <SelectItem value="none">No badge</SelectItem>
                 <SelectItem value="most-popular">Most Popular ⭐</SelectItem>
                 <SelectItem value="chef-pick">Chef's Pick 🔥</SelectItem>
                 <SelectItem value="bestseller">Bestseller 🏆</SelectItem>
