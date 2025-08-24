@@ -25,7 +25,7 @@ const PLANS = [
     id: 'free',
     name: 'Free Plan',
     price: 0,
-    currency: 'USD',
+    currency: 'KES',
     description: 'Perfect for getting started',
     features: [
       'Up to 15 menu items',
@@ -47,8 +47,8 @@ const PLANS = [
   {
     id: 'standard',
     name: 'Standard Digital Menu Solution',
-    price: 30,
-    currency: 'USD',
+    price: 5000,
+    currency: 'KES',
     description: 'Perfect for single restaurant locations',
     features: [
       'Unlimited menu items',
@@ -67,8 +67,8 @@ const PLANS = [
   {
     id: 'multi_location',
     name: 'Multi-location + Staff Management',
-    price: 80,
-    currency: 'USD',
+    price: 8000,
+    currency: 'KES',
     description: 'For restaurant chains and growing businesses',
     features: [
       'Everything in Standard package',
