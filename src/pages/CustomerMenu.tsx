@@ -180,60 +180,6 @@ const CustomerMenu = () => {
         onScrollToMenu={scrollToMenu}
       />
 
-      {/* Flow Indicator */}
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        <Card 
-          className="border-l-4 bg-card/50 backdrop-blur-sm"
-          style={{ 
-            borderLeftColor: customerFlow === 'qr' 
-              ? restaurantInfo?.primary_color || 'hsl(var(--primary))' 
-              : restaurantInfo?.secondary_color || 'hsl(var(--secondary))'
-          }}
-        >
-          <CardContent className="py-4">
-            <div className="flex items-center space-x-3">
-              {customerFlow === 'qr' ? (
-                <>
-                  <MapPin 
-                    className="h-5 w-5" 
-                    style={{ color: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
-                  />
-                
-                  <Badge 
-                    variant="default" 
-                    className="ml-auto"
-                    style={{ 
-                      backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))',
-                      color: 'white'
-                    }}
-                  >
-                    Now
-                  </Badge>
-                </>
-              ) : (
-                <>
-                  <Clock 
-                    className="h-5 w-5" 
-                    style={{ color: restaurantInfo?.secondary_color || 'hsl(var(--secondary))' }}
-                  />
-                  
-                  <Badge 
-                    variant="secondary" 
-                    className="ml-auto"
-                    style={{ 
-                      backgroundColor: restaurantInfo?.secondary_color || 'hsl(var(--secondary))',
-                      color: 'white'
-                    }}
-                  >
-                    Later
-                  </Badge>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Search Bar */}
       <div className="max-w-6xl mx-auto px-4 mb-6">
         <div className="relative max-w-md mx-auto">
@@ -242,7 +188,7 @@ const CustomerMenu = () => {
             placeholder="Search delicious meals..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 rounded-full border-secondary/20 bg-background/80 backdrop-blur-sm"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
           />
         </div>
       </div>
@@ -342,6 +288,65 @@ const CustomerMenu = () => {
           </>
         )}
       </main>
+      {/* Flow Indicator */}
+      <div className="max-w-6xl mx-auto px-4 py-4">
+        <Card 
+          className="border-l-4 bg-card/50 backdrop-blur-sm"
+          style={{ 
+            borderLeftColor: customerFlow === 'qr' 
+              ? restaurantInfo?.primary_color || 'hsl(var(--primary))' 
+              : restaurantInfo?.secondary_color || 'hsl(var(--secondary))'
+          }}
+        >
+          <CardContent className="py-4">
+            <div className="flex items-center space-x-3">
+              {customerFlow === 'qr' ? (
+                <>
+                  <MapPin 
+                    className="h-5 w-5" 
+                    style={{ color: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Dining In</p>
+                    <p className="text-xs text-muted-foreground">Your order will be prepared for immediate service</p>
+                  </div>
+                  <Badge 
+                    variant="default" 
+                    className="ml-auto"
+                    style={{ 
+                      backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))',
+                      color: 'white'
+                    }}
+                  >
+                    Now
+                  </Badge>
+                </>
+              ) : (
+                <>
+                  <Clock 
+                    className="h-5 w-5" 
+                    style={{ color: restaurantInfo?.secondary_color || 'hsl(var(--secondary))' }}
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Pre-ordering</p>
+                    <p className="text-xs text-muted-foreground">Schedule your meal for pickup or delivery</p>
+                  </div> 
+                  <Badge 
+                    variant="secondary" 
+                    className="ml-auto"
+                    style={{ 
+                      backgroundColor: restaurantInfo?.secondary_color || 'hsl(var(--secondary))',
+                      color: 'white'
+                    }}
+                  >
+                    Later
+                  </Badge>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

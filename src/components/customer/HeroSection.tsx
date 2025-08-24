@@ -43,7 +43,6 @@ export const HeroSection = ({ restaurantName, coverImageUrl, onScrollToMenu }: H
             </div>
           </div>
           
-          
         </div>
       </div>
 
