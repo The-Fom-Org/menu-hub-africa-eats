@@ -36,7 +36,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
   const [imageUrl, setImageUrl] = useState("");
   const [isAvailable, setIsAvailable] = useState(true);
   const [isChefSpecial, setIsChefSpecial] = useState(false);
-  const [popularityBadge, setPopularityBadge] = useState("");
+  const [popularityBadge, setPopularityBadge] = useState("none");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { canAddMenuItem, plan, maxMenuItems, currentMenuItemCount } = useSubscriptionLimits();
@@ -64,7 +64,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
         image_url: imageUrl || null,
         is_available: isAvailable,
         is_chef_special: isChefSpecial,
-        popularity_badge: popularityBadge || null,
+        popularity_badge: popularityBadge === "none" ? null : popularityBadge,
       });
       
       if (result) {
@@ -79,7 +79,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
         setImageUrl("");
         setIsAvailable(true);
         setIsChefSpecial(false);
-        setPopularityBadge("");
+        setPopularityBadge("none");
         setOpen(false);
       } else {
         throw new Error("Failed to add item");
@@ -194,7 +194,7 @@ export const AddMenuItemDialog = ({ categoryId, categoryName, onAddItem, trigger
                   <SelectValue placeholder="Select badge (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No badge</SelectItem>
+                  <SelectItem value="none">No badge</SelectItem>
                   <SelectItem value="most-popular">Most Popular ⭐</SelectItem>
                   <SelectItem value="chef-pick">Chef's Pick 🔥</SelectItem>
                   <SelectItem value="bestseller">Bestseller 🏆</SelectItem>
