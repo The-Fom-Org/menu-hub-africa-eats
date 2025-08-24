@@ -44,6 +44,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   const cart = useCart(restaurantId);
   const { toast } = useToast();
   const [showCustomization, setShowCustomization] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Find cart item without customizations for the quick add/remove buttons
   const cartItem = cart.cartItems.find(cartItem => cartItem.id === item.id && !cartItem.customizations);
@@ -53,19 +54,27 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
     itemId: item.id,
     itemName: item.name,
     currentQuantity,
-    cartItem: cartItem ? 'found' : 'not found'
+    cartItem: cartItem ? 'found' : 'not found',
+    isProcessing
   });
 
   const handleAddToCart = useCallback(async (customizations?: string, specialInstructions?: string) => {
-    console.log('➕ MenuItemCard: Adding to cart:', {
+    console.log('➕ MenuItemCard: Starting add to cart process:', {
       itemId: item.id,
       itemName: item.name,
       customizations,
       specialInstructions
     });
 
+    if (isProcessing) {
+      console.log('⏳ Already processing, skipping...');
+      return;
+    }
+
+    setIsProcessing(true);
+
     try {
-      cart.addToCart({
+      const success = await cart.addToCart({
         id: item.id,
         name: item.name,
         price: item.price,
@@ -73,85 +82,75 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
         special_instructions: specialInstructions,
       });
 
-      // Wait a bit to ensure state is updated
-      setTimeout(() => {
-        const updatedItem = cart.cartItems.find(cartItem => 
-          cartItem.id === item.id && cartItem.customizations === customizations
-        );
-        
-        if (updatedItem) {
-          console.log('✅ Item successfully added, showing success toast');
-          toast({
-            title: "Added to cart",
-            description: `${item.name} has been added to your cart.`,
-            duration: 2000,
-          });
-        } else {
-          console.error('❌ Item was not found in cart after adding');
-          toast({
-            title: "Error",
-            description: "Failed to add item to cart. Please try again.",
-            variant: "destructive",
-            duration: 3000,
-          });
-        }
-      }, 100);
-
+      if (success) {
+        console.log('✅ Item successfully added to cart');
+        toast({
+          title: "Added to cart",
+          description: `${item.name} has been added to your cart.`,
+          duration: 2000,
+        });
+      } else {
+        console.error('❌ Failed to add item to cart');
+        toast({
+          title: "Error",
+          description: "Failed to add item to cart. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
     } catch (error) {
-      console.error('❌ Error adding to cart:', error);
+      console.error('❌ Error in add to cart process:', error);
       toast({
         title: "Error",
-        description: "Failed to add item to cart. Please try again.",
+        description: "Problem adding the item to the cart. Please try again.",
         variant: "destructive",
         duration: 3000,
       });
+    } finally {
+      setIsProcessing(false);
     }
-  }, [cart, item, toast]);
+  }, [cart, item, toast, isProcessing]);
 
-  const handleQuickAdd = useCallback(() => {
+  const handleQuickAdd = useCallback(async () => {
     console.log('⚡ Quick add clicked for item:', item.id);
-    handleAddToCart();
+    await handleAddToCart();
   }, [handleAddToCart]);
 
-  const handleDecrease = useCallback(() => {
+  const handleDecrease = useCallback(async () => {
     console.log('➖ Decrease clicked for item:', { itemId: item.id, currentQuantity });
     
-    if (currentQuantity > 0) {
+    if (currentQuantity > 0 && !isProcessing) {
+      setIsProcessing(true);
+      
       try {
         const newQuantity = currentQuantity - 1;
-        cart.updateQuantity(item.id, newQuantity);
+        const success = await cart.updateQuantity(item.id, newQuantity);
         
-        setTimeout(() => {
-          const updatedItem = cart.cartItems.find(cartItem => 
-            cartItem.id === item.id && !cartItem.customizations
-          );
-          const actualQuantity = updatedItem?.quantity || 0;
-          
-          if (newQuantity === 0 && !updatedItem) {
+        if (success) {
+          if (newQuantity === 0) {
             console.log('✅ Item successfully removed from cart');
             toast({
               title: "Quantity updated",
               description: `${item.name} removed from cart.`,
               duration: 1000,
             });
-          } else if (actualQuantity === newQuantity) {
+          } else {
             console.log('✅ Quantity successfully decreased');
             toast({
               title: "Quantity updated",
               description: `${item.name} quantity decreased.`,
               duration: 1000,
             });
-          } else {
-            console.error('❌ Quantity update failed:', { expected: newQuantity, actual: actualQuantity });
-            toast({
-              title: "Error",
-              description: "Failed to update quantity. Please try again.",
-              variant: "destructive",
-              duration: 3000,
-            });
           }
-        }, 100);
-        
+        } else {
+          console.error('❌ Failed to update quantity');
+          toast({
+            title: "Error",
+            description: "Failed to update quantity. Please try again.",
+            variant: "destructive",
+            duration: 3000,
+          });
+        }
       } catch (error) {
         console.error('❌ Error updating quantity:', error);
         toast({
@@ -160,9 +159,11 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
           variant: "destructive",
           duration: 3000,
         });
+      } finally {
+        setIsProcessing(false);
       }
     }
-  }, [currentQuantity, cart, item, toast]);
+  }, [currentQuantity, cart, item, toast, isProcessing]);
 
   // Use imported image with fallback
   const getImageSrc = () => {
@@ -275,6 +276,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
               size="sm"
               onClick={() => setShowCustomization(true)}
               className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs sm:text-sm"
+              disabled={isProcessing}
             >
               Customize
             </Button>
@@ -285,9 +287,10 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                 onClick={handleQuickAdd}
                 size="sm"
                 className="px-4 sm:px-6 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm"
+                disabled={isProcessing}
               >
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                Add
+                {isProcessing ? 'Adding...' : 'Add'}
               </Button>
             ) : (
               <div className="flex items-center gap-1 sm:gap-2 bg-muted rounded-full p-1">
@@ -296,6 +299,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                   size="sm"
                   onClick={handleDecrease}
                   className="h-6 w-6 sm:h-8 sm:w-8 p-0 rounded-full hover:bg-background"
+                  disabled={isProcessing}
                 >
                   <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
@@ -307,6 +311,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                   size="sm"
                   onClick={handleQuickAdd}
                   className="h-6 w-6 sm:h-8 sm:w-8 p-0 rounded-full hover:bg-background"
+                  disabled={isProcessing}
                 >
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>

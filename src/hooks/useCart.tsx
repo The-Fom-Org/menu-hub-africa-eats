@@ -64,119 +64,143 @@ export const useCart = (restaurantId: string) => {
     isInitialized.current = true;
   }, [restaurantId, storageKey]);
 
-  // Save to localStorage function
-  const saveToLocalStorage = useCallback((items: CartItem[]) => {
+  // Save to localStorage with better error handling
+  const saveToLocalStorage = useCallback((items: CartItem[]): boolean => {
     try {
       console.log('💾 Saving cart to localStorage:', items);
-      localStorage.setItem(storageKey, JSON.stringify(items));
-      return true;
+      const serialized = JSON.stringify(items);
+      localStorage.setItem(storageKey, serialized);
+      
+      // Verify the save worked
+      const verification = localStorage.getItem(storageKey);
+      if (verification === serialized) {
+        console.log('✅ Cart successfully saved and verified');
+        return true;
+      } else {
+        console.error('❌ Cart save verification failed');
+        return false;
+      }
     } catch (error) {
       console.error('❌ Error saving cart to localStorage:', error);
       return false;
     }
   }, [storageKey]);
 
-  // Validate cart operation
-  const validateOperation = useCallback((
-    expectedItems: CartItem[],
-    actualItems: CartItem[],
-    operation: string
-  ): boolean => {
-    const isValid = JSON.stringify(expectedItems) === JSON.stringify(actualItems);
-    console.log(`🔍 Validating ${operation}:`, {
-      expected: expectedItems,
-      actual: actualItems,
-      isValid
-    });
-    return isValid;
+  // Create a unique key for cart items
+  const getItemKey = useCallback((id: string, customizations?: string) => {
+    return `${id}${customizations ? `_${customizations}` : ''}`;
   }, []);
 
   const addToCart = useCallback((item: Omit<CartItem, 'quantity'>) => {
-    console.log('➕ Adding to cart:', item);
-    setIsUpdating(true);
+    console.log('➕ Starting addToCart:', item);
     
-    setCartItems(prevItems => {
-      const existingItemIndex = prevItems.findIndex(cartItem => 
-        cartItem.id === item.id && 
-        cartItem.customizations === item.customizations
-      );
+    return new Promise<boolean>((resolve) => {
+      setIsUpdating(true);
       
-      let newItems: CartItem[];
-      
-      if (existingItemIndex !== -1) {
-        // Update existing item
-        newItems = prevItems.map((cartItem, index) =>
-          index === existingItemIndex
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
+      setCartItems(prevItems => {
+        console.log('📋 Previous cart items:', prevItems);
+        
+        const itemKey = getItemKey(item.id, item.customizations);
+        const existingItemIndex = prevItems.findIndex(cartItem => 
+          getItemKey(cartItem.id, cartItem.customizations) === itemKey
         );
-        console.log('📈 Updated existing item quantity');
-      } else {
-        // Add new item
-        newItems = [...prevItems, { ...item, quantity: 1 }];
-        console.log('🆕 Added new item to cart');
-      }
-      
-      // Save to localStorage
-      const saved = saveToLocalStorage(newItems);
-      if (!saved) {
-        console.error('❌ Failed to save cart to localStorage');
-      }
-      
-      console.log('✅ Cart updated successfully:', newItems);
-      setIsUpdating(false);
-      return newItems;
+        
+        let newItems: CartItem[];
+        
+        if (existingItemIndex !== -1) {
+          // Update existing item
+          newItems = prevItems.map((cartItem, index) =>
+            index === existingItemIndex
+              ? { ...cartItem, quantity: cartItem.quantity + 1 }
+              : cartItem
+          );
+          console.log('📈 Updated existing item quantity:', newItems[existingItemIndex]);
+        } else {
+          // Add new item
+          const newItem = { ...item, quantity: 1 };
+          newItems = [...prevItems, newItem];
+          console.log('🆕 Added new item to cart:', newItem);
+        }
+        
+        console.log('🔄 New cart state:', newItems);
+        
+        // Save to localStorage
+        const saved = saveToLocalStorage(newItems);
+        
+        // Use setTimeout to ensure state update completes
+        setTimeout(() => {
+          setIsUpdating(false);
+          if (saved) {
+            console.log('✅ Cart operation completed successfully');
+            resolve(true);
+          } else {
+            console.error('❌ Failed to save to localStorage');
+            resolve(false);
+          }
+        }, 50);
+        
+        return newItems;
+      });
     });
-  }, [saveToLocalStorage]);
+  }, [saveToLocalStorage, getItemKey]);
 
   const removeFromCart = useCallback((itemId: string, customizations?: string) => {
     console.log('🗑️ Removing from cart:', { itemId, customizations });
-    setIsUpdating(true);
     
-    setCartItems(prevItems => {
-      const newItems = prevItems.filter(item => 
-        !(item.id === itemId && item.customizations === customizations)
-      );
+    return new Promise<boolean>((resolve) => {
+      setIsUpdating(true);
       
-      // Save to localStorage
-      const saved = saveToLocalStorage(newItems);
-      if (!saved) {
-        console.error('❌ Failed to save cart to localStorage');
-      }
-      
-      console.log('✅ Item removed successfully:', newItems);
-      setIsUpdating(false);
-      return newItems;
+      setCartItems(prevItems => {
+        const itemKey = getItemKey(itemId, customizations);
+        const newItems = prevItems.filter(item => 
+          getItemKey(item.id, item.customizations) !== itemKey
+        );
+        
+        console.log('🗑️ Items after removal:', newItems);
+        
+        const saved = saveToLocalStorage(newItems);
+        
+        setTimeout(() => {
+          setIsUpdating(false);
+          resolve(saved);
+        }, 50);
+        
+        return newItems;
+      });
     });
-  }, [saveToLocalStorage]);
+  }, [saveToLocalStorage, getItemKey]);
 
   const updateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
     console.log('🔄 Updating quantity:', { itemId, quantity, customizations });
-    setIsUpdating(true);
     
     if (quantity <= 0) {
-      removeFromCart(itemId, customizations);
-      return;
+      return removeFromCart(itemId, customizations);
     }
     
-    setCartItems(prevItems => {
-      const newItems = prevItems.map(item =>
-        item.id === itemId && item.customizations === customizations
-          ? { ...item, quantity }
-          : item
-      );
+    return new Promise<boolean>((resolve) => {
+      setIsUpdating(true);
       
-      // Save to localStorage
-      const saved = saveToLocalStorage(newItems);
-      if (!saved) {
-        console.error('❌ Failed to save cart to localStorage');
-      }
-      
-      console.log('✅ Quantity updated successfully:', newItems);
-      setIsUpdating(false);
-      return newItems;
+      setCartItems(prevItems => {
+        const itemKey = getItemKey(itemId, customizations);
+        const newItems = prevItems.map(item =>
+          getItemKey(item.id, item.customizations) === itemKey
+            ? { ...item, quantity }
+            : item
+        );
+        
+        console.log('🔄 Items after quantity update:', newItems);
+        
+        const saved = saveToLocalStorage(newItems);
+        
+        setTimeout(() => {
+          setIsUpdating(false);
+          resolve(saved);
+        }, 50);
+        
+        return newItems;
+      });
     });
-  }, [removeFromCart, saveToLocalStorage]);
+  }, [removeFromCart, saveToLocalStorage, getItemKey]);
 
   const clearCart = useCallback(() => {
     console.log('🧹 Clearing cart');
@@ -203,23 +227,19 @@ export const useCart = (restaurantId: string) => {
     }
   }, [storageKey]);
 
-  // Computed values with logging
+  // Computed values
   const getCartTotal = useCallback(() => {
     const total = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    console.log('💰 Cart total calculated:', { total, itemCount: cartItems.length });
     return total;
   }, [cartItems]);
 
   const getCartCount = useCallback(() => {
     const count = cartItems.reduce((count, item) => count + item.quantity, 0);
-    console.log('🔢 Cart count calculated:', { count, itemsLength: cartItems.length });
     return count;
   }, [cartItems]);
 
   const hasItems = useCallback(() => {
-    const has = cartItems.length > 0;
-    console.log('❓ Cart has items:', { has, length: cartItems.length });
-    return has;
+    return cartItems.length > 0;
   }, [cartItems]);
 
   const getOrderDetails = useCallback((): OrderDetails => ({

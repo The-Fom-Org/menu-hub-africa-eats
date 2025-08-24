@@ -1,3 +1,4 @@
+
 import {
   Sheet,
   SheetContent,
@@ -13,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Plus, Minus, Trash2, RefreshCw } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartDrawerProps {
@@ -25,12 +26,13 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Direct state access with detailed logging
   const cartItems = cart.cartItems;
-  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const hasItems = cartItems.length > 0;
+  const cartCount = cart.getCartCount();
+  const cartTotal = cart.getCartTotal();
+  const hasItems = cart.hasItems();
 
   console.log('🛒 CartDrawer render:', {
     restaurantId,
@@ -38,7 +40,8 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     cartCount,
     cartTotal,
     hasItems,
-    isOpen
+    isOpen,
+    isProcessing
   });
 
   const showReloadNotification = useCallback(() => {
@@ -66,7 +69,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     });
   }, [toast]);
 
-  const handleCheckout = useCallback(() => {
+  const handleCheckout = useCallback(async () => {
     console.log('💳 Checkout clicked:', {
       hasItems,
       cartCount,
@@ -74,25 +77,30 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
       cartTotal
     });
     
-    // Double-check cart state
+    // Check if cart is empty
     if (!hasItems || cartCount === 0 || cartItems.length === 0) {
       console.log('🚫 Cart appears empty, attempting sync');
       
       // Try to sync cart first
       const synced = cart.syncCart();
       
-      // Check again after sync
+      if (!synced) {
+        showReloadNotification();
+        return;
+      }
+      
+      // Check again after sync with a short delay
       setTimeout(() => {
-        const newItems = cart.cartItems;
-        const newCount = newItems.reduce((count, item) => count + item.quantity, 0);
+        const newCount = cart.getCartCount();
+        const newHasItems = cart.hasItems();
         
         console.log('🔍 After sync check:', {
           synced,
-          newItemsLength: newItems.length,
-          newCount
+          newCount,
+          newHasItems
         });
         
-        if (!synced || newItems.length === 0 || newCount === 0) {
+        if (!newHasItems || newCount === 0) {
           console.log('❌ Cart is still empty after sync');
           toast({
             title: "Cart is empty",
@@ -106,7 +114,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
         console.log('✅ Cart has items after sync, proceeding to checkout');
         setIsOpen(false);
         navigate(`/checkout?restaurantId=${restaurantId}`);
-      }, 200);
+      }, 100);
       
       return;
     }
@@ -114,89 +122,95 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     console.log('✅ Cart has items, proceeding to checkout');
     setIsOpen(false);
     navigate(`/checkout?restaurantId=${restaurantId}`);
-  }, [hasItems, cartCount, cartItems.length, cartTotal, cart, toast, navigate, restaurantId]);
+  }, [hasItems, cartCount, cartItems.length, cartTotal, cart, toast, navigate, restaurantId, showReloadNotification]);
 
-  const handleUpdateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
+  const handleUpdateQuantity = useCallback(async (itemId: string, quantity: number, customizations?: string) => {
     console.log('🔄 CartDrawer updating quantity:', { itemId, quantity, customizations });
     
-    try {
-      cart.updateQuantity(itemId, quantity, customizations);
-      
-      // Verify update after a delay
-      setTimeout(() => {
-        const updatedItem = cart.cartItems.find(item => 
-          item.id === itemId && item.customizations === customizations
-        );
-        
-        console.log('🔍 Quantity update verification:', {
-          expected: quantity,
-          found: updatedItem,
-          actual: updatedItem?.quantity
-        });
-        
-        if (quantity > 0 && (!updatedItem || updatedItem.quantity !== quantity)) {
-          console.error('❌ Quantity update verification failed');
-          showReloadNotification();
-          return;
-        }
-        
-        if (quantity === 0 && updatedItem) {
-          console.error('❌ Item should be removed but still exists');
-          showReloadNotification();
-          return;
-        }
-        
-        console.log('✅ Quantity update verified successfully');
-        toast({
-          title: "Quantity updated",
-          description: "Item quantity has been updated in your cart.",
-          duration: 2000,
-        });
-      }, 150);
-      
-    } catch (error) {
-      console.error('❌ Error updating quantity in CartDrawer:', error);
-      showReloadNotification();
+    if (isProcessing) {
+      console.log('⏳ Already processing, skipping...');
+      return;
     }
-  }, [cart, toast, showReloadNotification]);
-
-  const handleRemoveItem = useCallback((itemId: string, customizations?: string) => {
-    console.log('🗑️ CartDrawer removing item:', { itemId, customizations });
+    
+    setIsProcessing(true);
     
     try {
-      cart.removeFromCart(itemId, customizations);
+      const success = await cart.updateQuantity(itemId, quantity, customizations);
       
-      // Verify removal after a delay
-      setTimeout(() => {
-        const removedItem = cart.cartItems.find(item => 
-          item.id === itemId && item.customizations === customizations
-        );
-        
-        console.log('🔍 Item removal verification:', {
-          itemId,
-          customizations,
-          stillExists: !!removedItem
+      if (success) {
+        console.log('✅ Quantity update successful');
+        toast({
+          title: "Quantity updated",
+          description: quantity === 0 ? "Item removed from cart." : "Item quantity has been updated in your cart.",
+          duration: 2000,
         });
-        
-        if (removedItem) {
-          console.error('❌ Item removal verification failed - item still exists');
-          showReloadNotification();
-          return;
-        }
-        
-        console.log('✅ Item removal verified successfully');
+      } else {
+        console.error('❌ Quantity update failed');
+        toast({
+          title: "Error",
+          description: "Failed to update quantity. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        showReloadNotification();
+      }
+    } catch (error) {
+      console.error('❌ Error updating quantity in CartDrawer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quantity. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      showReloadNotification();
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [cart, toast, showReloadNotification, isProcessing]);
+
+  const handleRemoveItem = useCallback(async (itemId: string, customizations?: string) => {
+    console.log('🗑️ CartDrawer removing item:', { itemId, customizations });
+    
+    if (isProcessing) {
+      console.log('⏳ Already processing, skipping...');
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
+      const success = await cart.removeFromCart(itemId, customizations);
+      
+      if (success) {
+        console.log('✅ Item removal successful');
         toast({
           title: "Item removed",
           description: "Item has been removed from your cart.",
           duration: 2000,
         });
-      }, 150);
-      
+      } else {
+        console.error('❌ Item removal failed');
+        toast({
+          title: "Error",
+          description: "Failed to remove item. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        showReloadNotification();
+      }
     } catch (error) {
       console.error('❌ Error removing item in CartDrawer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
       showReloadNotification();
+    } finally {
+      setIsProcessing(false);
     }
-  }, [cart, toast, showReloadNotification]);
+  }, [cart, toast, showReloadNotification, isProcessing]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -262,6 +276,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           size="sm"
                           onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.customizations)}
                           className="h-7 w-7 p-0"
+                          disabled={isProcessing}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -273,6 +288,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           size="sm"
                           onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.customizations)}
                           className="h-7 w-7 p-0"
+                          disabled={isProcessing}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -281,6 +297,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                           size="sm"
                           onClick={() => handleRemoveItem(item.id, item.customizations)}
                           className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          disabled={isProcessing}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -302,9 +319,9 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                 onClick={handleCheckout}
                 className="w-full"
                 size="lg"
-                disabled={!hasItems || cartCount === 0}
+                disabled={!hasItems || cartCount === 0 || isProcessing}
               >
-                Proceed to Checkout ({cartCount} items)
+                {isProcessing ? 'Processing...' : `Proceed to Checkout (${cartCount} items)`}
               </Button>
             </div>
           </>
