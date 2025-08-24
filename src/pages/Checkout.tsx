@@ -11,10 +11,10 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard, Info } from 'lucide-react';
 import { createOrderWithItems } from '@/components/checkout/OrderCreationHandler';
 import { useToast } from '@/hooks/use-toast';
-import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector';
+import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
 import NotificationPermissionDialog from '@/components/notifications/NotificationPermissionDialog';
 
 interface CartItem {
@@ -25,35 +25,27 @@ interface CartItem {
   customizations?: { [key: string]: string | string[] };
 }
 
-interface RestaurantData {
-  id: string;
-  restaurant_name: string | null;
-  description: string | null;
-  logo_url: string | null;
-  cover_image_url: string | null;
-  primary_color: string | null;
-  secondary_color: string | null;
-  tagline: string | null;
-  phone_number: string | null;
-}
-
 const Checkout = () => {
   const [searchParams] = useSearchParams();
-  const restaurantId = searchParams.get('restaurant');
+  const restaurantId = searchParams.get('restaurantId');
   const navigate = useNavigate();
-  const { cartItems, clearCart, getCartTotal } = useCart(restaurantId || '');
+  const { cartItems, clearCart, getCartTotal, orderType, setOrderType } = useCart(restaurantId || '');
   const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
   const { isSupported, permission, requestPermission, subscribeToPush } = usePushNotifications();
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [orderType, setOrderType] = useState<'now' | 'later'>('now');
   const [scheduledTime, setScheduledTime] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [loading, setLoading] = useState(false);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+
+  // Calculate reservation fee (40% of total for pre-orders)
+  const totalAmount = getCartTotal();
+  const reservationFee = orderType === 'later' ? totalAmount * 0.4 : totalAmount;
+  const remainingAmount = orderType === 'later' ? totalAmount - reservationFee : 0;
 
   useEffect(() => {
     if (!restaurantId) {
@@ -83,10 +75,10 @@ const Checkout = () => {
         customer_name: customerName || null,
         customer_phone: customerPhone || null,
         order_type: orderType,
-        payment_method: paymentMethod,
-        payment_status: 'pending',
+        payment_method: orderType === 'now' ? 'cash' : paymentMethod,
+        payment_status: orderType === 'now' ? 'pending' : 'pending',
         order_status: 'pending',
-        total_amount: getCartTotal(),
+        total_amount: totalAmount,
         scheduled_time: orderType === 'later' ? new Date(scheduledTime).toISOString() : null,
       };
 
@@ -153,22 +145,24 @@ const Checkout = () => {
   };
 
   const validateForm = () => {
-    if (!paymentMethod) {
-      toast({
-        title: "Payment method required",
-        description: "Please select a payment method.",
-        variant: "destructive",
-      });
-      return false;
-    }
+    if (orderType === 'later') {
+      if (!paymentMethod) {
+        toast({
+          title: "Payment method required",
+          description: "Please select a payment method for pre-orders.",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    if (orderType === 'later' && !scheduledTime) {
-      toast({
-        title: "Pickup time required",
-        description: "Please select a pickup time for pre-orders.",
-        variant: "destructive",
-      });
-      return false;
+      if (!scheduledTime) {
+        toast({
+          title: "Pickup time required",
+          description: "Please select a pickup time for pre-orders.",
+          variant: "destructive",
+        });
+        return false;
+      }
     }
 
     return true;
@@ -197,53 +191,56 @@ const Checkout = () => {
     <>
       <div className="min-h-screen bg-background">
         <header className="bg-card border-b shadow-sm">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => navigate(`/menu/${restaurantId}`)}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Menu
-              </Button>
-              <h1 className="text-2xl font-bold text-foreground">Checkout</h1>
-              <Badge variant="outline" className="ml-auto">
+          <div className="max-w-4xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div className="flex items-center space-x-2 sm:space-x-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate(`/menu/${restaurantId}`)}
+                  className="text-xs sm:text-sm"
+                >
+                  <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  Back to Menu
+                </Button>
+                <h1 className="text-lg sm:text-2xl font-bold text-foreground">Checkout</h1>
+              </div>
+              <Badge variant="outline" className="ml-auto text-xs sm:text-sm">
                 {cartItems.length} item{cartItems.length !== 1 ? 's' : ''}
               </Badge>
             </div>
           </div>
         </header>
 
-        <main className="max-w-4xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <main className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Order Details */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <ShoppingCart className="h-5 w-5" />
+                <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span>Order Summary</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4">
                 {cartItems.map((item) => (
-                  <div key={`${item.id}-${JSON.stringify(item.customizations)}`} className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                  <div key={`${item.id}-${JSON.stringify(item.customizations)}`} className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm sm:text-base truncate">{item.name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         KSh {item.price.toFixed(2)} × {item.quantity}
                       </p>
                       {item.customizations && Object.keys(item.customizations).length > 0 && (
                         <div className="text-xs text-muted-foreground mt-1">
                           {Object.entries(item.customizations).map(([key, value]) => (
-                            <span key={key} className="block">
+                            <span key={key} className="block truncate">
                               {key}: {Array.isArray(value) ? value.join(', ') : String(value)}
                             </span>
                           ))}
                         </div>
                       )}
                     </div>
-                    <p className="font-medium">
+                    <p className="font-medium text-sm sm:text-base flex-shrink-0">
                       KSh {(item.price * item.quantity).toFixed(2)}
                     </p>
                   </div>
@@ -251,42 +248,86 @@ const Checkout = () => {
                 
                 <Separator />
                 
-                <div className="flex justify-between items-center text-lg font-semibold">
-                  <span>Total</span>
-                  <span>KSh {getCartTotal().toFixed(2)}</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm sm:text-base">
+                    <span>Total Order Value</span>
+                    <span>KSh {totalAmount.toFixed(2)}</span>
+                  </div>
+                  
+                  {orderType === 'later' && (
+                    <>
+                      <div className="flex justify-between items-center text-sm text-muted-foreground">
+                        <span>Reservation Fee (40%)</span>
+                        <span>KSh {reservationFee.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm text-muted-foreground">
+                        <span>Pay at Restaurant</span>
+                        <span>KSh {remainingAmount.toFixed(2)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center text-base sm:text-lg font-semibold text-primary">
+                        <span>Pay Now</span>
+                        <span>KSh {reservationFee.toFixed(2)}</span>
+                      </div>
+                      
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                        <div className="flex gap-2">
+                          <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-xs sm:text-sm text-blue-800">
+                            <p className="font-medium mb-1">Pre-order Reservation</p>
+                            <p>You'll pay 40% now to reserve your meal. The remaining 60% will be paid when you collect your order at the restaurant.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {orderType === 'now' && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+                      <div className="flex gap-2">
+                        <Info className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-xs sm:text-sm text-green-800">
+                          <p className="font-medium mb-1">Dine In Order</p>
+                          <p>You'll pay when your meal is ready. Please proceed to place your order and we'll prepare it for you.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Customer & Order Details */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Customer Information */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <User className="h-5 w-5" />
+                  <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span>Customer Information</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="customerName">Name (Optional)</Label>
+                    <Label htmlFor="customerName" className="text-xs sm:text-sm">Name (Optional)</Label>
                     <Input
                       id="customerName"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       placeholder="Enter your name"
+                      className="text-sm"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="customerPhone">Phone Number (Optional)</Label>
+                    <Label htmlFor="customerPhone" className="text-xs sm:text-sm">Phone Number (Optional)</Label>
                     <Input
                       id="customerPhone"
                       type="tel"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="Enter your phone number"
+                      className="text-sm"
                     />
                   </div>
                 </CardContent>
@@ -295,61 +336,65 @@ const Checkout = () => {
               {/* Order Type */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Clock className="h-5 w-5" />
+                  <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                    <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span>Order Type</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4">
                   <RadioGroup value={orderType} onValueChange={(value: 'now' | 'later') => setOrderType(value)}>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="now" id="now" />
-                      <Label htmlFor="now">Order Now (Dine In)</Label>
+                      <Label htmlFor="now" className="text-sm">Order Now (Dine In)</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="later" id="later" />
-                      <Label htmlFor="later">Pre-order (Schedule Pickup)</Label>
+                      <Label htmlFor="later" className="text-sm">Pre-order (Schedule Pickup)</Label>
                     </div>
                   </RadioGroup>
                   
                   {orderType === 'later' && (
                     <div className="space-y-2">
-                      <Label htmlFor="scheduledTime">Pickup Time</Label>
+                      <Label htmlFor="scheduledTime" className="text-xs sm:text-sm">Pickup Time</Label>
                       <Input
                         id="scheduledTime"
                         type="datetime-local"
                         value={scheduledTime}
                         onChange={(e) => setScheduledTime(e.target.value)}
                         min={new Date().toISOString().slice(0, 16)}
+                        className="text-sm"
                       />
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Payment Method */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <CreditCard className="h-5 w-5" />
-                    <span>Payment Method</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PaymentMethodSelector
-                    paymentMethod={paymentMethod}
-                    setPaymentMethod={setPaymentMethod}
-                    availableGateways={[]}
-                  />
-                </CardContent>
-              </Card>
+              {/* Payment Method - Only show for pre-orders */}
+              {orderType === 'later' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                      <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span>Payment Method</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PaymentMethodSelector
+                      paymentMethod={paymentMethod}
+                      setPaymentMethod={setPaymentMethod}
+                      availableGateways={[]}
+                      excludeCash={true}
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Place Order Button */}
               <Button
                 onClick={handleOrderSubmission}
                 disabled={loading}
                 size="lg"
-                className="w-full"
+                className="w-full text-sm sm:text-base"
               >
                 {loading ? (
                   <>
@@ -357,7 +402,9 @@ const Checkout = () => {
                     Placing Order...
                   </>
                 ) : (
-                  `Place Order - KSh ${getCartTotal().toFixed(2)}`
+                  orderType === 'now' 
+                    ? `Place Order - KSh ${totalAmount.toFixed(2)}`
+                    : `Reserve Table - KSh ${reservationFee.toFixed(2)}`
                 )}
               </Button>
             </div>

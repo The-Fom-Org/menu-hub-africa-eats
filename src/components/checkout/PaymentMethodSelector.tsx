@@ -1,209 +1,95 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import React from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreditCard, Smartphone, Building, DollarSign } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { CreditCard, Smartphone, Building, Banknote } from 'lucide-react';
 
-interface PaymentGatewayWithCredentials {
+interface PaymentGateway {
   type: string;
-  name: string;
-  requiresCredentials: boolean;
-  supportedMethods: string[];
-  credentials?: any;
+  enabled: boolean;
 }
 
 interface PaymentMethodSelectorProps {
   paymentMethod: string;
   setPaymentMethod: (method: string) => void;
-  availableGateways: PaymentGatewayWithCredentials[];
+  availableGateways: PaymentGateway[];
+  excludeCash?: boolean;
 }
 
-export const PaymentMethodSelector = ({ 
-  paymentMethod, 
-  setPaymentMethod, 
-  availableGateways 
-}: PaymentMethodSelectorProps) => {
-  const getPaymentIcon = (type: string) => {
-    switch (type) {
-      case 'mpesa_manual':
-        return <Smartphone className="h-4 w-4 text-green-600" />;
-      case 'pesapal':
-        return <CreditCard className="h-4 w-4" />;
-      case 'bank_transfer':
-        return <Building className="h-4 w-4" />;
-      case 'cash':
-        return <DollarSign className="h-4 w-4" />;
-      default:
-        return <CreditCard className="h-4 w-4" />;
+export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
+  paymentMethod,
+  setPaymentMethod,
+  availableGateways,
+  excludeCash = false
+}) => {
+  const paymentMethods = [
+    {
+      id: 'mpesa',
+      name: 'M-Pesa',
+      description: 'Pay with M-Pesa mobile money',
+      icon: <Smartphone className="h-5 w-5" />,
+      enabled: true
+    },
+    {
+      id: 'card',
+      name: 'Credit/Debit Card',
+      description: 'Pay with Visa, Mastercard, or other cards',
+      icon: <CreditCard className="h-5 w-5" />,
+      enabled: true
+    },
+    {
+      id: 'bank_transfer',
+      name: 'Bank Transfer',
+      description: 'Direct bank transfer',
+      icon: <Building className="h-5 w-5" />,
+      enabled: true
     }
-  };
+  ];
 
-  const getPaymentInstructions = (gateway: PaymentGatewayWithCredentials) => {
-    console.log('Getting payment instructions for gateway:', gateway);
-    
-    switch (gateway.type) {
-      case 'mpesa_manual':
-        const hasCredentials = gateway.credentials && (gateway.credentials.till_number || gateway.credentials.paybill_number);
-        
-        return (
-          <div className="mt-2 space-y-2 text-sm">
-            {gateway.credentials?.till_number && (
-              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="font-semibold text-green-800">M-Pesa Till Number</p>
-                <p className="text-lg font-mono text-green-900">{gateway.credentials.till_number}</p>
-                <p className="text-xs text-green-700 mt-1">
-                  📱 Go to M-Pesa → Lipa na M-Pesa → Buy Goods and Services → Enter Till Number
-                </p>
-              </div>
-            )}
-            
-            {gateway.credentials?.paybill_number && (
-              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="font-semibold text-green-800">M-Pesa Paybill</p>
-                <p className="text-lg font-mono text-green-900">{gateway.credentials.paybill_number}</p>
-                {gateway.credentials?.account_number && (
-                  <p className="text-sm text-green-800 mt-1">
-                    Account: <span className="font-mono">{gateway.credentials.account_number}</span>
-                  </p>
-                )}
-                <p className="text-xs text-green-700 mt-1">
-                  📱 Go to M-Pesa → Lipa na M-Pesa → Pay Bill → Enter Paybill Number
-                </p>
-              </div>
-            )}
-            
-            {!hasCredentials && (
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-blue-800 font-medium">💳 M-Pesa Payment Available</p>
-                <p className="text-blue-700 text-sm mt-1">
-                  The restaurant accepts M-Pesa payments. Payment details will be provided after you place your order.
-                </p>
-                <p className="text-xs text-blue-600 mt-2">
-                  📞 The restaurant will contact you with M-Pesa payment instructions.
-                </p>
-              </div>
-            )}
-            
-            <div className="p-2 bg-yellow-50 rounded border border-yellow-200">
-              <p className="text-yellow-800 text-xs">
-                💡 <strong>Important:</strong> After sending payment, please keep your M-Pesa confirmation message and inform the restaurant.
-              </p>
-            </div>
-          </div>
-        );
-        
-      case 'bank_transfer':
-        return (
-          <div className="mt-2 space-y-1 text-sm">
-            {gateway.credentials?.bank_name && (
-              <p><strong>Bank:</strong> {gateway.credentials.bank_name}</p>
-            )}
-            {gateway.credentials?.account_number && (
-              <p><strong>Account Number:</strong> <span className="font-mono">{gateway.credentials.account_number}</span></p>
-            )}
-            {gateway.credentials?.account_name && (
-              <p><strong>Account Name:</strong> {gateway.credentials.account_name}</p>
-            )}
-            <p className="text-muted-foreground">Transfer funds and share receipt with restaurant</p>
-          </div>
-        );
-        
-      case 'cash':
-        return (
-          <div className="mt-2">
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-800 font-medium">💵 Cash Payment</p>
-              <p className="text-gray-700 text-sm mt-1">
-                Pay with cash when you collect your order or dine in.
-              </p>
-              <p className="text-xs text-gray-600 mt-2">
-                Please have the exact amount ready for faster service.
-              </p>
-            </div>
-          </div>
-        );
-        
-      case 'pesapal':
-        return (
-          <div className="mt-2">
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-blue-800 font-medium">🔒 Secure Online Payment</p>
-              <p className="text-blue-700 text-sm mt-1">
-                Pay securely online using M-Pesa, Credit/Debit Card, or Bank transfer via Pesapal.
-              </p>
-              <p className="text-xs text-blue-600 mt-2">
-                You'll be redirected to Pesapal's secure payment page to complete your payment.
-              </p>
-            </div>
-          </div>
-        );
-        
-      default:
-        return null;
-    }
-  };
+  if (!excludeCash) {
+    paymentMethods.push({
+      id: 'cash',
+      name: 'Cash',
+      description: 'Pay with cash on delivery/pickup',
+      icon: <Banknote className="h-5 w-5" />,
+      enabled: true
+    });
+  }
 
-  if (availableGateways.length === 0) {
+  const enabledMethods = paymentMethods.filter(method => method.enabled);
+
+  if (enabledMethods.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Payment Method
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="text-yellow-800">Loading payment methods...</p>
-          </div>
+        <CardContent className="py-6 text-center">
+          <p className="text-muted-foreground">No payment methods available</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Payment Method
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <RadioGroup 
-          value={paymentMethod} 
-          onValueChange={(value) => {
-            console.log('Payment method changed to:', value);
-            setPaymentMethod(value);
-          }}
-          className="space-y-4"
-        >
-          {availableGateways.map((gateway) => (
-            <div key={gateway.type} className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem 
-                  value={gateway.type} 
-                  id={gateway.type}
-                  checked={paymentMethod === gateway.type}
-                />
-                <Label htmlFor={gateway.type} className="flex items-center gap-2 cursor-pointer">
-                  {getPaymentIcon(gateway.type)}
-                  {gateway.name}
-                </Label>
+    <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+      <div className="space-y-3">
+        {enabledMethods.map((method) => (
+          <div key={method.id} className="flex items-center space-x-3 border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+            <RadioGroupItem value={method.id} id={method.id} />
+            <div className="flex items-center space-x-3 flex-1">
+              <div className="text-primary">
+                {method.icon}
               </div>
-              
-              {paymentMethod === gateway.type && (
-                <Alert className="ml-6">
-                  <AlertDescription>
-                    {getPaymentInstructions(gateway)}
-                  </AlertDescription>
-                </Alert>
-              )}
+              <div className="flex-1">
+                <Label htmlFor={method.id} className="font-medium cursor-pointer">
+                  {method.name}
+                </Label>
+                <p className="text-sm text-muted-foreground">{method.description}</p>
+              </div>
             </div>
-          ))}
-        </RadioGroup>
-      </CardContent>
-    </Card>
+          </div>
+        ))}
+      </div>
+    </RadioGroup>
   );
 };
 
