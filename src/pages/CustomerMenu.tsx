@@ -149,7 +149,7 @@ const CustomerMenu = () => {
                   {restaurantInfo?.name}
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  {restaurantInfo?.tagline || (customerFlow === 'qr' ? 'Dine in' : 'Takeaway')}
+                  {restaurantInfo?.tagline}
                 </p>
               </div>
             </div>
