@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,16 +44,10 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   const cart = useCart(restaurantId);
   const { toast } = useToast();
   const [showCustomization, setShowCustomization] = useState(false);
-  const [localQuantity, setLocalQuantity] = useState(0);
 
   // Find cart item without customizations for the quick add/remove buttons
   const cartItem = cart.cartItems.find(cartItem => cartItem.id === item.id && !cartItem.customizations);
-
-  // Update local quantity when cart changes or on mount
-  useEffect(() => {
-    const currentQuantity = cartItem?.quantity || 0;
-    setLocalQuantity(currentQuantity);
-  }, [cartItem?.quantity, cart.updateTrigger]);
+  const currentQuantity = cartItem?.quantity || 0;
 
   const handleAddToCart = useCallback((customizations?: string, specialInstructions?: string) => {
     cart.addToCart({
@@ -64,11 +58,6 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       special_instructions: specialInstructions,
     });
 
-    // Update local state immediately for quick feedback
-    if (!customizations) {
-      setLocalQuantity(prev => prev + 1);
-    }
-
     toast({
       title: "Added to cart",
       description: `${item.name} has been added to your cart.`,
@@ -77,26 +66,22 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   }, [cart, item, toast]);
 
   const handleQuickAdd = useCallback(() => {
-    const newQuantity = localQuantity + 1;
-    
-    if (localQuantity === 0) {
+    if (currentQuantity === 0) {
       handleAddToCart();
     } else {
-      cart.updateQuantity(item.id, newQuantity);
-      setLocalQuantity(newQuantity);
+      cart.updateQuantity(item.id, currentQuantity + 1);
       toast({
         title: "Quantity updated",
         description: `${item.name} quantity increased.`,
         duration: 1000,
       });
     }
-  }, [localQuantity, handleAddToCart, cart, item, toast]);
+  }, [currentQuantity, handleAddToCart, cart, item, toast]);
 
   const handleDecrease = useCallback(() => {
-    if (localQuantity > 0) {
-      const newQuantity = localQuantity - 1;
+    if (currentQuantity > 0) {
+      const newQuantity = currentQuantity - 1;
       cart.updateQuantity(item.id, newQuantity);
-      setLocalQuantity(newQuantity);
       
       toast({
         title: "Quantity updated",
@@ -104,7 +89,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
         duration: 1000,
       });
     }
-  }, [localQuantity, cart, item, toast]);
+  }, [currentQuantity, cart, item, toast]);
 
   // Use imported image with fallback
   const getImageSrc = () => {
@@ -222,7 +207,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
             </Button>
             
             {/* Add/Quantity Controls */}
-            {localQuantity === 0 ? (
+            {currentQuantity === 0 ? (
               <Button
                 onClick={handleQuickAdd}
                 size="sm"
@@ -242,7 +227,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                   <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
                 <span className="text-xs sm:text-sm font-bold w-6 sm:w-8 text-center">
-                  {localQuantity}
+                  {currentQuantity}
                 </span>
                 <Button
                   variant="ghost"
