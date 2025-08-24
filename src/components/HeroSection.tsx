@@ -11,7 +11,7 @@ const HeroSection = () => {
         <img
           src={heroImage}
           alt="African restaurant with digital menus"
-          className="w-full h-full object-cover opacity-20"
+          className="w-full h-full object-cover opacity-50"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-background/70" />
       </div>
