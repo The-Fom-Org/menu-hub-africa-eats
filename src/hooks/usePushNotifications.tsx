@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// Replace with your actual VAPID public key after generation
-const VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY_HERE';
+// This should be replaced with your actual VAPID public key from the generator
+const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa40HcCWLWpRS3aayd6oZtql3BGFyXl4FvTZrYlBaU7YTJjFID5gcmqinVc5eg';
 
 export const usePushNotifications = () => {
   const [isSupported, setIsSupported] = useState(false);
@@ -77,14 +77,24 @@ export const usePushNotifications = () => {
   };
 
   const subscribeToPush = async (orderId: string) => {
-    if (!isSupported || permission !== 'granted') {
+    console.log('🔔 Starting push subscription for order:', orderId);
+    
+    if (!isSupported) {
+      console.log('❌ Push notifications not supported');
       return null;
+    }
+
+    if (permission !== 'granted') {
+      console.log('❌ Permission not granted, requesting...');
+      const granted = await requestPermission();
+      if (!granted) return null;
     }
 
     try {
       setLoading(true);
       
       const registration = await navigator.serviceWorker.ready;
+      console.log('✅ Service worker ready');
       
       // Convert VAPID public key to Uint8Array
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
@@ -94,6 +104,7 @@ export const usePushNotifications = () => {
         applicationServerKey,
       });
 
+      console.log('✅ Push subscription created:', pushSubscription);
       setSubscription(pushSubscription);
 
       // Save subscription to database
@@ -105,7 +116,7 @@ export const usePushNotifications = () => {
       });
 
       if (error) {
-        console.error('Error saving push subscription:', error);
+        console.error('❌ Error saving push subscription:', error);
         toast({
           title: "Subscription failed",
           description: "Failed to save notification subscription.",
@@ -114,9 +125,15 @@ export const usePushNotifications = () => {
         return null;
       }
 
+      console.log('✅ Push subscription saved successfully');
+      toast({
+        title: "Notifications enabled",
+        description: "You'll receive updates about this order.",
+      });
+
       return pushSubscription;
     } catch (error) {
-      console.error('Error subscribing to push notifications:', error);
+      console.error('❌ Error subscribing to push notifications:', error);
       toast({
         title: "Subscription failed",
         description: "Failed to subscribe to notifications.",

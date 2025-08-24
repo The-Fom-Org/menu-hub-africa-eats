@@ -1,120 +1,158 @@
 
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useCart } from '@/hooks/useCart';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useToast } from '@/hooks/use-toast';
+import NotificationPermissionDialog from '@/components/notifications/NotificationPermissionDialog';
 
-interface OrderData {
-  restaurant_id: string;
-  customer_name: string | null;
-  customer_phone: string | null;
-  order_type: string;
-  payment_method: string;
-  payment_status: string;
-  order_status: string;
-  total_amount: number;
-  scheduled_time: string | null;
+interface OrderCreationHandlerProps {
+  children: (params: {
+    createOrder: (orderData: any) => Promise<void>;
+    isCreatingOrder: boolean;
+  }) => React.ReactNode;
 }
 
-interface OrderItem {
-  menu_item_id: string;
-  quantity: number;
-  unit_price: number;
-  customizations: any;
-}
+const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [pendingOrderData, setPendingOrderData] = useState<any>(null);
+  const navigate = useNavigate();
+  const { clearCart, cartItems, totalAmount } = useCart();
+  const { subscribeToPush, requestPermission, isSupported } = usePushNotifications();
+  const { toast } = useToast();
 
-export const createOrderWithItems = async (
-  orderData: OrderData,
-  orderItems: Omit<OrderItem, 'order_id'>[]
-) => {
-  try {
-    console.log('=== ORDER CREATION START ===');
-    console.log('Order data:', JSON.stringify(orderData, null, 2));
-    console.log('Order items:', JSON.stringify(orderItems, null, 2));
-    
-    // Create order without authentication context
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert(orderData)
-      .select()
-      .single();
+  const createOrder = async (orderData: any) => {
+    console.log('📝 Creating order with data:', orderData);
+    setIsCreatingOrder(true);
 
-    if (orderError) {
-      console.error('=== ORDER CREATION ERROR ===');
-      console.error('Error code:', orderError.code);
-      console.error('Error message:', orderError.message);
-      console.error('Error details:', orderError.details);
-      console.error('Error hint:', orderError.hint);
-      console.error('Full error object:', JSON.stringify(orderError, null, 2));
-      
-      // Provide more specific error messages
-      if (orderError.code === '42501') {
-        throw new Error('Permission denied: Unable to create order. Please check your permissions.');
-      } else if (orderError.code === '23505') {
-        throw new Error('Duplicate order: This order already exists.');
-      } else if (orderError.code === '23503') {
-        throw new Error('Invalid data: Referenced restaurant or menu item does not exist.');
-      } else if (orderError.code === '23514') {
-        throw new Error('Invalid data: Check constraint violation.');
+    try {
+      // Create the order first
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          restaurant_id: orderData.restaurantId,
+          customer_name: orderData.customerName,
+          customer_phone: orderData.customerPhone,
+          table_number: orderData.tableNumber,
+          order_type: orderData.orderType,
+          payment_method: orderData.paymentMethod,
+          payment_status: 'pending',
+          order_status: 'pending',
+          total_amount: totalAmount,
+          scheduled_time: orderData.scheduledTime,
+          notes: orderData.notes,
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('❌ Order creation failed:', orderError);
+        throw orderError;
+      }
+
+      console.log('✅ Order created successfully:', order);
+
+      // Create order items
+      const orderItems = cartItems.map(item => ({
+        order_id: order.id,
+        menu_item_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        customizations: item.customizations || {},
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error('❌ Order items creation failed:', itemsError);
+        throw itemsError;
+      }
+
+      console.log('✅ Order items created successfully');
+
+      // Handle push notifications if supported
+      if (isSupported && Notification.permission === 'default') {
+        console.log('🔔 Showing notification permission dialog');
+        setPendingOrderData({ orderId: order.id, orderData });
+        setShowNotificationDialog(true);
+      } else if (isSupported && Notification.permission === 'granted') {
+        console.log('🔔 Permission already granted, subscribing to push notifications');
+        await subscribeToPush(order.id);
+        finalizeOrder(order.id);
       } else {
-        throw new Error(`Failed to create order: ${orderError.message}`);
+        console.log('🔔 Push notifications not supported or denied');
+        finalizeOrder(order.id);
       }
+    } catch (error) {
+      console.error('❌ Order creation failed:', error);
+      toast({
+        title: "Order failed",
+        description: "Failed to create order. Please try again.",
+        variant: "destructive",
+      });
+      setIsCreatingOrder(false);
     }
+  };
 
-    console.log('=== ORDER CREATED SUCCESSFULLY ===');
-    console.log('Order ID:', order.id);
-    console.log('Order details:', JSON.stringify(order, null, 2));
+  const finalizeOrder = (orderId: string) => {
+    console.log('🎉 Finalizing order:', orderId);
+    clearCart();
+    toast({
+      title: "Order created successfully!",
+      description: "Your order has been submitted and is being processed.",
+    });
+    navigate(`/order-success?orderId=${orderId}`);
+    setIsCreatingOrder(false);
+  };
 
-    // Create order items
-    const itemsWithOrderId = orderItems.map(item => ({
-      ...item,
-      order_id: order.id,
-    }));
+  const handleNotificationAllow = async (): Promise<boolean> => {
+    if (!pendingOrderData) return false;
 
-    console.log('=== CREATING ORDER ITEMS ===');
-    console.log('Items to insert:', JSON.stringify(itemsWithOrderId, null, 2));
-
-    const { data: createdItems, error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsWithOrderId)
-      .select();
-
-    if (itemsError) {
-      console.error('=== ORDER ITEMS CREATION ERROR ===');
-      console.error('Error code:', itemsError.code);
-      console.error('Error message:', itemsError.message);
-      console.error('Error details:', itemsError.details);
-      console.error('Error hint:', itemsError.hint);
-      console.error('Full error object:', JSON.stringify(itemsError, null, 2));
-      
-      // Try to cleanup the order if items failed
-      console.log('Attempting to cleanup order due to items failure...');
-      try {
-        await supabase.from('orders').delete().eq('id', order.id);
-        console.log('Order cleanup successful');
-      } catch (cleanupError) {
-        console.error('Order cleanup failed:', cleanupError);
+    try {
+      const granted = await requestPermission();
+      if (granted) {
+        await subscribeToPush(pendingOrderData.orderId);
       }
-      
-      // Provide more specific error messages for items
-      if (itemsError.code === '42501') {
-        throw new Error('Permission denied: Unable to create order items. Please check your permissions.');
-      } else if (itemsError.code === '23503') {
-        throw new Error('Invalid menu item: One or more menu items do not exist.');
-      } else {
-        throw new Error(`Failed to create order items: ${itemsError.message}`);
-      }
+      return granted;
+    } catch (error) {
+      console.error('❌ Failed to enable notifications:', error);
+      return false;
     }
+  };
 
-    console.log('=== ORDER ITEMS CREATED SUCCESSFULLY ===');
-    console.log('Created items:', JSON.stringify(createdItems, null, 2));
-    console.log('=== ORDER CREATION COMPLETE ===');
-    
-    return order;
-  } catch (error) {
-    console.error('=== ORDER CREATION PROCESS FAILED ===');
-    console.error('Error type:', typeof error);
-    console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
-    console.error('Error message:', error instanceof Error ? error.message : String(error));
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    console.error('Full error object:', error);
-    throw error;
-  }
+  const handleNotificationDeny = () => {
+    if (pendingOrderData) {
+      console.log('🔔 User denied notifications, proceeding without them');
+      finalizeOrder(pendingOrderData.orderId);
+      setPendingOrderData(null);
+    }
+  };
+
+  const handleNotificationDialogClose = () => {
+    if (pendingOrderData) {
+      console.log('🔔 Notification dialog closed, proceeding without notifications');
+      finalizeOrder(pendingOrderData.orderId);
+      setPendingOrderData(null);
+    }
+    setShowNotificationDialog(false);
+  };
+
+  return (
+    <>
+      {children({ createOrder, isCreatingOrder })}
+      
+      <NotificationPermissionDialog
+        open={showNotificationDialog}
+        onOpenChange={setShowNotificationDialog}
+        onAllow={handleNotificationAllow}
+        onDeny={handleNotificationDeny}
+      />
+    </>
+  );
 };
+
+export default OrderCreationHandler;

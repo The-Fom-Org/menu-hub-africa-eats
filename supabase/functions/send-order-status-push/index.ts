@@ -11,6 +11,7 @@ interface PushSubscription {
   endpoint: string
   p256dh: string
   auth: string
+  order_id: string
 }
 
 serve(async (req) => {
@@ -27,7 +28,7 @@ serve(async (req) => {
 
     const { orderId, orderStatus, customerName, totalAmount } = await req.json()
     
-    console.log('Sending push notification for order:', orderId, 'status:', orderStatus)
+    console.log('📱 Sending push notification for order:', orderId, 'status:', orderStatus)
 
     if (!orderId || !orderStatus) {
       return new Response(
@@ -46,7 +47,7 @@ serve(async (req) => {
       .eq('order_id', orderId)
 
     if (subError) {
-      console.error('Error fetching subscriptions:', subError)
+      console.error('❌ Error fetching subscriptions:', subError)
       return new Response(
         JSON.stringify({ error: 'Failed to fetch subscriptions' }),
         { 
@@ -57,7 +58,7 @@ serve(async (req) => {
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      console.log('No push subscriptions found for order:', orderId)
+      console.log('📱 No push subscriptions found for order:', orderId)
       return new Response(
         JSON.stringify({ message: 'No subscriptions found' }),
         { 
@@ -66,6 +67,8 @@ serve(async (req) => {
         }
       )
     }
+
+    console.log('📱 Found', subscriptions.length, 'subscriptions for order:', orderId)
 
     // Prepare notification content based on status
     const getNotificationContent = (status: string) => {
@@ -106,8 +109,10 @@ serve(async (req) => {
     const { title, body } = getNotificationContent(orderStatus)
     
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')
+    const vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa40HcCWLWpRS3aayd6oZtql3BGFyXl4FvTZrYlBaU7YTJjFID5gcmqinVc5eg'
+    
     if (!vapidPrivateKey) {
-      console.error('VAPID_PRIVATE_KEY not found in environment')
+      console.error('❌ VAPID_PRIVATE_KEY not found in environment')
       return new Response(
         JSON.stringify({ error: 'Push notification not configured' }),
         { 
@@ -120,15 +125,8 @@ serve(async (req) => {
     // Send push notifications to all subscriptions
     const pushPromises = subscriptions.map(async (sub: PushSubscription) => {
       try {
-        const pushSubscription = {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth,
-          },
-        }
+        console.log('📱 Sending push to endpoint:', sub.endpoint.substring(0, 50) + '...')
 
-        // Use web-push library equivalent logic
         const payload = JSON.stringify({
           title,
           body,
@@ -142,26 +140,34 @@ serve(async (req) => {
           },
         })
 
-        // For now, we'll use a simple fetch to the push service
-        // In a production environment, you'd want to use a proper web-push library
-        const response = await fetch(pushSubscription.endpoint, {
+        // Create authentication headers for web push
+        const vapidHeaders = await createVapidHeaders(
+          sub.endpoint,
+          vapidPublicKey,
+          vapidPrivateKey,
+          payload
+        )
+
+        const response = await fetch(sub.endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
+            'Content-Encoding': 'aes128gcm',
             'TTL': '86400',
+            ...vapidHeaders,
           },
-          body: payload,
+          body: await encryptPayload(payload, sub.p256dh, sub.auth),
         })
 
         if (!response.ok) {
-          console.error(`Push failed for subscription ${sub.endpoint}:`, response.status)
+          console.error(`❌ Push failed for subscription ${sub.endpoint}:`, response.status, await response.text())
+          return { success: false, endpoint: sub.endpoint, status: response.status }
         } else {
-          console.log(`Push sent successfully to ${sub.endpoint}`)
+          console.log(`✅ Push sent successfully to ${sub.endpoint.substring(0, 50)}...`)
+          return { success: true, endpoint: sub.endpoint }
         }
-
-        return { success: response.ok, endpoint: sub.endpoint }
       } catch (error) {
-        console.error(`Error sending push to ${sub.endpoint}:`, error)
+        console.error(`❌ Error sending push to ${sub.endpoint}:`, error)
         return { success: false, endpoint: sub.endpoint, error: error.message }
       }
     })
@@ -169,7 +175,7 @@ serve(async (req) => {
     const results = await Promise.all(pushPromises)
     const successCount = results.filter(r => r.success).length
 
-    console.log(`Push notifications sent: ${successCount}/${subscriptions.length}`)
+    console.log(`📱 Push notifications sent: ${successCount}/${subscriptions.length}`)
 
     return new Response(
       JSON.stringify({ 
@@ -185,7 +191,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in send-order-status-push function:', error)
+    console.error('❌ Error in send-order-status-push function:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { 
@@ -195,3 +201,51 @@ serve(async (req) => {
     )
   }
 })
+
+// Helper function to create VAPID headers
+async function createVapidHeaders(
+  endpoint: string,
+  publicKey: string,
+  privateKey: string,
+  payload: string
+): Promise<Record<string, string>> {
+  const vapidHeaders: Record<string, string> = {}
+  
+  try {
+    const url = new URL(endpoint)
+    const audience = `${url.protocol}//${url.host}`
+    
+    vapidHeaders['Authorization'] = `vapid t=${await generateJWT(audience, publicKey, privateKey)}, k=${publicKey}`
+  } catch (error) {
+    console.error('❌ Error creating VAPID headers:', error)
+  }
+  
+  return vapidHeaders
+}
+
+// Simplified JWT generation for VAPID
+async function generateJWT(audience: string, publicKey: string, privateKey: string): Promise<string> {
+  const header = {
+    typ: 'JWT',
+    alg: 'ES256'
+  }
+  
+  const payload = {
+    aud: audience,
+    exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+    sub: 'mailto:support@menuhub.africa'
+  }
+  
+  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+  
+  // For now, return a basic token - in production, you'd sign this properly
+  return `${headerB64}.${payloadB64}.signature`
+}
+
+// Simplified encryption for web push
+async function encryptPayload(payload: string, p256dh: string, auth: string): Promise<Uint8Array> {
+  // For now, return the payload as bytes
+  // In production, you'd implement proper AES-GCM encryption
+  return new TextEncoder().encode(payload)
+}

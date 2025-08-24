@@ -1,17 +1,17 @@
 
 // Service Worker for Push Notifications
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing');
+  console.log('🔧 Service Worker installing');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating');
+  console.log('✅ Service Worker activating');
   event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('push', (event) => {
-  console.log('Push message received:', event);
+  console.log('📱 Push message received:', event);
   
   let notificationData = {
     title: 'Order Update',
@@ -20,17 +20,20 @@ self.addEventListener('push', (event) => {
     badge: '/menuhub.png',
     tag: 'order-update',
     requireInteraction: true,
+    data: {}
   };
 
   if (event.data) {
     try {
-      const data = event.data.json();
+      const pushData = event.data.json();
+      console.log('📱 Push data received:', pushData);
+      
       notificationData = {
         ...notificationData,
-        ...data,
+        ...pushData,
       };
     } catch (error) {
-      console.error('Error parsing push data:', error);
+      console.error('❌ Error parsing push data:', error);
     }
   }
 
@@ -43,6 +46,12 @@ self.addEventListener('push', (event) => {
       tag: notificationData.tag,
       requireInteraction: notificationData.requireInteraction,
       data: notificationData.data,
+      actions: [
+        {
+          action: 'view',
+          title: 'View Order'
+        }
+      ]
     }
   );
 
@@ -50,7 +59,7 @@ self.addEventListener('push', (event) => {
 });
 
 self.addEventListener('notificationclick', (event) => {
-  console.log('Notification clicked:', event);
+  console.log('🖱️ Notification clicked:', event);
   
   event.notification.close();
   
@@ -60,7 +69,7 @@ self.addEventListener('notificationclick', (event) => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientsArr) => {
         const hadWindowToFocus = clientsArr.some((windowClient) => {
-          if (windowClient.url === urlToOpen) {
+          if (windowClient.url.includes(self.location.origin)) {
             windowClient.focus();
             return true;
           }
