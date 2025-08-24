@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
@@ -13,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard } from 'lucide-react';
 import { createOrderWithItems } from '@/components/checkout/OrderCreationHandler';
 import { useToast } from '@/hooks/use-toast';
-import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
+import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector';
 import NotificationPermissionDialog from '@/components/notifications/NotificationPermissionDialog';
 
 interface CartItem {
@@ -40,8 +41,8 @@ const Checkout = () => {
   const [searchParams] = useSearchParams();
   const restaurantId = searchParams.get('restaurant');
   const navigate = useNavigate();
-  const { cart, clearCart, getTotalPrice } = useCart();
-  const { restaurantData, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
+  const { cartItems, clearCart, getCartTotal } = useCart(restaurantId || '');
+  const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
   const { isSupported, permission, requestPermission, subscribeToPush } = usePushNotifications();
 
@@ -60,7 +61,7 @@ const Checkout = () => {
       return;
     }
 
-    if (cart.length === 0) {
+    if (cartItems.length === 0) {
       toast({
         title: "Empty cart",
         description: "Your cart is empty. Please add items before checkout.",
@@ -69,7 +70,7 @@ const Checkout = () => {
       navigate(`/menu/${restaurantId}`);
       return;
     }
-  }, [cart, restaurantId, navigate, toast]);
+  }, [cartItems, restaurantId, navigate, toast]);
 
   const handleOrderSubmission = async () => {
     if (!validateForm()) return;
@@ -85,11 +86,11 @@ const Checkout = () => {
         payment_method: paymentMethod,
         payment_status: 'pending',
         order_status: 'pending',
-        total_amount: getTotalPrice(),
+        total_amount: getCartTotal(),
         scheduled_time: orderType === 'later' ? new Date(scheduledTime).toISOString() : null,
       };
 
-      const orderItems = cart.map(item => ({
+      const orderItems = cartItems.map(item => ({
         menu_item_id: item.id,
         quantity: item.quantity,
         unit_price: item.price,
@@ -181,7 +182,7 @@ const Checkout = () => {
     );
   }
 
-  if (!restaurantData) {
+  if (!restaurantInfo) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -208,7 +209,7 @@ const Checkout = () => {
               </Button>
               <h1 className="text-2xl font-bold text-foreground">Checkout</h1>
               <Badge variant="outline" className="ml-auto">
-                {cart.length} item{cart.length !== 1 ? 's' : ''}
+                {cartItems.length} item{cartItems.length !== 1 ? 's' : ''}
               </Badge>
             </div>
           </div>
@@ -225,7 +226,7 @@ const Checkout = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cart.map((item) => (
+                {cartItems.map((item) => (
                   <div key={`${item.id}-${JSON.stringify(item.customizations)}`} className="flex justify-between items-start">
                     <div className="flex-1">
                       <p className="font-medium">{item.name}</p>
@@ -252,7 +253,7 @@ const Checkout = () => {
                 
                 <div className="flex justify-between items-center text-lg font-semibold">
                   <span>Total</span>
-                  <span>KSh {getTotalPrice().toFixed(2)}</span>
+                  <span>KSh {getCartTotal().toFixed(2)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -336,10 +337,9 @@ const Checkout = () => {
                 </CardHeader>
                 <CardContent>
                   <PaymentMethodSelector
-                    restaurantId={restaurantId!}
-                    selectedMethod={paymentMethod}
-                    onMethodChange={setPaymentMethod}
-                    orderAmount={getTotalPrice()}
+                    paymentMethod={paymentMethod}
+                    setPaymentMethod={setPaymentMethod}
+                    availableGateways={[]}
                   />
                 </CardContent>
               </Card>
@@ -357,7 +357,7 @@ const Checkout = () => {
                     Placing Order...
                   </>
                 ) : (
-                  `Place Order - KSh ${getTotalPrice().toFixed(2)}`
+                  `Place Order - KSh ${getCartTotal().toFixed(2)}`
                 )}
               </Button>
             </div>
