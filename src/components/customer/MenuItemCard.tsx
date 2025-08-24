@@ -55,7 +55,8 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
     itemName: item.name,
     currentQuantity,
     cartItem: cartItem ? 'found' : 'not found',
-    isProcessing
+    isProcessing,
+    cartLastSync: cart.lastSyncTime
   });
 
   const handleAddToCart = useCallback(async (customizations?: string, specialInstructions?: string) => {
@@ -137,7 +138,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
           } else {
             console.log('✅ Quantity successfully decreased');
             toast({
-              title: "Quantity updated",
+              title: "Quantity updated", 
               description: `${item.name} quantity decreased.`,
               duration: 1000,
             });

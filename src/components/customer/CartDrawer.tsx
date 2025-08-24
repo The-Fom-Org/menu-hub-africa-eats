@@ -11,10 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, Plus, Minus, Trash2, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartDrawerProps {
@@ -28,80 +28,128 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Memoized cart state to ensure consistency
-  const cartState = useMemo(() => {
-    const items = cart.cartItems || [];
-    const count = items.reduce((sum, item) => sum + item.quantity, 0);
-    const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const isEmpty = items.length === 0 || count === 0;
-    
-    console.log('🛒 CartDrawer memoized state:', {
-      restaurantId,
-      itemsLength: items.length,
-      totalCount: count,
-      totalAmount: total,
-      isEmpty,
-      items: items.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
-    });
-    
-    return {
-      items,
-      count,
-      total,
-      isEmpty
-    };
-  }, [cart.cartItems, restaurantId]);
+  // Direct cart values - no memoization to avoid stale state
+  const cartItems = cart.cartItems || [];
+  const totalCount = cart.getCartCount();
+  const totalAmount = cart.getCartTotal();
+  const hasCartItems = cart.hasItems();
+  const isEmpty = cartItems.length === 0 || totalCount === 0;
 
-  const showReloadNotification = useCallback(() => {
-    console.log('🔄 Showing reload notification');
-    toast({
-      title: "Cart sync issue",
-      description: (
-        <div className="flex items-center gap-2">
-          <span>Cart may be out of sync. Please reload the page.</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              console.log('🔄 User clicked reload button');
-              window.location.reload();
-            }}
-            className="ml-2"
-          >
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Reload
-          </Button>
-        </div>
-      ),
-      duration: 8000,
-    });
-  }, [toast]);
+  console.log('🛒 CartDrawer render state:', {
+    restaurantId,
+    cartItemsLength: cartItems.length,
+    totalCount,
+    totalAmount,
+    hasCartItems,
+    isEmpty,
+    lastSyncTime: cart.lastSyncTime,
+    cartItems: cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+  });
+
+  const handleManualSync = useCallback(() => {
+    console.log('🔄 Manual cart sync triggered');
+    const success = cart.forceRefresh();
+    
+    if (success) {
+      toast({
+        title: "Cart synced",
+        description: "Your cart has been refreshed successfully.",
+        duration: 2000,
+      });
+    } else {
+      toast({
+        title: "Sync failed", 
+        description: "Failed to sync cart. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  }, [cart, toast]);
 
   const handleCheckout = useCallback(async () => {
-    console.log('💳 Checkout clicked - Current cart state:', {
-      isEmpty: cartState.isEmpty,
-      itemsLength: cartState.items.length,
-      totalCount: cartState.count,
-      totalAmount: cartState.total
-    });
+    console.log('💳 Checkout process starting');
     
-    // Simple check - if cart is empty, show error
-    if (cartState.isEmpty) {
-      console.log('❌ Cart is empty, cannot proceed to checkout');
+    // Force refresh cart before checkout validation
+    console.log('🔄 Force refreshing cart before checkout');
+    const refreshSuccess = cart.forceRefresh();
+    
+    if (!refreshSuccess) {
+      console.error('❌ Failed to refresh cart before checkout');
       toast({
-        title: "Cart is empty",
-        description: "Please add some items to your cart before checkout.",
+        title: "Cart sync error",
+        description: "Please refresh the cart and try again.",
         variant: "destructive",
         duration: 3000,
       });
       return;
     }
-    
-    // If we have items, proceed to checkout
-    console.log('✅ Cart has items, proceeding to checkout');
-    setIsOpen(false);
-    navigate(`/checkout?restaurantId=${restaurantId}`);
-  }, [cartState, toast, navigate, restaurantId]);
+
+    // Wait a moment for state to update, then validate
+    setTimeout(() => {
+      const validation = cart.validateCartState();
+      const currentItems = cart.cartItems || [];
+      const currentCount = cart.getCartCount();
+      const currentHasItems = cart.hasItems();
+      
+      console.log('🔍 Pre-checkout validation:', {
+        validation,
+        currentItemsLength: currentItems.length,
+        currentCount,
+        currentHasItems,
+        items: currentItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+      });
+
+      if (!validation.isValid) {
+        console.error('❌ Cart validation failed:', validation.issues);
+        toast({
+          title: "Cart validation failed",
+          description: (
+            <div className="space-y-2">
+              <p>Cart state is inconsistent:</p>
+              <ul className="text-xs">
+                {validation.issues.map((issue, index) => (
+                  <li key={index}>• {issue}</li>
+                ))}
+              </ul>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualSync}
+                className="mt-2"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Sync Cart
+              </Button>
+            </div>
+          ),
+          variant: "destructive",
+          duration: 8000,
+        });
+        return;
+      }
+
+      // Final check - use fresh cart state
+      if (currentItems.length === 0 || currentCount === 0 || !currentHasItems) {
+        console.log('❌ Cart is empty after validation - Current state:', {
+          itemsLength: currentItems.length,
+          count: currentCount,
+          hasItems: currentHasItems
+        });
+        toast({
+          title: "Cart is empty",
+          description: "Please add some items to your cart before checkout.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
+      }
+      
+      // If we reach here, cart is valid - proceed to checkout
+      console.log('✅ Cart validation passed, proceeding to checkout');
+      setIsOpen(false);
+      navigate(`/checkout?restaurantId=${restaurantId}`);
+    }, 100);
+  }, [cart, toast, navigate, restaurantId, handleManualSync]);
 
   const handleUpdateQuantity = useCallback(async (itemId: string, quantity: number, customizations?: string) => {
     console.log('🔄 CartDrawer updating quantity:', { itemId, quantity, customizations });
@@ -127,25 +175,23 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
         console.error('❌ Quantity update failed');
         toast({
           title: "Error",
-          description: "Failed to update quantity. Please try again.",
+          description: "Failed to update quantity. Please try syncing your cart.",
           variant: "destructive",
           duration: 3000,
         });
-        showReloadNotification();
       }
     } catch (error) {
       console.error('❌ Error updating quantity in CartDrawer:', error);
       toast({
         title: "Error",
-        description: "Failed to update quantity. Please try again.",
+        description: "Failed to update quantity. Please try syncing your cart.",
         variant: "destructive",
         duration: 3000,
       });
-      showReloadNotification();
     } finally {
       setIsProcessing(false);
     }
-  }, [cart, toast, showReloadNotification, isProcessing]);
+  }, [cart, toast, isProcessing]);
 
   const handleRemoveItem = useCallback(async (itemId: string, customizations?: string) => {
     console.log('🗑️ CartDrawer removing item:', { itemId, customizations });
@@ -171,39 +217,37 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
         console.error('❌ Item removal failed');
         toast({
           title: "Error",
-          description: "Failed to remove item. Please try again.",
+          description: "Failed to remove item. Please try syncing your cart.",
           variant: "destructive",
           duration: 3000,
         });
-        showReloadNotification();
       }
     } catch (error) {
       console.error('❌ Error removing item in CartDrawer:', error);
       toast({
         title: "Error",
-        description: "Failed to remove item. Please try again.",
+        description: "Failed to remove item. Please try syncing your cart.",
         variant: "destructive",
         duration: 3000,
       });
-      showReloadNotification();
     } finally {
       setIsProcessing(false);
     }
-  }, [cart, toast, showReloadNotification, isProcessing]);
+  }, [cart, toast, isProcessing]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button 
-          variant={!cartState.isEmpty ? "default" : "outline"} 
+          variant={!isEmpty ? "default" : "outline"} 
           size="sm" 
           className="relative"
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
           Cart
-          {cartState.count > 0 && (
+          {totalCount > 0 && (
             <Badge variant="secondary" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-              {cartState.count}
+              {totalCount}
             </Badge>
           )}
         </Button>
@@ -211,25 +255,55 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
       
       <SheetContent side="right" className="w-full sm:max-w-md flex flex-col h-full">
         <SheetHeader>
-          <SheetTitle>Your Order</SheetTitle>
-          <SheetDescription>
-            {cartState.isEmpty ? 'Your cart is empty' : 'Review your items before checkout'}
-          </SheetDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle>Your Order</SheetTitle>
+              <SheetDescription>
+                {isEmpty ? 'Your cart is empty' : 'Review your items before checkout'}
+              </SheetDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleManualSync}
+              className="text-xs"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Sync
+            </Button>
+          </div>
         </SheetHeader>
 
-        {cartState.isEmpty ? (
+        {isEmpty ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Your cart is empty</p>
               <p className="text-sm text-muted-foreground mt-2">Add some delicious items to get started!</p>
+              {cartItems.length !== totalCount && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-yellow-800">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-xs">Cart state mismatch detected</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleManualSync}
+                    className="mt-2 text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Fix Cart
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ) : (
           <>
             <ScrollArea className="flex-1 -mx-6 px-6">
               <div className="space-y-4 mt-6">
-                {cartState.items.map((item, index) => (
+                {cartItems.map((item, index) => (
                   <div key={`${item.id}-${item.customizations}-${index}`} className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -282,7 +356,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                         </Button>
                       </div>
                     </div>
-                    {index < cartState.items.length - 1 && <Separator />}
+                    {index < cartItems.length - 1 && <Separator />}
                   </div>
                 ))}
               </div>
@@ -291,16 +365,16 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
             <div className="space-y-4 pt-4 border-t mt-auto">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Total:</span>
-                <span className="font-bold text-lg">KSh {cartState.total.toFixed(2)}</span>
+                <span className="font-bold text-lg">KSh {totalAmount.toFixed(2)}</span>
               </div>
               
               <Button 
                 onClick={handleCheckout}
                 className="w-full"
                 size="lg"
-                disabled={cartState.isEmpty || isProcessing}
+                disabled={isEmpty || isProcessing}
               >
-                {isProcessing ? 'Processing...' : `Proceed to Checkout (${cartState.count} items)`}
+                {isProcessing ? 'Processing...' : `Proceed to Checkout (${totalCount} items)`}
               </Button>
             </div>
           </>
