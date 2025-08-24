@@ -29,7 +29,7 @@ const Checkout = () => {
   const [searchParams] = useSearchParams();
   const restaurantId = searchParams.get('restaurantId');
   const navigate = useNavigate();
-  const { cartItems, clearCart, getCartTotal, orderType, setOrderType } = useCart(restaurantId || '');
+  const cart = useCart(restaurantId || '');
   const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
   const { isSupported, permission, requestPermission, subscribeToPush } = usePushNotifications();
@@ -41,19 +41,62 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [isCartInitialized, setIsCartInitialized] = useState(false);
+
+  console.log('🛒 Checkout page cart state:', {
+    restaurantId,
+    cartItemsLength: cart.cartItems.length,
+    isCartInitialized,
+    lastSyncTime: cart.lastSyncTime,
+    cartItems: cart.cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+  });
 
   // Calculate reservation fee (40% of total for pre-orders)
-  const totalAmount = getCartTotal();
-  const reservationFee = orderType === 'later' ? totalAmount * 0.4 : totalAmount;
-  const remainingAmount = orderType === 'later' ? totalAmount - reservationFee : 0;
+  const totalAmount = cart.getCartTotal();
+  const reservationFee = cart.orderType === 'later' ? totalAmount * 0.4 : totalAmount;
+  const remainingAmount = cart.orderType === 'later' ? totalAmount - reservationFee : 0;
 
+  // Wait for cart to be initialized before checking if empty
+  useEffect(() => {
+    console.log('🔄 Checkout useEffect - cart initialization check:', {
+      lastSyncTime: cart.lastSyncTime,
+      cartItemsLength: cart.cartItems.length,
+      isCartInitialized
+    });
+
+    // Cart is considered initialized when lastSyncTime is set (meaning localStorage was loaded)
+    if (cart.lastSyncTime > 0 && !isCartInitialized) {
+      console.log('✅ Cart initialization detected');
+      setIsCartInitialized(true);
+    }
+  }, [cart.lastSyncTime, cart.cartItems.length, isCartInitialized]);
+
+  // Only redirect if cart is initialized AND empty
   useEffect(() => {
     if (!restaurantId) {
       navigate('/');
       return;
     }
 
-    if (cartItems.length === 0) {
+    // Don't check for empty cart until it's initialized
+    if (!isCartInitialized) {
+      console.log('⏳ Waiting for cart to initialize...');
+      return;
+    }
+
+    // Now we can safely check if cart is empty
+    const latestItems = cart.getLatestCartState();
+    const isEmpty = latestItems.length === 0 || cart.getCartCount(latestItems) === 0;
+
+    console.log('🔍 Checkout empty cart check:', {
+      isCartInitialized,
+      latestItemsLength: latestItems.length,
+      latestCount: cart.getCartCount(latestItems),
+      isEmpty
+    });
+
+    if (isEmpty) {
+      console.log('❌ Cart is empty, redirecting to menu');
       toast({
         title: "Empty cart",
         description: "Your cart is empty. Please add items before checkout.",
@@ -62,7 +105,7 @@ const Checkout = () => {
       navigate(`/menu/${restaurantId}`);
       return;
     }
-  }, [cartItems, restaurantId, navigate, toast]);
+  }, [cart, restaurantId, navigate, toast, isCartInitialized]);
 
   const handleOrderSubmission = async () => {
     if (!validateForm()) return;
@@ -74,15 +117,15 @@ const Checkout = () => {
         restaurant_id: restaurantId!,
         customer_name: customerName || null,
         customer_phone: customerPhone || null,
-        order_type: orderType,
-        payment_method: orderType === 'now' ? 'cash' : paymentMethod,
-        payment_status: orderType === 'now' ? 'pending' : 'pending',
+        order_type: cart.orderType,
+        payment_method: cart.orderType === 'now' ? 'cash' : paymentMethod,
+        payment_status: cart.orderType === 'now' ? 'pending' : 'pending',
         order_status: 'pending',
         total_amount: totalAmount,
-        scheduled_time: orderType === 'later' ? new Date(scheduledTime).toISOString() : null,
+        scheduled_time: cart.orderType === 'later' ? new Date(scheduledTime).toISOString() : null,
       };
 
-      const orderItems = cartItems.map(item => ({
+      const orderItems = cart.cartItems.map(item => ({
         menu_item_id: item.id,
         quantity: item.quantity,
         unit_price: item.price,
@@ -119,7 +162,7 @@ const Checkout = () => {
   };
 
   const completeCheckout = (orderId: string) => {
-    clearCart();
+    cart.clearCart();
     toast({
       title: "Order placed successfully!",
       description: "You'll receive updates on your order status.",
@@ -145,7 +188,7 @@ const Checkout = () => {
   };
 
   const validateForm = () => {
-    if (orderType === 'later') {
+    if (cart.orderType === 'later') {
       if (!paymentMethod) {
         toast({
           title: "Payment method required",
@@ -168,10 +211,16 @@ const Checkout = () => {
     return true;
   };
 
-  if (dataLoading) {
+  // Show loading until both restaurant data and cart are loaded
+  if (dataLoading || !isCartInitialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">
+            {dataLoading ? 'Loading restaurant...' : 'Loading cart...'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -206,7 +255,7 @@ const Checkout = () => {
                 <h1 className="text-lg sm:text-2xl font-bold text-foreground">Checkout</h1>
               </div>
               <Badge variant="outline" className="ml-auto text-xs sm:text-sm">
-                {cartItems.length} item{cartItems.length !== 1 ? 's' : ''}
+                {cart.cartItems.length} item{cart.cartItems.length !== 1 ? 's' : ''}
               </Badge>
             </div>
           </div>
@@ -223,7 +272,7 @@ const Checkout = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4">
-                {cartItems.map((item) => (
+                {cart.cartItems.map((item) => (
                   <div key={`${item.id}-${JSON.stringify(item.customizations)}`} className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm sm:text-base truncate">{item.name}</p>
@@ -254,7 +303,7 @@ const Checkout = () => {
                     <span>KSh {totalAmount.toFixed(2)}</span>
                   </div>
                   
-                  {orderType === 'later' && (
+                  {cart.orderType === 'later' && (
                     <>
                       <div className="flex justify-between items-center text-sm text-muted-foreground">
                         <span>Reservation Fee (40%)</span>
@@ -282,7 +331,7 @@ const Checkout = () => {
                     </>
                   )}
                   
-                  {orderType === 'now' && (
+                  {cart.orderType === 'now' && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
                       <div className="flex gap-2">
                         <Info className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
@@ -342,7 +391,7 @@ const Checkout = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 sm:space-y-4">
-                  <RadioGroup value={orderType} onValueChange={(value: 'now' | 'later') => setOrderType(value)}>
+                  <RadioGroup value={cart.orderType} onValueChange={(value: 'now' | 'later') => cart.setOrderType(value)}>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="now" id="now" />
                       <Label htmlFor="now" className="text-sm">Order Now (Dine In)</Label>
@@ -353,7 +402,7 @@ const Checkout = () => {
                     </div>
                   </RadioGroup>
                   
-                  {orderType === 'later' && (
+                  {cart.orderType === 'later' && (
                     <div className="space-y-2">
                       <Label htmlFor="scheduledTime" className="text-xs sm:text-sm">Pickup Time</Label>
                       <Input
@@ -370,7 +419,7 @@ const Checkout = () => {
               </Card>
 
               {/* Payment Method - Only show for pre-orders */}
-              {orderType === 'later' && (
+              {cart.orderType === 'later' && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
@@ -402,7 +451,7 @@ const Checkout = () => {
                     Placing Order...
                   </>
                 ) : (
-                  orderType === 'now' 
+                  cart.orderType === 'now' 
                     ? `Place Order - KSh ${totalAmount.toFixed(2)}`
                     : `Reserve Table - KSh ${reservationFee.toFixed(2)}`
                 )}
