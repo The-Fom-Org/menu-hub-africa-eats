@@ -43,14 +43,7 @@ export const HeroSection = ({ restaurantName, coverImageUrl, onScrollToMenu }: H
             </div>
           </div>
           
-          {/* CTA Button */}
-          <Button 
-            onClick={onScrollToMenu}
-            size="lg" 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-          >
-            Explore Menu
-          </Button>
+          
         </div>
       </div>
 

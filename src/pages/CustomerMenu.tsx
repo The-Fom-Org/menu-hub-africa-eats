@@ -198,10 +198,7 @@ const CustomerMenu = () => {
                     className="h-5 w-5" 
                     style={{ color: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
                   />
-                  <div>
-                    <p className="font-medium text-sm">Dining In</p>
-                    <p className="text-xs text-muted-foreground">Your order will be prepared for immediate service</p>
-                  </div>
+                
                   <Badge 
                     variant="default" 
                     className="ml-auto"
@@ -219,10 +216,7 @@ const CustomerMenu = () => {
                     className="h-5 w-5" 
                     style={{ color: restaurantInfo?.secondary_color || 'hsl(var(--secondary))' }}
                   />
-                  <div>
-                    <p className="font-medium text-sm">Pre-ordering</p>
-                    <p className="text-xs text-muted-foreground">Schedule your meal for pickup or delivery</p>
-                  </div>
+                  
                   <Badge 
                     variant="secondary" 
                     className="ml-auto"
@@ -248,7 +242,7 @@ const CustomerMenu = () => {
             placeholder="Search delicious meals..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 rounded-full border-muted-foreground/20 bg-background/80 backdrop-blur-sm"
+            className="pl-10 rounded-full border-secondary/20 bg-background/80 backdrop-blur-sm"
           />
         </div>
       </div>
