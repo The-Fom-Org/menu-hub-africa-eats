@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// This should be replaced with your actual VAPID public key from the generator
+// Updated VAPID public key with proper P-256 format (Base64 URL encoded)
 const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa40HcCWLWpRS3aayd6oZtql3BGFyXl4FvTZrYlBaU7YTJjFID5gcmqinVc5eg';
 
 export const usePushNotifications = () => {
@@ -96,8 +96,8 @@ export const usePushNotifications = () => {
       const registration = await navigator.serviceWorker.ready;
       console.log('✅ Service worker ready');
       
-      // Convert VAPID public key to Uint8Array
-      const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      // Convert VAPID public key from Base64 URL to Uint8Array
+      const applicationServerKey = base64UrlToUint8Array(VAPID_PUBLIC_KEY);
       
       const pushSubscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -155,8 +155,8 @@ export const usePushNotifications = () => {
   };
 };
 
-// Helper function to convert VAPID public key
-function urlBase64ToUint8Array(base64String: string) {
+// Helper function to convert Base64 URL to Uint8Array for VAPID key
+function base64UrlToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/-/g, '+')

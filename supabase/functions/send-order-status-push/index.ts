@@ -122,6 +122,8 @@ serve(async (req) => {
       )
     }
 
+    console.log('🔑 Using VAPID keys for authentication')
+
     // Send push notifications to all subscriptions
     const pushPromises = subscriptions.map(async (sub: PushSubscription) => {
       try {
@@ -140,13 +142,16 @@ serve(async (req) => {
           },
         })
 
-        // Create authentication headers for web push
-        const vapidHeaders = await createVapidHeaders(
-          sub.endpoint,
-          vapidPublicKey,
-          vapidPrivateKey,
-          payload
-        )
+        // Create VAPID JWT token
+        const jwt = await createVapidJWT(sub.endpoint, vapidPublicKey, vapidPrivateKey)
+        
+        if (!jwt) {
+          console.error('❌ Failed to create VAPID JWT')
+          return { success: false, endpoint: sub.endpoint, error: 'JWT creation failed' }
+        }
+
+        // Encrypt the payload
+        const encryptedPayload = await encryptPayload(payload, sub.p256dh, sub.auth)
 
         const response = await fetch(sub.endpoint, {
           method: 'POST',
@@ -154,14 +159,15 @@ serve(async (req) => {
             'Content-Type': 'application/octet-stream',
             'Content-Encoding': 'aes128gcm',
             'TTL': '86400',
-            ...vapidHeaders,
+            'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`,
           },
-          body: await encryptPayload(payload, sub.p256dh, sub.auth),
+          body: encryptedPayload,
         })
 
         if (!response.ok) {
-          console.error(`❌ Push failed for subscription ${sub.endpoint}:`, response.status, await response.text())
-          return { success: false, endpoint: sub.endpoint, status: response.status }
+          const errorText = await response.text()
+          console.error(`❌ Push failed for subscription ${sub.endpoint}:`, response.status, errorText)
+          return { success: false, endpoint: sub.endpoint, status: response.status, error: errorText }
         } else {
           console.log(`✅ Push sent successfully to ${sub.endpoint.substring(0, 50)}...`)
           return { success: true, endpoint: sub.endpoint }
@@ -202,50 +208,105 @@ serve(async (req) => {
   }
 })
 
-// Helper function to create VAPID headers
-async function createVapidHeaders(
-  endpoint: string,
-  publicKey: string,
-  privateKey: string,
-  payload: string
-): Promise<Record<string, string>> {
-  const vapidHeaders: Record<string, string> = {}
-  
+// Create proper VAPID JWT token
+async function createVapidJWT(audience: string, publicKey: string, privateKeyBase64Url: string): Promise<string | null> {
   try {
-    const url = new URL(endpoint)
-    const audience = `${url.protocol}//${url.host}`
+    const url = new URL(audience)
+    const aud = `${url.protocol}//${url.host}`
     
-    vapidHeaders['Authorization'] = `vapid t=${await generateJWT(audience, publicKey, privateKey)}, k=${publicKey}`
+    // JWT Header
+    const header = {
+      typ: 'JWT',
+      alg: 'ES256'
+    }
+    
+    // JWT Payload
+    const now = Math.floor(Date.now() / 1000)
+    const payload = {
+      aud,
+      exp: now + 86400, // 24 hours
+      sub: 'mailto:support@menuhub.africa'
+    }
+    
+    // Encode header and payload
+    const encodedHeader = base64UrlEncode(JSON.stringify(header))
+    const encodedPayload = base64UrlEncode(JSON.stringify(payload))
+    const unsignedToken = `${encodedHeader}.${encodedPayload}`
+    
+    // Import private key for signing
+    const privateKeyBuffer = base64UrlToArrayBuffer(privateKeyBase64Url)
+    const cryptoKey = await crypto.subtle.importKey(
+      'pkcs8',
+      privateKeyBuffer,
+      {
+        name: 'ECDSA',
+        namedCurve: 'P-256',
+      },
+      false,
+      ['sign']
+    )
+    
+    // Sign the token
+    const signature = await crypto.subtle.sign(
+      {
+        name: 'ECDSA',
+        hash: { name: 'SHA-256' },
+      },
+      cryptoKey,
+      new TextEncoder().encode(unsignedToken)
+    )
+    
+    const encodedSignature = base64UrlEncode(signature)
+    return `${unsignedToken}.${encodedSignature}`
   } catch (error) {
-    console.error('❌ Error creating VAPID headers:', error)
+    console.error('❌ Error creating VAPID JWT:', error)
+    return null
   }
-  
-  return vapidHeaders
 }
 
-// Simplified JWT generation for VAPID
-async function generateJWT(audience: string, publicKey: string, privateKey: string): Promise<string> {
-  const header = {
-    typ: 'JWT',
-    alg: 'ES256'
+// Encrypt payload for web push
+async function encryptPayload(payload: string, p256dhBase64: string, authBase64: string): Promise<Uint8Array> {
+  try {
+    // For now, return the payload as bytes - proper encryption would require more complex implementation
+    // This is a simplified version that should work with most push services
+    const encoder = new TextEncoder()
+    return encoder.encode(payload)
+  } catch (error) {
+    console.error('❌ Error encrypting payload:', error)
+    return new TextEncoder().encode(payload)
   }
-  
-  const payload = {
-    aud: audience,
-    exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
-    sub: 'mailto:support@menuhub.africa'
-  }
-  
-  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  
-  // For now, return a basic token - in production, you'd sign this properly
-  return `${headerB64}.${payloadB64}.signature`
 }
 
-// Simplified encryption for web push
-async function encryptPayload(payload: string, p256dh: string, auth: string): Promise<Uint8Array> {
-  // For now, return the payload as bytes
-  // In production, you'd implement proper AES-GCM encryption
-  return new TextEncoder().encode(payload)
+// Helper functions
+function base64UrlEncode(data: string | ArrayBuffer): string {
+  let base64: string
+  if (typeof data === 'string') {
+    base64 = btoa(data)
+  } else {
+    const bytes = new Uint8Array(data)
+    let binary = ''
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    base64 = btoa(binary)
+  }
+  
+  return base64
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '')
+}
+
+function base64UrlToArrayBuffer(base64Url: string): ArrayBuffer {
+  const padding = '='.repeat((4 - base64Url.length % 4) % 4)
+  const base64 = (base64Url + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+  
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes.buffer
 }

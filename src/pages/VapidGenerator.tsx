@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,11 +18,24 @@ const VapidGenerator = () => {
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState<{ public: boolean; private: boolean }>({ public: false, private: false });
 
+  // Helper function to convert ArrayBuffer to Base64 URL
+  const arrayBufferToBase64Url = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+  };
+
   const generateVapidKeys = async () => {
     try {
       setGenerating(true);
       
-      // Generate VAPID key pair using Web Crypto API
+      // Generate VAPID key pair using Web Crypto API with P-256 curve
       const keyPair = await crypto.subtle.generateKey(
         {
           name: 'ECDSA',
@@ -33,22 +45,22 @@ const VapidGenerator = () => {
         ['sign', 'verify']
       );
 
-      // Export public key
+      // Export public key in uncompressed format for VAPID
       const publicKeyBuffer = await crypto.subtle.exportKey('raw', keyPair.publicKey);
-      const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(publicKeyBuffer)));
+      const publicKeyBase64Url = arrayBufferToBase64Url(publicKeyBuffer);
 
-      // Export private key
+      // Export private key in PKCS#8 format
       const privateKeyBuffer = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
-      const privateKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(privateKeyBuffer)));
+      const privateKeyBase64Url = arrayBufferToBase64Url(privateKeyBuffer);
 
       setVapidKeys({
-        publicKey: publicKeyBase64,
-        privateKey: privateKeyBase64,
+        publicKey: publicKeyBase64Url,
+        privateKey: privateKeyBase64Url,
       });
 
       toast({
         title: "VAPID keys generated",
-        description: "Your VAPID key pair has been generated successfully.",
+        description: "Your VAPID key pair has been generated successfully with proper P-256 formatting.",
       });
     } catch (error) {
       console.error('Error generating VAPID keys:', error);
@@ -125,7 +137,7 @@ const VapidGenerator = () => {
           <CardContent className="space-y-6">
             <Alert>
               <AlertDescription>
-                VAPID keys are required for push notifications. Generate a new key pair and store the private key securely in your Supabase secrets.
+                VAPID keys are required for push notifications. Generate a new key pair and store the private key securely in your Supabase secrets. These keys use proper P-256 curve formatting required by FCM.
               </AlertDescription>
             </Alert>
 
@@ -152,7 +164,7 @@ const VapidGenerator = () => {
             {vapidKeys && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="publicKey">Public Key (Base64)</Label>
+                  <Label htmlFor="publicKey">Public Key (Base64 URL Encoded)</Label>
                   <div className="flex space-x-2">
                     <Textarea
                       id="publicKey"
@@ -170,12 +182,12 @@ const VapidGenerator = () => {
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Add this to your frontend code as the VAPID public key.
+                    Add this to your frontend code as the VAPID public key. This key is properly formatted for P-256 curve.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="privateKey">Private Key (Base64)</Label>
+                  <Label htmlFor="privateKey">Private Key (Base64 URL Encoded)</Label>
                   <div className="flex space-x-2">
                     <Textarea
                       id="privateKey"
@@ -194,7 +206,7 @@ const VapidGenerator = () => {
                   </div>
                   <Alert>
                     <AlertDescription>
-                      <strong>Important:</strong> Store this private key securely in your Supabase secrets as "VAPID_PRIVATE_KEY". Never expose it in your frontend code.
+                      <strong>Important:</strong> Store this private key securely in your Supabase secrets as "VAPID_PRIVATE_KEY". Never expose it in your frontend code. This key is properly formatted for P-256 signing.
                     </AlertDescription>
                   </Alert>
                 </div>
