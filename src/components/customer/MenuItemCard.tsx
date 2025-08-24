@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +58,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
     cartLastSync: cart.lastSyncTime
   });
 
-  const handleAddToCart = useCallback(async (customizations?: string, specialInstructions?: string) => {
+  const handleAddToCart = useCallback((customizations?: string, specialInstructions?: string) => {
     console.log('➕ MenuItemCard: Starting add to cart process:', {
       itemId: item.id,
       itemName: item.name,
@@ -75,7 +74,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
     setIsProcessing(true);
 
     try {
-      const success = await cart.addToCart({
+      const success = cart.addToCart({
         id: item.id,
         name: item.name,
         price: item.price,
@@ -112,12 +111,12 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
     }
   }, [cart, item, toast, isProcessing]);
 
-  const handleQuickAdd = useCallback(async () => {
+  const handleQuickAdd = useCallback(() => {
     console.log('⚡ Quick add clicked for item:', item.id);
-    await handleAddToCart();
+    handleAddToCart();
   }, [handleAddToCart]);
 
-  const handleDecrease = useCallback(async () => {
+  const handleDecrease = useCallback(() => {
     console.log('➖ Decrease clicked for item:', { itemId: item.id, currentQuantity });
     
     if (currentQuantity > 0 && !isProcessing) {
@@ -125,7 +124,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
       
       try {
         const newQuantity = currentQuantity - 1;
-        const success = await cart.updateQuantity(item.id, newQuantity);
+        const success = cart.updateQuantity(item.id, newQuantity);
         
         if (success) {
           if (newQuantity === 0) {

@@ -42,6 +42,19 @@ export const useCart = (restaurantId: string) => {
     lastSyncTime
   });
 
+  // Get latest cart state directly from localStorage - bypasses React state
+  const getLatestCartState = useCallback((): CartItem[] => {
+    try {
+      const savedCart = localStorage.getItem(storageKey);
+      const items = savedCart ? JSON.parse(savedCart) : [];
+      console.log('📊 getLatestCartState:', items);
+      return items;
+    } catch (error) {
+      console.error('❌ Error reading latest cart state:', error);
+      return [];
+    }
+  }, [storageKey]);
+
   // Load cart from localStorage on mount
   useEffect(() => {
     if (isInitialized.current) return;
@@ -91,44 +104,43 @@ export const useCart = (restaurantId: string) => {
     }
   }, [storageKey]);
 
-  // Force refresh cart from localStorage
+  // Force refresh cart from localStorage and update React state
   const forceRefresh = useCallback((): boolean => {
     console.log('🔄 Force refreshing cart from localStorage');
     try {
-      const savedCart = localStorage.getItem(storageKey);
-      if (savedCart) {
-        const parsed = JSON.parse(savedCart);
-        console.log('✅ Force refresh successful:', parsed);
-        setCartItems(parsed);
-        setLastSyncTime(Date.now());
-        return true;
-      } else {
-        console.log('ℹ️ No saved cart found during force refresh');
-        setCartItems([]);
-        setLastSyncTime(Date.now());
-        return true;
-      }
+      const latestItems = getLatestCartState();
+      console.log('✅ Force refresh successful:', latestItems);
+      setCartItems(latestItems);
+      setLastSyncTime(Date.now());
+      return true;
     } catch (error) {
       console.error('❌ Error during force refresh:', error);
       setCartItems([]);
       return false;
     }
+  }, [getLatestCartState]);
+
+  // Emergency cart reset
+  const resetCart = useCallback(() => {
+    console.log('🚨 Emergency cart reset triggered');
+    localStorage.removeItem(storageKey);
+    setCartItems([]);
+    setLastSyncTime(Date.now());
   }, [storageKey]);
 
-  // Validate cart state consistency
-  const validateCartState = useCallback((): { isValid: boolean; issues: string[] } => {
+  // Validate cart state consistency - uses latest localStorage data
+  const validateCartState = useCallback((): { isValid: boolean; issues: string[]; latestItems: CartItem[] } => {
     const issues: string[] = [];
     
     try {
-      const savedCart = localStorage.getItem(storageKey);
-      const savedItems = savedCart ? JSON.parse(savedCart) : [];
+      const latestItems = getLatestCartState();
       
-      if (JSON.stringify(cartItems) !== JSON.stringify(savedItems)) {
+      if (JSON.stringify(cartItems) !== JSON.stringify(latestItems)) {
         issues.push('Cart state mismatch with localStorage');
       }
       
-      const hasItems = cartItems.length > 0;
-      const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+      const totalQuantity = latestItems.reduce((sum, item) => sum + item.quantity, 0);
+      const hasItems = latestItems.length > 0;
       
       if (hasItems && totalQuantity === 0) {
         issues.push('Cart has items but zero total quantity');
@@ -139,24 +151,26 @@ export const useCart = (restaurantId: string) => {
       }
       
       console.log('🔍 Cart validation:', {
-        hasItems,
+        reactStateItems: cartItems.length,
+        localStorageItems: latestItems.length,
         totalQuantity,
-        itemsLength: cartItems.length,
         issues
       });
       
       return {
         isValid: issues.length === 0,
-        issues
+        issues,
+        latestItems
       };
     } catch (error) {
       console.error('❌ Error validating cart state:', error);
       return {
         isValid: false,
-        issues: ['Validation error: ' + (error instanceof Error ? error.message : 'Unknown error')]
+        issues: ['Validation error: ' + (error instanceof Error ? error.message : 'Unknown error')],
+        latestItems: []
       };
     }
-  }, [cartItems, storageKey]);
+  }, [cartItems, getLatestCartState]);
 
   // Create a unique key for cart items
   const getItemKey = useCallback((id: string, customizations?: string) => {
@@ -196,13 +210,8 @@ export const useCart = (restaurantId: string) => {
     const saved = saveToLocalStorage(newItems);
     setIsUpdating(false);
     
-    if (saved) {
-      console.log('✅ Cart operation completed successfully');
-      return Promise.resolve(true);
-    } else {
-      console.error('❌ Failed to save to localStorage');
-      return Promise.resolve(false);
-    }
+    console.log('✅ Cart operation completed:', { saved });
+    return saved;
   }, [cartItems, saveToLocalStorage, getItemKey]);
 
   const removeFromCart = useCallback((itemId: string, customizations?: string) => {
@@ -220,7 +229,7 @@ export const useCart = (restaurantId: string) => {
     const saved = saveToLocalStorage(newItems);
     setIsUpdating(false);
     
-    return Promise.resolve(saved);
+    return saved;
   }, [cartItems, saveToLocalStorage, getItemKey]);
 
   const updateQuantity = useCallback((itemId: string, quantity: number, customizations?: string) => {
@@ -245,7 +254,7 @@ export const useCart = (restaurantId: string) => {
     const saved = saveToLocalStorage(newItems);
     setIsUpdating(false);
     
-    return Promise.resolve(saved);
+    return saved;
   }, [cartItems, removeFromCart, saveToLocalStorage, getItemKey]);
 
   const clearCart = useCallback(() => {
@@ -257,24 +266,29 @@ export const useCart = (restaurantId: string) => {
     setIsUpdating(false);
   }, [storageKey]);
 
-  // Computed values with validation
-  const getCartTotal = useCallback(() => {
-    const total = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    console.log('💰 Cart total calculated:', { total, itemsCount: cartItems.length });
+  // Direct calculations - no circular dependencies
+  const getCartTotal = useCallback((items?: CartItem[]) => {
+    const itemsToCalculate = items || cartItems;
+    const total = itemsToCalculate.reduce((total, item) => total + (item.price * item.quantity), 0);
+    console.log('💰 Cart total calculated:', { total, itemsCount: itemsToCalculate.length });
     return total;
   }, [cartItems]);
 
-  const getCartCount = useCallback(() => {
-    const count = cartItems.reduce((count, item) => count + item.quantity, 0);
-    console.log('🔢 Cart count calculated:', { count, itemsLength: cartItems.length });
+  const getCartCount = useCallback((items?: CartItem[]) => {
+    const itemsToCalculate = items || cartItems;
+    const count = itemsToCalculate.reduce((count, item) => count + item.quantity, 0);
+    console.log('🔢 Cart count calculated:', { count, itemsLength: itemsToCalculate.length });
     return count;
   }, [cartItems]);
 
-  const hasItems = useCallback(() => {
-    const result = cartItems.length > 0 && getCartCount() > 0;
-    console.log('❓ hasItems check:', { result, itemsLength: cartItems.length, totalCount: getCartCount() });
+  // Simplified hasItems - no circular dependency
+  const hasItems = useCallback((items?: CartItem[]) => {
+    const itemsToCheck = items || cartItems;
+    const count = itemsToCheck.reduce((total, item) => total + item.quantity, 0);
+    const result = itemsToCheck.length > 0 && count > 0;
+    console.log('❓ hasItems check:', { result, itemsLength: itemsToCheck.length, totalCount: count });
     return result;
-  }, [cartItems, getCartCount]);
+  }, [cartItems]);
 
   const getOrderDetails = useCallback((): OrderDetails => ({
     items: cartItems,
@@ -297,7 +311,9 @@ export const useCart = (restaurantId: string) => {
     updateQuantity,
     clearCart,
     forceRefresh,
+    resetCart,
     validateCartState,
+    getLatestCartState,
     getCartTotal,
     getCartCount,
     hasItems,

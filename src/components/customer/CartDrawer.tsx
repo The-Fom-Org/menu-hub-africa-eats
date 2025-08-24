@@ -28,22 +28,11 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Direct cart values - no memoization to avoid stale state
-  const cartItems = cart.cartItems || [];
-  const totalCount = cart.getCartCount();
-  const totalAmount = cart.getCartTotal();
-  const hasCartItems = cart.hasItems();
-  const isEmpty = cartItems.length === 0 || totalCount === 0;
-
   console.log('🛒 CartDrawer render state:', {
     restaurantId,
-    cartItemsLength: cartItems.length,
-    totalCount,
-    totalAmount,
-    hasCartItems,
-    isEmpty,
+    cartItemsLength: cart.cartItems.length,
     lastSyncTime: cart.lastSyncTime,
-    cartItems: cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+    cartItems: cart.cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
   });
 
   const handleManualSync = useCallback(() => {
@@ -66,90 +55,95 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     }
   }, [cart, toast]);
 
-  const handleCheckout = useCallback(async () => {
-    console.log('💳 Checkout process starting');
+  const handleEmergencyReset = useCallback(() => {
+    console.log('🚨 Emergency cart reset triggered');
+    cart.resetCart();
+    toast({
+      title: "Cart reset",
+      description: "Your cart has been completely reset.",
+      duration: 2000,
+    });
+  }, [cart, toast]);
+
+  const handleCheckout = useCallback(() => {
+    console.log('💳 Checkout process starting - synchronous validation');
     
-    // Force refresh cart before checkout validation
-    console.log('🔄 Force refreshing cart before checkout');
-    const refreshSuccess = cart.forceRefresh();
+    // Get latest cart state directly from localStorage
+    const validation = cart.validateCartState();
+    const latestItems = validation.latestItems;
+    const latestCount = cart.getCartCount(latestItems);
+    const latestHasItems = cart.hasItems(latestItems);
     
-    if (!refreshSuccess) {
-      console.error('❌ Failed to refresh cart before checkout');
+    console.log('🔍 Synchronous checkout validation:', {
+      validation,
+      latestItemsLength: latestItems.length,
+      latestCount,
+      latestHasItems,
+      reactStateLength: cart.cartItems.length,
+      items: latestItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+    });
+
+    // If validation fails, offer recovery options
+    if (!validation.isValid) {
+      console.error('❌ Cart validation failed:', validation.issues);
       toast({
-        title: "Cart sync error",
-        description: "Please refresh the cart and try again.",
+        title: "Cart validation failed",
+        description: (
+          <div className="space-y-2">
+            <p>Cart state is inconsistent:</p>
+            <ul className="text-xs">
+              {validation.issues.map((issue, index) => (
+                <li key={index}>• {issue}</li>
+              ))}
+            </ul>
+            <div className="flex gap-2 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualSync}
+                className="text-xs"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Sync Cart
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEmergencyReset}
+                className="text-xs"
+              >
+                Reset Cart
+              </Button>
+            </div>
+          </div>
+        ),
+        variant: "destructive",
+        duration: 10000,
+      });
+      return;
+    }
+
+    // Check if cart is actually empty using latest data
+    if (latestItems.length === 0 || latestCount === 0 || !latestHasItems) {
+      console.log('❌ Cart is empty - Latest state:', {
+        itemsLength: latestItems.length,
+        count: latestCount,
+        hasItems: latestHasItems
+      });
+      toast({
+        title: "Cart is empty",
+        description: "Please add some items to your cart before checkout.",
         variant: "destructive",
         duration: 3000,
       });
       return;
     }
-
-    // Wait a moment for state to update, then validate
-    setTimeout(() => {
-      const validation = cart.validateCartState();
-      const currentItems = cart.cartItems || [];
-      const currentCount = cart.getCartCount();
-      const currentHasItems = cart.hasItems();
-      
-      console.log('🔍 Pre-checkout validation:', {
-        validation,
-        currentItemsLength: currentItems.length,
-        currentCount,
-        currentHasItems,
-        items: currentItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
-      });
-
-      if (!validation.isValid) {
-        console.error('❌ Cart validation failed:', validation.issues);
-        toast({
-          title: "Cart validation failed",
-          description: (
-            <div className="space-y-2">
-              <p>Cart state is inconsistent:</p>
-              <ul className="text-xs">
-                {validation.issues.map((issue, index) => (
-                  <li key={index}>• {issue}</li>
-                ))}
-              </ul>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleManualSync}
-                className="mt-2"
-              >
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Sync Cart
-              </Button>
-            </div>
-          ),
-          variant: "destructive",
-          duration: 8000,
-        });
-        return;
-      }
-
-      // Final check - use fresh cart state
-      if (currentItems.length === 0 || currentCount === 0 || !currentHasItems) {
-        console.log('❌ Cart is empty after validation - Current state:', {
-          itemsLength: currentItems.length,
-          count: currentCount,
-          hasItems: currentHasItems
-        });
-        toast({
-          title: "Cart is empty",
-          description: "Please add some items to your cart before checkout.",
-          variant: "destructive",
-          duration: 3000,
-        });
-        return;
-      }
-      
-      // If we reach here, cart is valid - proceed to checkout
-      console.log('✅ Cart validation passed, proceeding to checkout');
-      setIsOpen(false);
-      navigate(`/checkout?restaurantId=${restaurantId}`);
-    }, 100);
-  }, [cart, toast, navigate, restaurantId, handleManualSync]);
+    
+    // Cart is valid - proceed to checkout
+    console.log('✅ Cart validation passed, proceeding to checkout');
+    setIsOpen(false);
+    navigate(`/checkout?restaurantId=${restaurantId}`);
+  }, [cart, toast, navigate, restaurantId, handleManualSync, handleEmergencyReset]);
 
   const handleUpdateQuantity = useCallback(async (itemId: string, quantity: number, customizations?: string) => {
     console.log('🔄 CartDrawer updating quantity:', { itemId, quantity, customizations });
@@ -162,7 +156,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     setIsProcessing(true);
     
     try {
-      const success = await cart.updateQuantity(itemId, quantity, customizations);
+      const success = cart.updateQuantity(itemId, quantity, customizations);
       
       if (success) {
         console.log('✅ Quantity update successful');
@@ -204,7 +198,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     setIsProcessing(true);
     
     try {
-      const success = await cart.removeFromCart(itemId, customizations);
+      const success = cart.removeFromCart(itemId, customizations);
       
       if (success) {
         console.log('✅ Item removal successful');
@@ -235,6 +229,19 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
     }
   }, [cart, toast, isProcessing]);
 
+  // Use single calculations per render to avoid inconsistencies
+  const cartItems = cart.cartItems;
+  const totalCount = cart.getCartCount();
+  const totalAmount = cart.getCartTotal();
+  const isEmpty = cartItems.length === 0 || totalCount === 0;
+
+  console.log('📊 CartDrawer final state:', { 
+    cartItemsLength: cartItems.length, 
+    totalCount, 
+    totalAmount, 
+    isEmpty 
+  });
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
@@ -262,15 +269,25 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                 {isEmpty ? 'Your cart is empty' : 'Review your items before checkout'}
               </SheetDescription>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleManualSync}
-              className="text-xs"
-            >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Sync
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleManualSync}
+                className="text-xs"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Sync
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleEmergencyReset}
+                className="text-xs text-destructive hover:text-destructive"
+              >
+                Reset
+              </Button>
+            </div>
           </div>
         </SheetHeader>
 
@@ -280,23 +297,6 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
               <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Your cart is empty</p>
               <p className="text-sm text-muted-foreground mt-2">Add some delicious items to get started!</p>
-              {cartItems.length !== totalCount && (
-                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-yellow-800">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="text-xs">Cart state mismatch detected</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleManualSync}
-                    className="mt-2 text-xs"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Fix Cart
-                  </Button>
-                </div>
-              )}
             </div>
           </div>
         ) : (
