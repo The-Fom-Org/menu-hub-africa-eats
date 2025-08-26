@@ -1,21 +1,24 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { QrCode, Clock, MapPin, Search, Star } from 'lucide-react';
+import { Clock, MapPin, Search, Star } from 'lucide-react';
 import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import { useCart } from '@/hooks/useCart';
-import { MenuItemCard } from '@/components/customer/MenuItemCard';
 import { CartDrawer } from '@/components/customer/CartDrawer';
-import { HeroSection } from '@/components/customer/HeroSection';
 import { UpsellSection } from '@/components/customer/UpsellSection';
-import { getCategoryEmoji } from '@/components/customer/CategoryEmojis';
+import { AnimatedHeroSection } from '@/components/customer/AnimatedHeroSection';
+import { AnimatedCategoryBar } from '@/components/customer/AnimatedCategoryBar';
+import { AnimatedMenuSection } from '@/components/customer/AnimatedMenuSection';
+import { AnimatedCartBar } from '@/components/customer/AnimatedCartBar';
+import { motion, AnimatePresence } from 'framer-motion';
+import { heroVariants } from '@/lib/motion-variants';
 
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
@@ -25,10 +28,10 @@ const CustomerMenu = () => {
   const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
   const [searchTerm, setSearchTerm] = useState('');
   const [showChefSpecials, setShowChefSpecials] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('');
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Detect customer flow based on URL parameters or referrer
     const qrParam = searchParams.get('qr');
     const tableParam = searchParams.get('table');
     
@@ -41,12 +44,10 @@ const CustomerMenu = () => {
     }
   }, [searchParams, setOrderType]);
 
-  // Get Chef's Special items
   const chefSpecialItems = categories.flatMap(category => 
     category.menu_items?.filter(item => item.is_chef_special && item.is_available) || []
   );
 
-  // Filter items based on search term
   const filteredCategories = categories.map(category => ({
     ...category,
     menu_items: category.menu_items?.filter(item => 
@@ -55,19 +56,23 @@ const CustomerMenu = () => {
       item.persuasion_description?.toLowerCase().includes(searchTerm.toLowerCase())
     ) || []
   })).filter(category => 
-    // Show category if it has matching items OR if no search term
     !searchTerm || category.menu_items.length > 0
   );
 
-  // Use filtered categories for display, or show chef specials if that mode is active
   const categoriesToShow = showChefSpecials 
     ? [{ id: 'chef-specials', name: "Chef's Specials", description: 'Our signature dishes hand-picked by the chef', menu_items: chefSpecialItems }]
     : (searchTerm ? filteredCategories : categories);
 
-  // Find the first category with items for search results
   const defaultActiveTab = searchTerm 
     ? categoriesToShow.find(cat => cat.menu_items && cat.menu_items.length > 0)?.id || categoriesToShow[0]?.id
     : categoriesToShow[0]?.id;
+
+  // Update active tab when categories change
+  useEffect(() => {
+    if (defaultActiveTab && !activeTab) {
+      setActiveTab(defaultActiveTab);
+    }
+  }, [defaultActiveTab, activeTab]);
 
   const scrollToMenu = () => {
     menuRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,7 +115,6 @@ const CustomerMenu = () => {
     );
   }
 
-  // Apply custom branding colors as CSS variables
   const brandingStyles = restaurantInfo ? {
     '--brand-primary': restaurantInfo.primary_color || 'hsl(25 85% 55%)',
     '--brand-secondary': restaurantInfo.secondary_color || 'hsl(120 50% 25%)',
@@ -119,10 +123,14 @@ const CustomerMenu = () => {
   return (
     <div className="min-h-screen bg-background" style={brandingStyles}>
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b shadow-sm">
+      <motion.header 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b shadow-sm"
+      >
         <div className="max-w-6xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center justify-between">
-            {/* Left: Logo & Restaurant Name */}
             <div className="flex items-center space-x-2 sm:space-x-3">
               {restaurantInfo?.logo_url ? (
                 <img 
@@ -148,26 +156,35 @@ const CustomerMenu = () => {
               </div>
             </div>
 
-            {/* Center: Chef's Special Button */}
             {chefSpecialItems.length > 0 && (
-              <Button
-                onClick={scrollToChefSpecials}
-                variant="outline"
-                size="sm"
-                className="hidden sm:flex items-center gap-2 border-primary/20 hover:bg-primary/10"
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+                className="hidden sm:block"
               >
-                <Star className="h-4 w-4 text-primary fill-current" />
-                <span className="font-medium">Chef's Special</span>
-              </Button>
+                <Button
+                  onClick={scrollToChefSpecials}
+                  variant="outline"
+                  size="sm"
+                  className="items-center gap-2 border-primary/20 hover:bg-primary/10"
+                >
+                  <Star className="h-4 w-4 text-primary fill-current" />
+                  <span className="font-medium">Chef's Special</span>
+                </Button>
+              </motion.div>
             )}
             
-            {/* Right: Cart */}
             <CartDrawer restaurantId={restaurantId!} />
           </div>
           
-          {/* Mobile Chef's Special Button */}
           {chefSpecialItems.length > 0 && (
-            <div className="mt-2 sm:hidden">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+              className="mt-2 sm:hidden"
+            >
               <Button
                 onClick={scrollToChefSpecials}
                 variant="outline"
@@ -177,20 +194,25 @@ const CustomerMenu = () => {
                 <Star className="h-4 w-4 text-primary fill-current" />
                 <span className="font-medium">Chef's Special ({chefSpecialItems.length} items)</span>
               </Button>
-            </div>
+            </motion.div>
           )}
         </div>
-      </header>
+      </motion.header>
 
       {/* Hero Section */}
-      <HeroSection
+      <AnimatedHeroSection
         restaurantName={restaurantInfo?.name || 'Restaurant'}
         coverImageUrl={restaurantInfo?.cover_image_url}
         onScrollToMenu={scrollToMenu}
       />
 
       {/* Search Bar */}
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 mb-4 sm:mb-6">
+      <motion.div 
+        variants={heroVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-6xl mx-auto px-2 sm:px-4 mb-4 sm:mb-6"
+      >
         <div className="relative max-w-md mx-auto">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -203,126 +225,105 @@ const CustomerMenu = () => {
             className="bg-secondary hover:bg-primary/90 text-primary-foreground px-8 py-2 sm:py-3 text-sm sm:text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
           />
         </div>
-      </div>
+      </motion.div>
 
-      {/* Back to All Categories Button (when showing chef specials) */}
-      {showChefSpecials && (
-        <div className="max-w-6xl mx-auto px-2 sm:px-4 mb-4">
-          <Button
-            onClick={() => setShowChefSpecials(false)}
-            variant="ghost"
-            size="sm"
-            className="mb-4"
+      {/* Back to All Categories Button */}
+      <AnimatePresence>
+        {showChefSpecials && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="max-w-6xl mx-auto px-2 sm:px-4 mb-4"
           >
-            ← Back to All Categories
-          </Button>
-        </div>
-      )}
+            <Button
+              onClick={() => setShowChefSpecials(false)}
+              variant="ghost"
+              size="sm"
+              className="mb-4"
+            >
+              ← Back to All Categories
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Menu Content */}
-      <main ref={menuRef} className="max-w-6xl mx-auto px-2 sm:px-4 pb-6 sm:pb-8">
+      <main ref={menuRef} className="max-w-6xl mx-auto px-2 sm:px-4 pb-6 sm:pb-8 mb-20">
         {searchTerm && categoriesToShow.length === 0 ? (
-          <Card className="bg-card/50 backdrop-blur-sm">
-            <CardContent className="py-6 sm:py-8 text-center">
-              <p className="text-muted-foreground">No items found matching "{searchTerm}"</p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="bg-card/50 backdrop-blur-sm">
+              <CardContent className="py-6 sm:py-8 text-center">
+                <p className="text-muted-foreground">No items found matching "{searchTerm}"</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         ) : categories.length === 0 ? (
-          <Card className="bg-card/50 backdrop-blur-sm">
-            <CardContent className="py-6 sm:py-8 text-center">
-              <p className="text-muted-foreground">No menu items available at the moment.</p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="bg-card/50 backdrop-blur-sm">
+              <CardContent className="py-6 sm:py-8 text-center">
+                <p className="text-muted-foreground">No menu items available at the moment.</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         ) : (
           <>
-            <Tabs key={`${searchTerm}-${showChefSpecials}`} defaultValue={defaultActiveTab} className="space-y-4 sm:space-y-6">
-              {/* Category Tabs - Horizontal Scroll */}
-              <div className="sticky top-16 sm:top-20 z-40 bg-background/95 backdrop-blur-md py-2 sm:py-4 -mx-2 sm:-mx-4 px-2 sm:px-4 border-b">
-                <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 backdrop-blur-sm p-1 h-auto">
-                  {categoriesToShow.map((category) => (
-                    <TabsTrigger 
-                      key={category.id} 
-                      value={category.id} 
-                      className="whitespace-nowrap flex items-center gap-1 sm:gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm"
-                    >
-                      <span className="text-sm sm:text-lg">{getCategoryEmoji(category.name)}</span>
-                      <span className="font-medium">{category.name}</span>
-                      {(searchTerm || showChefSpecials) && category.menu_items && category.menu_items.length > 0 && (
-                        <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">
-                          {category.menu_items.length}
-                        </Badge>
-                      )}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </div>
+            <Tabs key={`${searchTerm}-${showChefSpecials}`} value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+              {/* Animated Category Bar */}
+              <AnimatedCategoryBar
+                categories={categoriesToShow}
+                searchTerm={searchTerm}
+                showChefSpecials={showChefSpecials}
+                activeTab={activeTab}
+              />
 
               {/* Category Content */}
               {categoriesToShow.map((category) => (
                 <TabsContent key={category.id} value={category.id} className="space-y-4 sm:space-y-6">
-                  <div id={`category-${category.id}`}>
-                    <Card className="bg-card/50 backdrop-blur-sm">
-                      <CardHeader className="text-center py-4 sm:py-6">
-                        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
-                          <span className="text-2xl sm:text-3xl">{getCategoryEmoji(category.name)}</span>
-                          <CardTitle className="text-lg sm:text-2xl">{category.name}</CardTitle>
-                        </div>
-                        {category.description && (
-                          <p className="text-sm sm:text-base text-muted-foreground">{category.description}</p>
-                        )}
-                        {(searchTerm || showChefSpecials) && category.menu_items && category.menu_items.length > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            {showChefSpecials 
-                              ? `${category.menu_items.length} chef's special item${category.menu_items.length !== 1 ? 's' : ''}`
-                              : `Found ${category.menu_items.length} item${category.menu_items.length !== 1 ? 's' : ''} matching "${searchTerm}"`
-                            }
-                          </p>
-                        )}
-                      </CardHeader>
-                    </Card>
-
-                    {/* Menu Items Grid */}
-                    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                      {category.menu_items && category.menu_items.length > 0 ? (
-                        category.menu_items.map((item) => (
-                          <MenuItemCard
-                            key={item.id}
-                            item={item}
-                            restaurantId={restaurantId!}
-                          />
-                        ))
-                      ) : (
-                        <Card className="col-span-full bg-card/50 backdrop-blur-sm">
-                          <CardContent className="py-6 sm:py-8 text-center">
-                            <p className="text-muted-foreground text-sm sm:text-base">
-                              {showChefSpecials 
-                                ? "No chef's special items available at the moment."
-                                : (searchTerm ? `No items found matching "${searchTerm}" in this category.` : 'No items in this category yet.')
-                              }
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  </div>
+                  <AnimatedMenuSection
+                    category={category}
+                    restaurantId={restaurantId!}
+                    searchTerm={searchTerm}
+                    showChefSpecials={showChefSpecials}
+                  />
                 </TabsContent>
               ))}
             </Tabs>
 
-            {/* Upsell Section - Show when cart has items */}
+            {/* Upsell Section */}
             {cartCount > 0 && !showChefSpecials && (
-              <UpsellSection
-                restaurantId={restaurantId!}
-                allItems={allMenuItems}
-                currentCartItems={cartItems}
-              />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.4 }}
+              >
+                <UpsellSection
+                  restaurantId={restaurantId!}
+                  allItems={allMenuItems}
+                  currentCartItems={cartItems}
+                />
+              </motion.div>
             )}
           </>
         )}
       </main>
+
+      {/* Animated Cart Bar */}
+      <AnimatedCartBar restaurantId={restaurantId!} />
       
       {/* Flow Indicator */}
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.4 }}
+        className="max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-4"
+      >
         <Card 
           className="border-l-4 bg-card/50 backdrop-blur-sm"
           style={{ 
@@ -379,7 +380,7 @@ const CustomerMenu = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 };
