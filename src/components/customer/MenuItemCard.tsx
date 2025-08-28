@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -188,30 +189,32 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   return (
     <>
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-background/80 backdrop-blur-sm">
-        {/* Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {imageSrc ? (
-            <img 
-              src={imageSrc} 
-              alt={item.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-              onError={(e) => {
-                // Fallback to emoji if image fails to load
-                e.currentTarget.style.display = 'none';
-                const parent = e.currentTarget.parentElement;
-                if (parent && !parent.querySelector('.fallback-emoji')) {
-                  const fallback = document.createElement('div');
-                  fallback.className = 'fallback-emoji w-full h-full flex items-center justify-center text-4xl';
-                  fallback.textContent = '🍽️';
-                  parent.appendChild(fallback);
-                }
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-4xl">
-              🍽️
-            </div>
-          )}
+        {/* Circular Image Container */}
+        <div className="relative flex justify-center pt-4 pb-2">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-muted border-4 border-background shadow-lg">
+            {imageSrc ? (
+              <img 
+                src={imageSrc} 
+                alt={item.name}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                onError={(e) => {
+                  // Fallback to emoji if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent && !parent.querySelector('.fallback-emoji')) {
+                    const fallback = document.createElement('div');
+                    fallback.className = 'fallback-emoji w-full h-full flex items-center justify-center text-2xl sm:text-3xl';
+                    fallback.textContent = '🍽️';
+                    parent.appendChild(fallback);
+                  }
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl">
+                🍽️
+              </div>
+            )}
+          </div>
           
           {/* Popularity Badge */}
           {item.popularity_badge && (
@@ -238,44 +241,44 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
           )}
         </div>
         
-        <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+        <CardHeader className="pb-2 px-3 sm:px-4 pt-2 text-center">
           <div className="space-y-2">
             {/* Item Name */}
-            <h3 className="font-bold text-sm sm:text-lg leading-tight text-foreground line-clamp-2">
+            <h3 className="font-bold text-sm sm:text-base leading-tight text-foreground line-clamp-2">
               {item.name}
             </h3>
             
             {/* Persuasion Description */}
             {item.persuasion_description && (
-              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 font-medium">
+              <p className="text-xs text-muted-foreground line-clamp-2 font-medium">
                 {item.persuasion_description}
               </p>
             )}
             
             {/* Regular Description */}
             {item.description && !item.persuasion_description && (
-              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+              <p className="text-xs text-muted-foreground line-clamp-2">
                 {item.description}
               </p>
             )}
 
             {/* Price */}
-            <div className="flex items-center justify-between">
-              <span className="text-lg sm:text-xl font-bold text-primary">
+            <div className="flex items-center justify-center">
+              <span className="text-lg font-bold text-primary">
                 KSh {item.price.toFixed(2)}
               </span>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="pt-0 pb-3 sm:pb-4 px-3 sm:px-6">
+        <CardContent className="pt-0 pb-3 px-3 sm:px-4">
           <div className="flex items-center gap-2">
             {/* Customize Button */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowCustomization(true)}
-              className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs sm:text-sm"
+              className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs"
               disabled={isProcessing}
             >
               Customize
@@ -286,34 +289,34 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
               <Button
                 onClick={handleQuickAdd}
                 size="sm"
-                className="px-4 sm:px-6 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm"
+                className="px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs"
                 disabled={isProcessing}
               >
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <Plus className="h-3 w-3 mr-1" />
                 {isProcessing ? 'Adding...' : 'Add'}
               </Button>
             ) : (
-              <div className="flex items-center gap-1 sm:gap-2 bg-muted rounded-full p-1">
+              <div className="flex items-center gap-1 bg-muted rounded-full p-1">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleDecrease}
-                  className="h-6 w-6 sm:h-8 sm:w-8 p-0 rounded-full hover:bg-background"
+                  className="h-6 w-6 p-0 rounded-full hover:bg-background"
                   disabled={isProcessing}
                 >
-                  <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <Minus className="h-3 w-3" />
                 </Button>
-                <span className="text-xs sm:text-sm font-bold w-6 sm:w-8 text-center">
+                <span className="text-xs font-bold w-6 text-center">
                   {currentQuantity}
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleQuickAdd}
-                  className="h-6 w-6 sm:h-8 sm:w-8 p-0 rounded-full hover:bg-background"
+                  className="h-6 w-6 p-0 rounded-full hover:bg-background"
                   disabled={isProcessing}
                 >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <Plus className="h-3 w-3" />
                 </Button>
               </div>
             )}

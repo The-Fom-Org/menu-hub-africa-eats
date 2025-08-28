@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +12,7 @@ import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import { useCart } from '@/hooks/useCart';
 import { MenuItemCard } from '@/components/customer/MenuItemCard';
 import { CartDrawer } from '@/components/customer/CartDrawer';
-import { HeroSection } from '@/components/customer/HeroSection';
+import { CarouselHeroSection } from '@/components/customer/CarouselHeroSection';
 import { UpsellSection } from '@/components/customer/UpsellSection';
 import { getCategoryEmoji } from '@/components/customer/CategoryEmojis';
 
@@ -182,8 +181,8 @@ const CustomerMenu = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <HeroSection
+      {/* Carousel Hero Section */}
+      <CarouselHeroSection
         restaurantName={restaurantInfo?.name || 'Restaurant'}
         coverImageUrl={restaurantInfo?.cover_image_url}
         onScrollToMenu={scrollToMenu}
@@ -281,8 +280,8 @@ const CustomerMenu = () => {
                       </CardHeader>
                     </Card>
 
-                    {/* Menu Items Grid */}
-                    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    {/* Menu Items Grid - 2 columns */}
+                    <div className="grid gap-4 grid-cols-2 sm:gap-6">
                       {category.menu_items && category.menu_items.length > 0 ? (
                         category.menu_items.map((item) => (
                           <MenuItemCard
