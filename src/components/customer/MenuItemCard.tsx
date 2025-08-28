@@ -188,9 +188,9 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
 
   return (
     <>
-      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-background/80 backdrop-blur-sm">
-        {/* Circular Image Container */}
-        <div className="relative flex justify-center pt-4 pb-2">
+      <Card className="w-full h-full flex flex-col overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-background/80 backdrop-blur-sm">
+        {/* Circular Image Container - Fixed positioning */}
+        <div className="relative flex justify-center pt-4 pb-2 flex-shrink-0">
           <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-muted border-4 border-background shadow-lg">
             {imageSrc ? (
               <img 
@@ -241,87 +241,90 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
           )}
         </div>
         
-        <CardHeader className="pb-2 px-3 sm:px-4 pt-2 text-center">
-          <div className="space-y-2">
-            {/* Item Name */}
-            <h3 className="font-bold text-sm sm:text-base leading-tight text-foreground line-clamp-2">
-              {item.name}
-            </h3>
-            
-            {/* Persuasion Description */}
-            {item.persuasion_description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 font-medium">
-                {item.persuasion_description}
-              </p>
-            )}
-            
-            {/* Regular Description */}
-            {item.description && !item.persuasion_description && (
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {item.description}
-              </p>
-            )}
+        {/* Content Area - Flexible grow */}
+        <div className="flex-1 flex flex-col">
+          <CardHeader className="pb-2 px-3 sm:px-4 pt-2 text-center flex-shrink-0">
+            <div className="space-y-2">
+              {/* Item Name */}
+              <h3 className="font-bold text-sm sm:text-base leading-tight text-foreground line-clamp-2 min-h-[2.5rem]">
+                {item.name}
+              </h3>
+              
+              {/* Description - Fixed height */}
+              <div className="min-h-[2.5rem] flex items-center justify-center">
+                {item.persuasion_description ? (
+                  <p className="text-xs text-muted-foreground line-clamp-2 font-medium">
+                    {item.persuasion_description}
+                  </p>
+                ) : item.description ? (
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {item.description}
+                  </p>
+                ) : null}
+              </div>
 
-            {/* Price */}
-            <div className="flex items-center justify-center">
-              <span className="text-lg font-bold text-primary">
-                KSh {item.price.toFixed(2)}
-              </span>
+              {/* Price */}
+              <div className="flex items-center justify-center">
+                <span className="text-lg font-bold text-primary">
+                  KSh {item.price.toFixed(2)}
+                </span>
+              </div>
             </div>
-          </div>
-        </CardHeader>
+          </CardHeader>
 
-        <CardContent className="pt-0 pb-3 px-3 sm:px-4">
-          <div className="flex items-center gap-2">
-            {/* Customize Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCustomization(true)}
-              className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs"
-              disabled={isProcessing}
-            >
-              Customize
-            </Button>
-            
-            {/* Add/Quantity Controls */}
-            {currentQuantity === 0 ? (
+          {/* Action Buttons - Fixed at bottom */}
+          <CardContent className="pt-0 pb-3 px-3 sm:px-4 mt-auto">
+            <div className="flex items-center gap-2">
+              {/* Customize Button */}
               <Button
-                onClick={handleQuickAdd}
+                variant="outline"
                 size="sm"
-                className="px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs"
+                onClick={() => setShowCustomization(true)}
+                className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs"
                 disabled={isProcessing}
               >
-                <Plus className="h-3 w-3 mr-1" />
-                {isProcessing ? 'Adding...' : 'Add'}
+                Customize
               </Button>
-            ) : (
-              <div className="flex items-center gap-1 bg-muted rounded-full p-1">
+              
+              {/* Add/Quantity Controls */}
+              {currentQuantity === 0 ? (
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDecrease}
-                  className="h-6 w-6 p-0 rounded-full hover:bg-background"
-                  disabled={isProcessing}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <span className="text-xs font-bold w-6 text-center">
-                  {currentQuantity}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
                   onClick={handleQuickAdd}
-                  className="h-6 w-6 p-0 rounded-full hover:bg-background"
+                  size="sm"
+                  className="px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs"
                   disabled={isProcessing}
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-3 w-3 mr-1" />
+                  {isProcessing ? 'Adding...' : 'Add'}
                 </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
+              ) : (
+                <div className="flex items-center gap-1 bg-muted rounded-full p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDecrease}
+                    className="h-6 w-6 p-0 rounded-full hover:bg-background"
+                    disabled={isProcessing}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="text-xs font-bold w-6 text-center">
+                    {currentQuantity}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleQuickAdd}
+                    className="h-6 w-6 p-0 rounded-full hover:bg-background"
+                    disabled={isProcessing}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </div>
       </Card>
 
       <MenuItemCustomizationDialog
