@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -70,7 +69,7 @@ serve(async (req) => {
 
     console.log('📱 Found', subscriptions.length, 'subscriptions for order:', orderId)
 
-    // Prepare notification content based on status
+    // Prepare notification content based on status (still useful for logs/consistency)
     const getNotificationContent = (status: string) => {
       switch (status) {
         case 'confirmed':
@@ -107,7 +106,8 @@ serve(async (req) => {
     }
 
     const { title, body } = getNotificationContent(orderStatus)
-    
+    console.log('📝 Notification content (no-payload):', { title, body })
+
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')
     const vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa40HcCWLWpRS3aayd6oZtql3BGFyXl4FvTZrYlBaU7YTJjFID5gcmqinVc5eg'
     
@@ -124,23 +124,10 @@ serve(async (req) => {
 
     console.log('🔑 Using VAPID keys for authentication')
 
-    // Send push notifications to all subscriptions
+    // Send push notifications to all subscriptions using NO-PAYLOAD push
     const pushPromises = subscriptions.map(async (sub: PushSubscription) => {
       try {
-        console.log('📱 Sending push to endpoint:', sub.endpoint.substring(0, 50) + '...')
-
-        const payload = JSON.stringify({
-          title,
-          body,
-          icon: '/menuhub.png',
-          badge: '/menuhub.png',
-          tag: `order-${orderId}`,
-          data: {
-            orderId,
-            orderStatus,
-            url: '/',
-          },
-        })
+        console.log('📨 Sending NO-PAYLOAD push to:', sub.endpoint.substring(0, 80) + '...')
 
         // Create VAPID JWT token
         const jwt = await createVapidJWT(sub.endpoint, vapidPublicKey, vapidPrivateKey)
@@ -150,44 +137,59 @@ serve(async (req) => {
           return { success: false, endpoint: sub.endpoint, error: 'JWT creation failed' }
         }
 
-        // Encrypt the payload
-        const encryptedPayload = await encryptPayload(payload, sub.p256dh, sub.auth)
-
+        // No body, no Content-Encoding. Only TTL and Authorization.
         const response = await fetch(sub.endpoint, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/octet-stream',
-            'Content-Encoding': 'aes128gcm',
             'TTL': '86400',
             'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`,
+            'Urgency': 'normal',
+            'Topic': `order-${orderId}`,
           },
-          body: encryptedPayload,
         })
 
         if (!response.ok) {
-          const errorText = await response.text()
-          console.error(`❌ Push failed for subscription ${sub.endpoint}:`, response.status, errorText)
-          return { success: false, endpoint: sub.endpoint, status: response.status, error: errorText }
-        } else {
-          console.log(`✅ Push sent successfully to ${sub.endpoint.substring(0, 50)}...`)
-          return { success: true, endpoint: sub.endpoint }
+          const text = await response.text().catch(() => '')
+          console.error(`❌ Push failed for ${sub.endpoint}:`, response.status, text)
+
+          // Clean up stale subscriptions
+          if (response.status === 404 || response.status === 410) {
+            console.log('🧹 Removing expired subscription for endpoint:', sub.endpoint)
+            const { error: delError } = await supabaseClient
+              .from('push_subscriptions')
+              .delete()
+              .eq('endpoint', sub.endpoint)
+              .eq('order_id', orderId)
+
+            if (delError) {
+              console.error('❌ Failed cleaning up subscription:', delError)
+            } else {
+              console.log('✅ Removed expired subscription:', sub.endpoint)
+            }
+          }
+
+          return { success: false, endpoint: sub.endpoint, status: response.status, error: text }
         }
+
+        console.log(`✅ Push sent successfully to ${sub.endpoint.substring(0, 80)}...`)
+        return { success: true, endpoint: sub.endpoint }
       } catch (error) {
         console.error(`❌ Error sending push to ${sub.endpoint}:`, error)
-        return { success: false, endpoint: sub.endpoint, error: error.message }
+        return { success: false, endpoint: sub.endpoint, error: (error as Error)?.message }
       }
     })
 
     const results = await Promise.all(pushPromises)
     const successCount = results.filter(r => r.success).length
 
-    console.log(`📱 Push notifications sent: ${successCount}/${subscriptions.length}`)
-
+    console.log(`📊 Push notifications sent: ${successCount}/${subscriptions.length} (no-payload mode)`)
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
         sent: successCount, 
         total: subscriptions.length,
+        mode: 'no-payload',
         results 
       }),
       { 
