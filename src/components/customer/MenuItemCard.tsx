@@ -241,17 +241,17 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
           )}
         </div>
         
-        {/* Content Area - Flexible grow */}
-        <div className="flex-1 flex flex-col">
-          <CardHeader className="pb-2 px-3 sm:px-4 pt-2 text-center flex-shrink-0">
+        {/* Content Area - Flexible grow with better spacing */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <CardHeader className="pb-3 px-3 sm:px-4 pt-2 text-center flex-shrink-0">
             <div className="space-y-2">
               {/* Item Name */}
-              <h3 className="font-bold text-sm sm:text-base leading-tight text-foreground line-clamp-2 min-h-[2.5rem]">
+              <h3 className="font-bold text-sm sm:text-base leading-tight text-foreground line-clamp-2">
                 {item.name}
               </h3>
               
-              {/* Description - Fixed height */}
-              <div className="min-h-[2.5rem] flex items-center justify-center">
+              {/* Description - Flexible height */}
+              <div className="flex items-center justify-center min-h-[2rem]">
                 {item.persuasion_description ? (
                   <p className="text-xs text-muted-foreground line-clamp-2 font-medium">
                     {item.persuasion_description}
@@ -272,15 +272,15 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
             </div>
           </CardHeader>
 
-          {/* Action Buttons - Fixed at bottom */}
-          <CardContent className="pt-0 pb-3 px-3 sm:px-4 mt-auto">
+          {/* Action Buttons - Fixed at bottom with adequate padding */}
+          <CardContent className="pt-0 pb-4 px-3 sm:px-4 mt-auto">
             <div className="flex items-center gap-2">
               {/* Customize Button */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCustomization(true)}
-                className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs"
+                className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs min-h-[2rem]"
                 disabled={isProcessing}
               >
                 Customize
@@ -291,7 +291,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                 <Button
                   onClick={handleQuickAdd}
                   size="sm"
-                  className="px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs"
+                  className="px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs min-h-[2rem]"
                   disabled={isProcessing}
                 >
                   <Plus className="h-3 w-3 mr-1" />
@@ -303,7 +303,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={handleDecrease}
-                    className="h-6 w-6 p-0 rounded-full hover:bg-background"
+                    className="h-7 w-7 p-0 rounded-full hover:bg-background"
                     disabled={isProcessing}
                   >
                     <Minus className="h-3 w-3" />
@@ -315,7 +315,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={handleQuickAdd}
-                    className="h-6 w-6 p-0 rounded-full hover:bg-background"
+                    className="h-7 w-7 p-0 rounded-full hover:bg-background"
                     disabled={isProcessing}
                   >
                     <Plus className="h-3 w-3" />

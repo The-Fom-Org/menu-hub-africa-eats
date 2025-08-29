@@ -191,8 +191,8 @@ const CustomerMenu = () => {
         onScrollToMenu={scrollToMenu}
       />
 
-      {/* Search Bar */}
-      <div className="max-w-6xl mx-auto px-4 mb-6">
+      {/* Search Bar - Reduced spacing */}
+      <div className="max-w-6xl mx-auto px-4 py-4">
         <div className="relative max-w-md mx-auto">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -283,7 +283,7 @@ const CustomerMenu = () => {
                       </CardHeader>
                     </Card>
 
-                    {/* Menu Items Grid - Responsive 2-column layout */}
+                    {/* Menu Items Grid - Responsive 2-column layout with better spacing */}
                     <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 auto-rows-fr">
                       {category.menu_items && category.menu_items.length > 0 ? (
                         category.menu_items.map((item) => (
