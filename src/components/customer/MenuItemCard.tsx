@@ -190,8 +190,8 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
     <>
       <Card className="w-full h-full flex flex-col overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-background/80 backdrop-blur-sm">
         {/* Circular Image Container - Fixed positioning */}
-        <div className="relative flex justify-center pt-4 pb-2 flex-shrink-0">
-          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-muted border-4 border-background shadow-lg">
+        <div className="relative flex justify-center pt-3 pb-2 flex-shrink-0">
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-muted border-3 border-background shadow-lg">
             {imageSrc ? (
               <img 
                 src={imageSrc} 
@@ -203,14 +203,14 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                   const parent = e.currentTarget.parentElement;
                   if (parent && !parent.querySelector('.fallback-emoji')) {
                     const fallback = document.createElement('div');
-                    fallback.className = 'fallback-emoji w-full h-full flex items-center justify-center text-2xl sm:text-3xl';
+                    fallback.className = 'fallback-emoji w-full h-full flex items-center justify-center text-xl sm:text-2xl';
                     fallback.textContent = '🍽️';
                     parent.appendChild(fallback);
                   }
                 }}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl">
+              <div className="w-full h-full flex items-center justify-center text-xl sm:text-2xl">
                 🍽️
               </div>
             )}
@@ -220,7 +220,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
           {item.popularity_badge && (
             <Badge 
               variant="secondary" 
-              className="absolute top-2 left-2 bg-primary/90 text-primary-foreground border-0 shadow-sm text-xs"
+              className="absolute top-1 left-1 bg-primary/90 text-primary-foreground border-0 shadow-sm text-xs"
             >
               {getBadgeIcon(item.popularity_badge)}
               <span className="ml-1 font-medium">
@@ -233,7 +233,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
           {item.is_chef_special && (
             <Badge 
               variant="secondary" 
-              className="absolute top-2 right-2 bg-secondary/90 text-secondary-foreground border-0 shadow-sm text-xs"
+              className="absolute top-1 right-1 bg-secondary/90 text-secondary-foreground border-0 shadow-sm text-xs"
             >
               <Star className="h-3 w-3 fill-current mr-1" />
               <span className="font-medium">Special</span>
@@ -241,17 +241,17 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
           )}
         </div>
         
-        {/* Content Area - Flexible grow with better spacing */}
+        {/* Content Area - Compact spacing */}
         <div className="flex-1 flex flex-col min-h-0">
-          <CardHeader className="pb-3 px-3 sm:px-4 pt-2 text-center flex-shrink-0">
-            <div className="space-y-2">
+          <CardHeader className="pb-2 px-2 sm:px-3 pt-1 text-center flex-shrink-0">
+            <div className="space-y-1">
               {/* Item Name */}
-              <h3 className="font-bold text-sm sm:text-base leading-tight text-foreground line-clamp-2">
+              <h3 className="font-bold text-xs sm:text-sm leading-tight text-foreground line-clamp-2">
                 {item.name}
               </h3>
               
-              {/* Description - Flexible height */}
-              <div className="flex items-center justify-center min-h-[2rem]">
+              {/* Description - Compact */}
+              <div className="flex items-center justify-center min-h-[1.5rem]">
                 {item.persuasion_description ? (
                   <p className="text-xs text-muted-foreground line-clamp-2 font-medium">
                     {item.persuasion_description}
@@ -265,22 +265,22 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
 
               {/* Price */}
               <div className="flex items-center justify-center">
-                <span className="text-lg font-bold text-primary">
+                <span className="text-sm font-bold text-primary">
                   KSh {item.price.toFixed(2)}
                 </span>
               </div>
             </div>
           </CardHeader>
 
-          {/* Action Buttons - Fixed at bottom with adequate padding */}
-          <CardContent className="pt-0 pb-4 px-3 sm:px-4 mt-auto">
-            <div className="flex items-center gap-2">
+          {/* Action Buttons - Compact with proper sizing */}
+          <CardContent className="pt-0 pb-2 px-2 sm:px-3 mt-auto">
+            <div className="flex items-center gap-1">
               {/* Customize Button */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCustomization(true)}
-                className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs min-h-[2rem]"
+                className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs h-7 px-2"
                 disabled={isProcessing}
               >
                 Customize
@@ -291,7 +291,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                 <Button
                   onClick={handleQuickAdd}
                   size="sm"
-                  className="px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs min-h-[2rem]"
+                  className="px-2 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs h-7"
                   disabled={isProcessing}
                 >
                   <Plus className="h-3 w-3 mr-1" />
@@ -303,22 +303,22 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={handleDecrease}
-                    className="h-7 w-7 p-0 rounded-full hover:bg-background"
+                    className="h-5 w-5 p-0 rounded-full hover:bg-background"
                     disabled={isProcessing}
                   >
-                    <Minus className="h-3 w-3" />
+                    <Minus className="h-2 w-2" />
                   </Button>
-                  <span className="text-xs font-bold w-6 text-center">
+                  <span className="text-xs font-bold w-4 text-center">
                     {currentQuantity}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleQuickAdd}
-                    className="h-7 w-7 p-0 rounded-full hover:bg-background"
+                    className="h-5 w-5 p-0 rounded-full hover:bg-background"
                     disabled={isProcessing}
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-2 w-2" />
                   </Button>
                 </div>
               )}
