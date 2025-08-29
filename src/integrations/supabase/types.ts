@@ -41,6 +41,63 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_leads: {
+        Row: {
+          converted_to_order: boolean | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string
+          dietary_restrictions: string[] | null
+          dining_frequency: string | null
+          favorite_cuisines: string[] | null
+          first_order_id: string | null
+          id: string
+          lead_source: string
+          marketing_consent: boolean
+          notes: string | null
+          order_context: Json | null
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          converted_to_order?: boolean | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone: string
+          dietary_restrictions?: string[] | null
+          dining_frequency?: string | null
+          favorite_cuisines?: string[] | null
+          first_order_id?: string | null
+          id?: string
+          lead_source: string
+          marketing_consent?: boolean
+          notes?: string | null
+          order_context?: Json | null
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          converted_to_order?: boolean | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string
+          dietary_restrictions?: string[] | null
+          dining_frequency?: string | null
+          favorite_cuisines?: string[] | null
+          first_order_id?: string | null
+          id?: string
+          lead_source?: string
+          marketing_consent?: boolean
+          notes?: string | null
+          order_context?: Json | null
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           category_name: string | null
