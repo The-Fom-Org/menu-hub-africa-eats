@@ -2,6 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Crown, RefreshCw } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface SubscriptionData {
   subscribed: boolean;
@@ -33,6 +34,9 @@ export function DashboardHeader({
       </div>
       
       <div className="flex items-center gap-4">
+        {/* Notification bell for kitchen orders */}
+        <NotificationBell />
+
         {subscriptionData && (
           <div className="text-right">
             {hasSubscriptionAccess ? (

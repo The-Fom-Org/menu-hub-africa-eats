@@ -360,6 +360,39 @@ export type Database = {
           },
         ]
       }
+      restaurant_notification_settings: {
+        Row: {
+          created_at: string
+          id: string
+          last_notification_at: string | null
+          notifications_enabled: boolean
+          restaurant_id: string
+          ringtone: string
+          updated_at: string
+          volume: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_notification_at?: string | null
+          notifications_enabled?: boolean
+          restaurant_id: string
+          ringtone?: string
+          updated_at?: string
+          volume?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_notification_at?: string | null
+          notifications_enabled?: boolean
+          restaurant_id?: string
+          ringtone?: string
+          updated_at?: string
+          volume?: number
+        }
+        Relationships: []
+      }
       restaurant_payment_settings: {
         Row: {
           created_at: string
