@@ -13,7 +13,8 @@ import {
   BarChart3, 
   Crown,
   Settings,
-  ClipboardList
+  ClipboardList,
+  Users
 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
@@ -116,6 +117,16 @@ export default function Dashboard() {
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
       available: hasSubscriptionAccess
+    },
+    // New item after Manage Subscription
+    {
+      title: "Lead Funnel",
+      description: "Customer lead capture funnel",
+      icon: Users,
+      href: "/lead-funnel",
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-50",
+      available: true
     }
   ];
 

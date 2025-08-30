@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -109,7 +108,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     };
   }, [user?.id]);
 
-  // Realtime subscription for new orders
+  // Realtime subscription for new orders and waiter calls
   useEffect(() => {
     if (!user?.id) return;
 
@@ -119,7 +118,8 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     }
 
     const channel = supabase
-      .channel(`order-notify-${user.id}`)
+      .channel(`notify-${user.id}`)
+      // New orders
       .on(
         'postgres_changes',
         {
@@ -128,7 +128,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           table: 'orders',
           filter: `restaurant_id=eq.${user.id}`,
         },
-        (payload) => {
+        (payload: any) => {
           console.log('[Notifications] New order received:', payload.new?.id);
           setUnreadCount((c) => c + 1);
           setPulse(true);
@@ -139,6 +139,35 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
             const volume = settings.volume ?? defaultSettings.volume;
             playRingtone(ringtone, volume);
           }
+        }
+      )
+      // New waiter calls
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'waiter_calls',
+          filter: `restaurant_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const table = payload?.new?.table_number || 'unknown';
+          console.log('[Notifications] Waiter needed at table:', table);
+          setUnreadCount((c) => c + 1);
+          setPulse(true);
+          setTimeout(() => setPulse(false), 1500);
+
+          if (settings?.notifications_enabled) {
+            const ringtone = settings.ringtone ?? defaultSettings.ringtone;
+            const volume = settings.volume ?? defaultSettings.volume;
+            playRingtone(ringtone, volume);
+          }
+
+          // Inform via toast for clarity that this is a waiter request
+          toast({
+            title: 'Waiter needed',
+            description: `Table ${table} requested assistance.`,
+          });
         }
       )
       .subscribe((status) => {
