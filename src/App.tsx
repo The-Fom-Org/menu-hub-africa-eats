@@ -31,7 +31,6 @@ import ManageSubscription from "./pages/ManageSubscription";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import LeadFunnel from "./pages/LeadFunnel";
-import CustomerLeads from "./pages/CustomerLeads";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,7 +76,6 @@ function App() {
             <Route path="/refunds" element={<Refunds />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/customer-leads" element={<CustomerLeads />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
