@@ -163,9 +163,9 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
             playRingtone(ringtone, volume);
           }
 
-          // Inform via toast for clarity that this is a waiter request
+          // Show toast notification with waiter call info
           toast({
-            title: 'Waiter needed',
+            title: '🔔 Waiter Needed!',
             description: `Table ${table} requested assistance.`,
           });
         }
@@ -182,10 +182,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
         channelRef.current = null;
       }
     };
-    // Intentionally exclude settings from deps to avoid resubscribing;
-    // we only read latest settings at event time via closure which is okay for our simple case.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, settings?.notifications_enabled, settings?.ringtone, settings?.volume]);
+  }, [user?.id, settings?.notifications_enabled, settings?.ringtone, settings?.volume, toast]);
 
   // Mark all as read
   const markAllAsRead = () => {

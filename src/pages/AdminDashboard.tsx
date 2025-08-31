@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, Search, Save, Shield, Plus, Link } from "lucide-react";
+import { RefreshCw, Search, Save, Shield, Plus, Link, Users, TrendingUp } from "lucide-react";
 
 type Plan = "free" | "standard" | "advanced";
 
@@ -54,6 +54,25 @@ export default function AdminDashboard() {
   const [newPlan, setNewPlan] = useState<Plan>("free");
   const [newManagedBySales, setNewManagedBySales] = useState(true);
   const [newNotes, setNewNotes] = useState("");
+
+  const adminItems = [
+    {
+      title: "Subscribers",
+      description: "Manage restaurant subscriptions and billing",
+      icon: Users,
+      href: "/admin/subscribers",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50"
+    },
+    {
+      title: "Lead Funnel", 
+      description: "MenuHub lead capture and sales funnel",
+      icon: TrendingUp,
+      href: "/lead-funnel",
+      color: "text-green-600",
+      bgColor: "bg-green-50"
+    }
+  ];
 
   useEffect(() => {
     // Only redirect if we definitively have a user, loading is done, and the user is not an admin
