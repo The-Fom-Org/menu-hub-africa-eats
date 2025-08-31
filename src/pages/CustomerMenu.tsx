@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +15,7 @@ import { CartDrawer } from '@/components/customer/CartDrawer';
 import { CarouselHeroSection } from '@/components/customer/CarouselHeroSection';
 import { UpsellSection } from '@/components/customer/UpsellSection';
 import { getCategoryEmoji } from '@/components/customer/CategoryEmojis';
+import FloatingCTA from '@/components/FloatingCTA';
 
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
@@ -382,6 +382,9 @@ const CustomerMenu = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add FloatingCTA at the end */}
+      <FloatingCTA />
     </div>
   );
 };

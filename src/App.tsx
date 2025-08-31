@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -31,6 +30,7 @@ import Refunds from "./pages/Refunds";
 import ManageSubscription from "./pages/ManageSubscription";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
+import LeadFunnel from "./pages/LeadFunnel";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,6 +66,7 @@ function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/manage-subscription" element={<ManageSubscription />} />
+            <Route path="/lead-funnel" element={<LeadFunnel />} />
             <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />
