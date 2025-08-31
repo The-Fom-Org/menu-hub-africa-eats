@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -139,6 +140,11 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
             const volume = settings.volume ?? defaultSettings.volume;
             playRingtone(ringtone, volume);
           }
+
+          toast({
+            title: 'New Order!',
+            description: `Order #${payload.new?.id?.slice(-6)} received`,
+          });
         }
       )
       // New waiter calls
@@ -165,8 +171,9 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
 
           // Inform via toast for clarity that this is a waiter request
           toast({
-            title: 'Waiter needed',
+            title: 'Waiter Needed!',
             description: `Table ${table} requested assistance.`,
+            variant: 'default',
           });
         }
       )

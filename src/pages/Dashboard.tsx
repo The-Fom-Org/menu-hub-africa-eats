@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -118,12 +117,11 @@ export default function Dashboard() {
       bgColor: "bg-yellow-50",
       available: hasSubscriptionAccess
     },
-    // New item after Manage Subscription
     {
-      title: "Lead Funnel",
-      description: "Customer lead capture funnel",
+      title: "Customer Leads",
+      description: "View and manage customer leads for your restaurant",
       icon: Users,
-      href: "/lead-funnel",
+      href: "/customer-leads",
       color: "text-cyan-600",
       bgColor: "bg-cyan-50",
       available: true
