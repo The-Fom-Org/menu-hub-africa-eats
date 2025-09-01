@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,18 +8,19 @@ import { useToast } from '@/hooks/use-toast';
 import NotificationPermissionDialog from '@/components/notifications/NotificationPermissionDialog';
 
 interface OrderCreationHandlerProps {
+  restaurantId: string;
   children: (params: {
     createOrder: (orderData: any) => Promise<void>;
     isCreatingOrder: boolean;
   }) => React.ReactNode;
 }
 
-const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
+const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerProps) => {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
   const navigate = useNavigate();
-  const { clearCart, cartItems, getCartTotal } = useCart();
+  const { clearCart, cartItems, getCartTotal } = useCart(restaurantId);
   const { subscribeToPush, requestPermission, isSupported } = usePushNotifications();
   const { toast } = useToast();
 
@@ -33,7 +35,7 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
-          restaurant_id: orderData.restaurantId,
+          restaurant_id: restaurantId,
           customer_name: orderData.customerName,
           customer_phone: orderData.customerPhone,
           table_number: orderData.tableNumber,
@@ -107,7 +109,7 @@ const OrderCreationHandler = ({ children }: OrderCreationHandlerProps) => {
       description: "Your order has been submitted and is being processed.",
     });
     // Pass the customer token instead of the order ID for secure access
-    navigate(`/order-success?token=${order.customer_token}&restaurant=${orderData.restaurantId}`);
+    navigate(`/order-success?token=${order.customer_token}&restaurant=${restaurantId}`);
     setIsCreatingOrder(false);
   };
 

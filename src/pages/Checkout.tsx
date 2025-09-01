@@ -126,7 +126,7 @@ const Checkout = () => {
   };
 
   // Show loading until both restaurant data and cart are loaded
-  if (dataLoading || !isCartInitialized) {
+  if (dataLoading || !isCartInitialized || !restaurantId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -151,7 +151,7 @@ const Checkout = () => {
   }
 
   return (
-    <OrderCreationHandler>
+    <OrderCreationHandler restaurantId={restaurantId}>
       {({ createOrder, isCreatingOrder }) => (
         <div className="min-h-screen bg-background">
           <header className="bg-card border-b shadow-sm">

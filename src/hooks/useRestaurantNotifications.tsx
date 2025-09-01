@@ -113,7 +113,10 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
   useEffect(() => {
     if (!user?.id) return;
 
+    console.log('[Notifications] Setting up realtime subscription for user:', user.id);
+
     if (channelRef.current) {
+      console.log('[Notifications] Removing existing channel');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
@@ -135,9 +138,12 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           setPulse(true);
           setTimeout(() => setPulse(false), 1500);
 
-          if (settings?.notifications_enabled) {
-            const ringtone = settings.ringtone ?? defaultSettings.ringtone;
-            const volume = settings.volume ?? defaultSettings.volume;
+          // Get current settings at event time
+          const currentSettings = settings || defaultSettings;
+          if (currentSettings.notifications_enabled) {
+            const ringtone = currentSettings.ringtone;
+            const volume = currentSettings.volume;
+            console.log('[Notifications] Playing ringtone:', ringtone, 'at volume:', volume);
             playRingtone(ringtone, volume);
           }
 
@@ -163,9 +169,12 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           setPulse(true);
           setTimeout(() => setPulse(false), 1500);
 
-          if (settings?.notifications_enabled) {
-            const ringtone = settings.ringtone ?? defaultSettings.ringtone;
-            const volume = settings.volume ?? defaultSettings.volume;
+          // Get current settings at event time
+          const currentSettings = settings || defaultSettings;
+          if (currentSettings.notifications_enabled) {
+            const ringtone = currentSettings.ringtone;
+            const volume = currentSettings.volume;
+            console.log('[Notifications] Playing ringtone for waiter call:', ringtone, 'at volume:', volume);
             playRingtone(ringtone, volume);
           }
 
@@ -179,20 +188,23 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
       )
       .subscribe((status) => {
         console.log('[Notifications] Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[Notifications] Successfully subscribed to realtime updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[Notifications] Channel error, attempting to reconnect...');
+        }
       });
 
     channelRef.current = channel;
 
     return () => {
+      console.log('[Notifications] Cleaning up subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-    // Intentionally exclude settings from deps to avoid resubscribing;
-    // we only read latest settings at event time via closure which is okay for our simple case.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, settings?.notifications_enabled, settings?.ringtone, settings?.volume]);
+  }, [user?.id]); // Only depend on user.id to avoid subscription recreation
 
   // Mark all as read
   const markAllAsRead = () => {
@@ -253,6 +265,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
   const testRingtone = async () => {
     const rt = settings?.ringtone ?? defaultSettings.ringtone;
     const vol = settings?.volume ?? defaultSettings.volume;
+    console.log('[Notifications] Testing ringtone:', rt, 'at volume:', vol);
     await playRingtone(rt, vol);
   };
 
