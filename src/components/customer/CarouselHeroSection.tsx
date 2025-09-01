@@ -70,7 +70,7 @@ export const CarouselHeroSection = ({
   }, [api]);
 
   return (
-    <section className="relative h-[25vh] min-h-[200px] max-h-[250px] overflow-hidden">
+    <section className="relative h-[35vh] min-h-[250px] max-h-[400px] overflow-hidden">
       <Carousel setApi={setApi} className="w-full h-full">
         <CarouselContent className="h-full">
           {slides.map((slide, index) => (
