@@ -1,4 +1,7 @@
 
+import { Button } from '@/components/ui/button';
+import { CustomerMenuCategory } from '@/hooks/useCustomerMenuData';
+
 export const getCategoryEmoji = (categoryName: string): string => {
   const name = categoryName.toLowerCase();
   
@@ -43,4 +46,28 @@ export const categoryEmojiMap: Record<string, string> = {
   'Vegetarian': '🌱',
   'Fruits': '🍎',
   'Breakfast': '🥞',
+};
+
+interface CategoryEmojisProps {
+  categories: CustomerMenuCategory[];
+  selectedCategory: string;
+  onSelectCategory: (categoryId: string) => void;
+}
+
+export const CategoryEmojis = ({ categories, selectedCategory, onSelectCategory }: CategoryEmojisProps) => {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      {categories.map((category) => (
+        <Button
+          key={category.id}
+          variant={selectedCategory === category.id ? "default" : "outline"}
+          onClick={() => onSelectCategory(category.id)}
+          className="flex-shrink-0 gap-2"
+        >
+          <span>{getCategoryEmoji(category.name)}</span>
+          <span>{category.name}</span>
+        </Button>
+      ))}
+    </div>
+  );
 };

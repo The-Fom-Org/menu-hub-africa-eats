@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
-  const { menuData, isLoading, error } = useCustomerMenuData(restaurantId || "");
+  const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart(restaurantId);
@@ -49,12 +49,12 @@ const CustomerMenu = () => {
   };
 
   useEffect(() => {
-    if (menuData?.categories && menuData.categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(menuData.categories[0].id);
+    if (categories && categories.length > 0 && !selectedCategory) {
+      setSelectedCategory(categories[0].id);
     }
-  }, [menuData?.categories, selectedCategory]);
+  }, [categories, selectedCategory]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -65,7 +65,7 @@ const CustomerMenu = () => {
     );
   }
 
-  if (error || !menuData) {
+  if (error || !restaurantInfo) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -78,32 +78,32 @@ const CustomerMenu = () => {
     );
   }
 
-  const selectedCategoryData = menuData.categories.find(cat => cat.id === selectedCategory);
+  const selectedCategoryData = categories.find(cat => cat.id === selectedCategory);
   const availableItems = selectedCategoryData?.menu_items?.filter(item => item.is_available) || [];
-  const allMenuItems = menuData.categories.flatMap(cat => cat.menu_items || []);
+  const allMenuItems = categories.flatMap(cat => cat.menu_items || []);
   const currentUrl = window.location.href;
 
   return (
     <div className="min-h-screen bg-background">
       {/* SEO Components */}
       <SEOHead
-        title={`${menuData.restaurant_name} - Digital Menu | Order Online`}
-        description={`Browse ${menuData.restaurant_name}'s digital menu and order online. ${menuData.description || 'Authentic African cuisine with convenient mobile ordering.'}`}
-        keywords={`${menuData.restaurant_name}, african restaurant, digital menu, online ordering, kenyan food, ${menuData.restaurant_name} menu`}
+        title={`${restaurantInfo.name} - Digital Menu | Order Online`}
+        description={`Browse ${restaurantInfo.name}'s digital menu and order online. ${restaurantInfo.description || 'Authentic African cuisine with convenient mobile ordering.'}`}
+        keywords={`${restaurantInfo.name}, african restaurant, digital menu, online ordering, kenyan food, ${restaurantInfo.name} menu`}
         canonicalUrl={currentUrl}
         ogType="restaurant.menu"
-        ogImage={menuData.cover_image_url || menuData.logo_url}
-        restaurantName={menuData.restaurant_name}
+        ogImage={restaurantInfo.cover_image_url || restaurantInfo.logo_url}
+        restaurantName={restaurantInfo.name}
       />
       
       <StructuredData 
         type="restaurant" 
         restaurantData={{
-          name: menuData.restaurant_name,
-          description: menuData.description,
-          phone: menuData.phone_number,
-          logoUrl: menuData.logo_url,
-          primaryColor: menuData.primary_color
+          name: restaurantInfo.name,
+          description: restaurantInfo.description,
+          phone: restaurantInfo.phone_number,
+          logoUrl: restaurantInfo.logo_url,
+          primaryColor: restaurantInfo.primary_color
         }}
         pageUrl={currentUrl}
       />
@@ -111,7 +111,7 @@ const CustomerMenu = () => {
       <StructuredData 
         type="menu" 
         restaurantData={{
-          name: menuData.restaurant_name,
+          name: restaurantInfo.name,
           menuItems: allMenuItems.map(item => ({
             id: item.id,
             name: item.name,
@@ -128,25 +128,26 @@ const CustomerMenu = () => {
 
       {/* Hero Section */}
       <CarouselHeroSection 
-        restaurantName={menuData.restaurant_name}
-        tagline={menuData.tagline}
-        coverImageUrl={menuData.cover_image_url}
-        logoUrl={menuData.logo_url}
-        primaryColor={menuData.primary_color}
+        restaurantName={restaurantInfo.name}
+        coverImageUrl={restaurantInfo.cover_image_url}
+        onScrollToMenu={() => {
+          const menuElement = document.getElementById('menu-section');
+          menuElement?.scrollIntoView({ behavior: 'smooth' });
+        }}
       />
 
       {/* Restaurant Info */}
       <div className="container mx-auto px-4 py-6">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {menuData.restaurant_name}
+            {restaurantInfo.name}
           </h1>
-          {menuData.tagline && (
-            <p className="text-lg text-muted-foreground mb-4">{menuData.tagline}</p>
+          {restaurantInfo.tagline && (
+            <p className="text-lg text-muted-foreground mb-4">{restaurantInfo.tagline}</p>
           )}
-          {menuData.description && (
+          {restaurantInfo.description && (
             <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
-              {menuData.description}
+              {restaurantInfo.description}
             </p>
           )}
         </div>
@@ -181,13 +182,13 @@ const CustomerMenu = () => {
 
         {/* Category Navigation */}
         <CategoryEmojis
-          categories={menuData.categories}
+          categories={categories}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
         />
 
         {/* Menu Items */}
-        <div className="mt-8">
+        <div className="mt-8" id="menu-section">
           {selectedCategoryData && (
             <div>
               <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
@@ -208,8 +209,7 @@ const CustomerMenu = () => {
                     <MenuItemCard
                       key={item.id}
                       item={item}
-                      onAddToCart={(item) => cart.addToCart(item)}
-                      primaryColor={menuData.primary_color}
+                      restaurantId={restaurantId || ""}
                     />
                   ))}
                 </div>
@@ -221,21 +221,18 @@ const CustomerMenu = () => {
         {/* Upsell Section */}
         {cart.hasItems() && (
           <UpsellSection
-            currentItems={cart.cartItems}
+            restaurantId={restaurantId || ""}
+            currentCartItems={cart.cartItems}
             allItems={allMenuItems}
-            onAddToCart={(item) => cart.addToCart(item)}
-            primaryColor={menuData.primary_color}
           />
         )}
       </div>
 
       {/* Cart Drawer */}
       <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
+        open={isCartOpen}
+        onOpenChange={setIsCartOpen}
         restaurantId={restaurantId || ""}
-        restaurantName={menuData.restaurant_name}
-        primaryColor={menuData.primary_color}
       />
     </div>
   );

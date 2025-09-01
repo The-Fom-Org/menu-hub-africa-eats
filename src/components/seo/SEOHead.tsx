@@ -101,7 +101,7 @@ export const SEOHead = ({
         ]
       };
 
-      let breadcrumbScript = document.querySelector('script[data-type="breadcrumb"]');
+      let breadcrumbScript = document.querySelector('script[data-type="breadcrumb"]') as HTMLScriptElement;
       if (!breadcrumbScript) {
         breadcrumbScript = document.createElement('script');
         breadcrumbScript.type = 'application/ld+json';
