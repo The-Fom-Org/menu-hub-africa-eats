@@ -20,7 +20,6 @@ const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart(restaurantId);
 
   const handleCallWaiter = async () => {
@@ -163,19 +162,7 @@ const CustomerMenu = () => {
             Call Waiter
           </Button>
           
-          <Button 
-            onClick={() => setIsCartOpen(true)}
-            className="flex items-center gap-2 relative"
-            disabled={!cart.hasItems()}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            View Cart ({cart.getCartCount()})
-            {cart.hasItems() && (
-              <Badge variant="secondary" className="absolute -top-2 -right-2">
-                {cart.getCartCount()}
-              </Badge>
-            )}
-          </Button>
+          <CartDrawer restaurantId={restaurantId || ""} />
         </div>
 
         <Separator className="mb-8" />
@@ -227,13 +214,6 @@ const CustomerMenu = () => {
           />
         )}
       </div>
-
-      {/* Cart Drawer */}
-      <CartDrawer
-        open={isCartOpen}
-        onOpenChange={setIsCartOpen}
-        restaurantId={restaurantId || ""}
-      />
     </div>
   );
 };
