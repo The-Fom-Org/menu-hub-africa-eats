@@ -20,6 +20,7 @@ const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const cart = useCart(restaurantId);
 
   const handleCallWaiter = async () => {
