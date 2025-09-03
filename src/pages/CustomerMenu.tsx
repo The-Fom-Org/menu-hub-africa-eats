@@ -124,44 +124,11 @@ const CustomerMenu = () => {
 
       {/* Lead Capture Integration */}
       {restaurantId && <LeadCaptureIntegration restaurantId={restaurantId} />}
-
-      {/* Hero Section */}
-      <CarouselHeroSection 
-        restaurantName={restaurantInfo.name}
-        coverImageUrl={restaurantInfo.cover_image_url}
-        onScrollToMenu={() => {
-          const menuElement = document.getElementById('menu-section');
-          menuElement?.scrollIntoView({ behavior: 'smooth' });
-        }}
-      />
-
-      {/* Enhanced Restaurant Info Section */}
-      <div className="container mx-auto px-4 -mt-12 relative z-20">
-        {/* Main Info Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-8 mb-8"
-        >
-          <div className="text-center space-y-6">
-            {/* Restaurant Logo */}
-            {restaurantInfo.logo_url && (
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <img 
-                    src={restaurantInfo.logo_url} 
-                    alt={`${restaurantInfo.name} logo`}
-                    className="h-20 w-20 object-cover rounded-2xl border-4 border-primary/20 shadow-lg"
-                  />
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center">
-                    <Star className="h-3 w-3 text-white fill-current" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Restaurant Name & Tagline */}
+       {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b shadow-sm">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center justify-between">
+            {/* Left: Logo & Restaurant Name */}
             <div className="space-y-3">
               <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent leading-tight">
                 {restaurantInfo.name}
@@ -180,23 +147,36 @@ const CustomerMenu = () => {
               </p>
             )}
 
-            {/* Restaurant Features */}
-            <div className="flex flex-wrap justify-center gap-3 pt-4">
-              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-primary/10 text-primary border-primary/20">
-                <Award className="h-4 w-4 mr-2" />
-                Premium Quality
-              </Badge>
-              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-green-500/10 text-green-600 border-green-500/20">
-                <Clock className="h-4 w-4 mr-2" />
-                Fast Service
-              </Badge>
-              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-amber-500/10 text-amber-600 border-amber-500/20">
-                <ChefHat className="h-4 w-4 mr-2" />
-                Fresh Ingredients
-              </Badge>
-            </div>
+            {/* Center: Chef's Special Button */}
+            {chefSpecialItems.length > 0 && (
+              <Button
+                onClick={scrollToChefSpecials}
+                variant="outline"
+                size="sm"
+                className="hidden sm:flex items-center gap-2 border-primary/20 hover:bg-primary/10"
+              >
+                <Star className="h-4 w-4 text-primary fill-current" />
+                <span className="font-medium">Chef's Special</span>
+              </Button>
+            )}
+                        {/* Right: Cart */}
+            <CartDrawer restaurantId={restaurantId!} />
           </div>
-
+          
+          {/* Mobile Chef's Special Button */}
+          {chefSpecialItems.length > 0 && (
+            <div className="mt-2 sm:hidden">
+              <Button
+                onClick={scrollToChefSpecials}
+                variant="outline"
+                size="sm"
+                className="w-full flex items-center gap-2 border-primary/20 hover:bg-primary/10"
+              >
+                <Star className="h-4 w-4 text-primary fill-current" />
+                <span className="font-medium">Chef's Special ({chefSpecialItems.length} items)</span>
+              </Button>
+            </div>
+          )}
           {/* Enhanced Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <Button 
@@ -213,55 +193,122 @@ const CustomerMenu = () => {
             <CartDrawer restaurantId={restaurantId || ""} />
           </div>
         </motion.div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <CarouselHeroSection 
+        restaurantName={restaurantInfo.name}
+        coverImageUrl={restaurantInfo.cover_image_url}
+        onScrollToMenu={() => {
+          const menuElement = document.getElementById('menu-section');
+          menuElement?.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
+          
 
         <Separator className="my-8 opacity-30" />
 
-        {/* Category Navigation */}
-        <CategoryEmojis
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-        />
-
         {/* Menu Items */}
-        <div className="mt-8" id="menu-section">
-          {selectedCategoryData && (
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
-                {selectedCategoryData.name}
-              </h2>
-              
-              {availableItems.length === 0 ? (
-                <div className="text-center py-12">
-                  <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No items available</h3>
-                  <p className="text-muted-foreground">
-                    This category doesn't have any available items right now.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {availableItems.map((item) => (
-                    <MenuItemCard
-                      key={item.id}
-                      item={item}
-                      restaurantId={restaurantId || ""}
-                    />
+        <main ref={menuRef} className="max-w-6xl mx-auto px-2 sm:px-4 pb-6 sm:pb-8">
+        {searchTerm && categoriesToShow.length === 0 ? (
+          <Card className="bg-card/50 backdrop-blur-sm">
+            <CardContent className="py-6 sm:py-8 text-center">
+              <p className="text-muted-foreground">No items found matching "{searchTerm}"</p>
+            </CardContent>
+          </Card>
+        ) : categories.length === 0 ? (
+          <Card className="bg-card/50 backdrop-blur-sm">
+            <CardContent className="py-6 sm:py-8 text-center">
+              <p className="text-muted-foreground">No menu items available at the moment.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Tabs key={`${searchTerm}-${showChefSpecials}`} defaultValue={defaultActiveTab} className="space-y-4 sm:space-y-6">
+              {/* Category Tabs - Horizontal Scroll */}
+              <div className="sticky top-16 sm:top-20 z-40 bg-background/95 backdrop-blur-md py-2 sm:py-4 -mx-2 sm:-mx-4 px-2 sm:px-4 border-b">
+                <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 backdrop-blur-sm p-1 h-auto">
+                  {categoriesToShow.map((category) => (
+                    <TabsTrigger 
+                     key={category.id} 
+                      value={category.id} 
+                      className="whitespace-nowrap flex items-center gap-1 sm:gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm"
+                    >
+                      <span className="text-sm sm:text-lg">{getCategoryEmoji(category.name)}</span>
+                      <span className="font-medium">{category.name}</span>
+                      {(searchTerm || showChefSpecials) && category.menu_items && category.menu_items.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">
+                          {category.menu_items.length}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                </TabsList>
+              </div>
 
-        {/* Upsell Section */}
-        {cart.hasItems() && (
-          <UpsellSection
-            restaurantId={restaurantId || ""}
-            currentCartItems={cart.cartItems}
-            allItems={allMenuItems}
-          />
+              {/* Category Content */}
+              {categoriesToShow.map((category) => (
+                <TabsContent key={category.id} value={category.id} className="space-y-4 sm:space-y-6">
+                  <div id={`category-${category.id}`}>
+                    <Card className="bg-card/50 backdrop-blur-sm">
+                      <CardHeader className="text-center py-4 sm:py-6">
+                        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
+                          <span className="text-2xl sm:text-3xl">{getCategoryEmoji(category.name)}</span>
+                          <CardTitle className="text-lg sm:text-2xl">{category.name}</CardTitle>
+                            </div>
+                        {category.description && (
+                          <p className="text-sm sm:text-base text-muted-foreground">{category.description}</p>
+                        )}
+                        {(searchTerm || showChefSpecials) && category.menu_items && category.menu_items.length > 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            {showChefSpecials 
+                              ? `${category.menu_items.length} chef's special item${category.menu_items.length !== 1 ? 's' : ''}`
+                              : `Found ${category.menu_items.length} item${category.menu_items.length !== 1 ? 's' : ''} matching "${searchTerm}"`
+                            }
+                          </p>
+                        )}
+                      </CardHeader>
+                    </Card>
+
+                    {/* Menu Items Grid */}
+                    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                      {category.menu_items && category.menu_items.length > 0 ? (
+                        category.menu_items.map((item) => (
+                          <MenuItemCard
+                           key={item.id}
+                            item={item}
+                            restaurantId={restaurantId!}
+                          />
+                        ))
+                      ) : (
+                        <Card className="col-span-full bg-card/50 backdrop-blur-sm">
+                          <CardContent className="py-6 sm:py-8 text-center">
+                            <p className="text-muted-foreground text-sm sm:text-base">
+                              {showChefSpecials 
+                                ? "No chef's special items available at the moment."
+                                : (searchTerm ? `No items found matching "${searchTerm}" in this category.` : 'No items in this category yet.')
+                              }
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+            {/* Upsell Section - Show when cart has items */}
+            {cartCount > 0 && !showChefSpecials && (
+              <UpsellSection
+                restaurantId={restaurantId!}
+                allItems={allMenuItems}
+                currentCartItems={cartItems}
+              />
+            )}
+          </>
         )}
+      </main>
       </div>
     </div>
   );
