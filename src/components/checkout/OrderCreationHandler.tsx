@@ -31,10 +31,16 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
     try {
       const totalAmount = getCartTotal();
       
-      // Create the order first
-      const { data: order, error: orderError } = await supabase
+      // Pre-generate identifiers to avoid SELECT after insert (RLS-safe)
+      const orderId = crypto.randomUUID();
+      const customerToken = crypto.randomUUID();
+
+      // Create the order without selecting it back (avoids RLS SELECT restriction)
+      const { error: orderError } = await supabase
         .from('orders')
         .insert({
+          id: orderId,
+          customer_token: customerToken,
           restaurant_id: restaurantId,
           customer_name: orderData.customerName,
           customer_phone: orderData.customerPhone,
@@ -46,15 +52,14 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
           total_amount: totalAmount,
           scheduled_time: orderData.scheduledTime,
           notes: orderData.notes,
-        })
-        .select()
-        .single();
+        });
 
       if (orderError) {
         console.error('❌ Order creation failed:', orderError);
         throw orderError;
       }
 
+      const order = { id: orderId, customer_token: customerToken };
       console.log('✅ Order created successfully:', order);
 
       // Create order items
