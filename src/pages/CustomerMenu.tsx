@@ -11,9 +11,10 @@ import { LeadCaptureIntegration } from "@/components/customer/LeadCaptureIntegra
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Button } from "@/components/ui/button";
-import { Phone, ShoppingCart, Clock, MapPin } from "lucide-react";
+import { Phone, ShoppingCart, Clock, MapPin, Star, Award, ChefHat } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
@@ -134,37 +135,86 @@ const CustomerMenu = () => {
         }}
       />
 
-      {/* Restaurant Info */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            {restaurantInfo.name}
-          </h1>
-          {restaurantInfo.tagline && (
-            <p className="text-lg text-muted-foreground mb-4">{restaurantInfo.tagline}</p>
-          )}
-          {restaurantInfo.description && (
-            <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
-              {restaurantInfo.description}
-            </p>
-          )}
-        </div>
+      {/* Enhanced Restaurant Info Section */}
+      <div className="container mx-auto px-4 -mt-12 relative z-20">
+        {/* Main Info Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-8 mb-8"
+        >
+          <div className="text-center space-y-6">
+            {/* Restaurant Logo */}
+            {restaurantInfo.logo_url && (
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <img 
+                    src={restaurantInfo.logo_url} 
+                    alt={`${restaurantInfo.name} logo`}
+                    className="h-20 w-20 object-cover rounded-2xl border-4 border-primary/20 shadow-lg"
+                  />
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center">
+                    <Star className="h-3 w-3 text-white fill-current" />
+                  </div>
+                </div>
+              </div>
+            )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <Button 
-            variant="outline" 
-            onClick={handleCallWaiter}
-            className="flex items-center gap-2"
-          >
-            <Phone className="h-4 w-4" />
-            Call Waiter
-          </Button>
-          
-          <CartDrawer restaurantId={restaurantId || ""} />
-        </div>
+            {/* Restaurant Name & Tagline */}
+            <div className="space-y-3">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent leading-tight">
+                {restaurantInfo.name}
+              </h1>
+              {restaurantInfo.tagline && (
+                <p className="text-xl md:text-2xl text-muted-foreground font-medium italic">
+                  "{restaurantInfo.tagline}"
+                </p>
+              )}
+            </div>
 
-        <Separator className="mb-8" />
+            {/* Description */}
+            {restaurantInfo.description && (
+              <p className="text-muted-foreground max-w-3xl mx-auto text-lg leading-relaxed">
+                {restaurantInfo.description}
+              </p>
+            )}
+
+            {/* Restaurant Features */}
+            <div className="flex flex-wrap justify-center gap-3 pt-4">
+              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-primary/10 text-primary border-primary/20">
+                <Award className="h-4 w-4 mr-2" />
+                Premium Quality
+              </Badge>
+              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-green-500/10 text-green-600 border-green-500/20">
+                <Clock className="h-4 w-4 mr-2" />
+                Fast Service
+              </Badge>
+              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-amber-500/10 text-amber-600 border-amber-500/20">
+                <ChefHat className="h-4 w-4 mr-2" />
+                Fresh Ingredients
+              </Badge>
+            </div>
+          </div>
+
+          {/* Enhanced Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+            <Button 
+              variant="outline" 
+              onClick={handleCallWaiter}
+              className="group flex items-center gap-3 px-6 py-3 rounded-2xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+            >
+              <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <Phone className="h-4 w-4 text-primary" />
+              </div>
+              <span className="font-semibold">Call Waiter</span>
+            </Button>
+            
+            <CartDrawer restaurantId={restaurantId || ""} />
+          </div>
+        </motion.div>
+
+        <Separator className="my-8 opacity-30" />
 
         {/* Category Navigation */}
         <CategoryEmojis
