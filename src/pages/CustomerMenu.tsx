@@ -9,6 +9,7 @@ import { UpsellSection } from "@/components/customer/UpsellSection";
 import { CarouselHeroSection } from "@/components/customer/CarouselHeroSection";
 import { StickyHeader } from "@/components/customer/StickyHeader";
 import { LeadCaptureIntegration } from "@/components/customer/LeadCaptureIntegration";
+import { CallWaiterDialog } from "@/components/customer/CallWaiterDialog";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Button } from "@/components/ui/button";
@@ -24,30 +25,7 @@ const CustomerMenu = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const cart = useCart(restaurantId);
 
-  const handleCallWaiter = async () => {
-    if (!restaurantId) return;
-    
-    try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { error } = await supabase.from("waiter_calls").insert([{
-        restaurant_id: restaurantId,
-        table_number: "Table 1", // Could be dynamic
-        customer_name: "Guest",
-        status: "pending",
-        notes: "Customer requested assistance"
-      }]);
-
-      if (error) throw error;
-      
-      const { toast } = await import("@/hooks/use-toast");
-      toast({
-        title: "Waiter called",
-        description: "A waiter will be with you shortly!",
-      });
-    } catch (error) {
-      console.error("Error calling waiter:", error);
-    }
-  };
+  // Call waiter functionality is now handled by CallWaiterDialog component
 
   useEffect(() => {
     if (categories && categories.length > 0 && !selectedCategory) {
@@ -253,16 +231,17 @@ const CustomerMenu = () => {
 
           {/* Enhanced Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <Button 
-              variant="outline" 
-              onClick={handleCallWaiter}
-              className="group flex items-center gap-3 px-6 py-3 rounded-2xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
-            >
-              <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                <Phone className="h-4 w-4 text-primary" />
-              </div>
-              <span className="font-semibold">Call Waiter</span>
-            </Button>
+            <CallWaiterDialog restaurantId={restaurantId || ""}>
+              <Button 
+                variant="outline" 
+                className="group flex items-center gap-3 px-6 py-3 rounded-2xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+              >
+                <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <Phone className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-semibold">Call Waiter</span>
+              </Button>
+            </CallWaiterDialog>
             
             <CartDrawer restaurantId={restaurantId || ""} />
           </div>
@@ -294,7 +273,7 @@ const CustomerMenu = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
                   {availableItems.map((item) => (
                     <MenuItemCard
                       key={item.id}

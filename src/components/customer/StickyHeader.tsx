@@ -55,7 +55,7 @@ export const StickyHeader = ({
     <motion.header 
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="sticky top-0 z-50 bg-card/95 backdrop-blur-xl border-b border-border/50 shadow-lg"
+      className="sticky top-0 z-[100] bg-card/95 backdrop-blur-xl border-b border-border/50 shadow-lg"
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">

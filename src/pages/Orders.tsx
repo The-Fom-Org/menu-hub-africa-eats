@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
+import { useWaiterCalls } from '@/hooks/useWaiterCalls';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, Hash, AlertCircle, Package } from 'lucide-react';
+import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, Hash, AlertCircle, Package, BellRing, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import OrderTableNumberEditor from '@/components/orders/OrderTableNumberEditor';
 
@@ -17,6 +18,7 @@ const Orders = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { orders, loading, updateOrderStatus, markOrderPaid, updateTableNumber } = useOrderManagement(user?.id || '');
+  const { waiterCalls, pendingCalls, acknowledgedCalls, completedCalls, loading: waiterCallsLoading, updateWaiterCallStatus } = useWaiterCalls(user?.id || '');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -33,7 +35,7 @@ const Orders = () => {
     ['completed', 'cancelled'].includes(order.order_status)
   );
 
-  if (authLoading || loading) {
+  if (authLoading || loading || waiterCallsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -287,6 +289,96 @@ const Orders = () => {
     </Card>
   );
 
+  const WaiterCallCard = ({ call }: { call: any }) => (
+    <Card key={call.id} className="overflow-hidden">
+      <CardHeader className="pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <BellRing className="h-4 w-4" />
+              Table {call.table_number}
+            </CardTitle>
+            <Badge className={
+              call.status === 'pending' ? 'bg-yellow-500' :
+              call.status === 'acknowledged' ? 'bg-blue-500' : 'bg-green-500'
+            }>
+              {call.status.charAt(0).toUpperCase() + call.status.slice(1)}
+            </Badge>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {format(new Date(call.created_at), 'MMM dd, yyyy HH:mm')}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-3 sm:space-y-4">
+        {/* Call Info */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+          {call.customer_name && (
+            <div className="flex items-center space-x-2">
+              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">{call.customer_name}</p>
+                <p className="text-xs text-muted-foreground">Customer</p>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex items-center space-x-2">
+            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">
+                {format(new Date(call.created_at), 'HH:mm')}
+              </p>
+              <p className="text-xs text-muted-foreground">Call Time</p>
+            </div>
+          </div>
+        </div>
+
+        {call.notes && (
+          <>
+            <Separator />
+            <div>
+              <h4 className="font-medium mb-2 text-sm">Notes</h4>
+              <p className="text-sm text-muted-foreground">{call.notes}</p>
+            </div>
+          </>
+        )}
+
+        <Separator />
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2">
+          {call.status === 'pending' && (
+            <Button
+              onClick={() => updateWaiterCallStatus(call.id, 'acknowledged')}
+              variant="outline"
+              size="sm"
+              className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm"
+            >
+              <UserCheck className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              Acknowledge
+            </Button>
+          )}
+
+          {call.status === 'acknowledged' && (
+            <Button
+              onClick={() => updateWaiterCallStatus(call.id, 'completed')}
+              variant="outline"
+              size="sm"
+              className="text-green-600 hover:text-green-700 text-xs sm:text-sm"
+            >
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              Complete
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -321,27 +413,42 @@ const Orders = () => {
           />
         ) : (
           <Tabs defaultValue="just-received" className="space-y-4 sm:space-y-6">
-            <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsList className="grid w-full grid-cols-4 h-auto">
               <TabsTrigger 
                 value="just-received" 
                 className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3"
               >
                 <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                Just Received ({justReceivedOrders.length})
+                <span className="hidden sm:inline">Just Received</span>
+                <span className="sm:hidden">New</span>
+                ({justReceivedOrders.length})
               </TabsTrigger>
               <TabsTrigger 
                 value="pending" 
                 className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3"
               >
                 <Package className="h-3 w-3 sm:h-4 sm:w-4" />
-                Pending ({pendingOrders.length})
+                <span className="hidden sm:inline">Pending</span>
+                <span className="sm:hidden">Orders</span>
+                ({pendingOrders.length})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="waiter-calls" 
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3"
+              >
+                <BellRing className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Waiter Calls</span>
+                <span className="sm:hidden">Calls</span>
+                ({pendingCalls.length})
               </TabsTrigger>
               <TabsTrigger 
                 value="completed" 
                 className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3"
               >
                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                Completed ({completedOrders.length})
+                <span className="hidden sm:inline">Completed</span>
+                <span className="sm:hidden">Done</span>
+                ({completedOrders.length})
               </TabsTrigger>
             </TabsList>
 
@@ -373,6 +480,46 @@ const Orders = () => {
                   {pendingOrders.map((order) => (
                     <OrderCard key={order.id} order={order} />
                   ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="waiter-calls" className="space-y-4 sm:space-y-6">
+              {pendingCalls.length === 0 && acknowledgedCalls.length === 0 ? (
+                <EmptyState 
+                  icon={BellRing}
+                  title="No waiter calls"
+                  description="Customer waiter requests will appear here for quick response."
+                />
+              ) : (
+                <div className="space-y-6">
+                  {pendingCalls.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-yellow-500" />
+                        Pending Calls ({pendingCalls.length})
+                      </h3>
+                      <div className="space-y-4">
+                        {pendingCalls.map((call) => (
+                          <WaiterCallCard key={call.id} call={call} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {acknowledgedCalls.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <UserCheck className="h-5 w-5 text-blue-500" />
+                        Acknowledged Calls ({acknowledgedCalls.length})
+                      </h3>
+                      <div className="space-y-4">
+                        {acknowledgedCalls.map((call) => (
+                          <WaiterCallCard key={call.id} call={call} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>

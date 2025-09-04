@@ -132,7 +132,7 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
     <>
       <motion.div
         whileHover={{ y: -4 }}
-        className="w-full h-full flex flex-col overflow-hidden rounded-2xl bg-white border shadow-sm hover:shadow-lg transition-all duration-300"
+        className="w-full h-full flex flex-col overflow-hidden rounded-2xl bg-white border shadow-sm hover:shadow-lg transition-all duration-300 min-w-0"
         style={{ borderColor: "#00000010" }}
       >
         {/* Image */}
@@ -211,27 +211,27 @@ export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
 
           {/* Actions */}
           <CardContent className="pt-0 pb-3 px-3 mt-auto">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCustomization(true)}
-                className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs h-8 px-3"
+                className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs h-8 px-2 sm:px-3 min-w-0"
                 disabled={isProcessing}
               >
-                Customize
+                <span className="truncate">Customize</span>
               </Button>
 
               {currentQuantity === 0 ? (
                 <Button
                   onClick={handleQuickAdd}
                   size="sm"
-                  className="px-3 rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs h-8"
+                  className="px-2 sm:px-3 rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs h-8 min-w-0 flex-shrink-0"
                   style={{ background: appetite.primary, color: "white" }}
                   disabled={isProcessing}
                 >
-                  <ShoppingCart className="h-3 w-3 mr-1" />
-                  {isProcessing ? "Adding…" : "Add"}
+                  <ShoppingCart className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">{isProcessing ? "Adding…" : "Add"}</span>
                 </Button>
               ) : (
                 <div className="flex items-center gap-1 bg-muted rounded-full p-1">
