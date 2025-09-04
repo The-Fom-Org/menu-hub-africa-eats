@@ -7,6 +7,7 @@ import { CategoryEmojis } from "@/components/customer/CategoryEmojis";
 import { MenuItemCard } from "@/components/customer/MenuItemCard";
 import { UpsellSection } from "@/components/customer/UpsellSection";
 import { CarouselHeroSection } from "@/components/customer/CarouselHeroSection";
+import { StickyHeader } from "@/components/customer/StickyHeader";
 import { LeadCaptureIntegration } from "@/components/customer/LeadCaptureIntegration";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
@@ -79,9 +80,51 @@ const CustomerMenu = () => {
   }
 
   const selectedCategoryData = categories.find(cat => cat.id === selectedCategory);
-  const availableItems = selectedCategoryData?.menu_items?.filter(item => item.is_available) || [];
+  const allAvailableItems = selectedCategoryData?.menu_items?.filter(item => item.is_available) || [];
+  
+  // Filter items based on search query
+  const availableItems = searchQuery.trim() 
+    ? allAvailableItems.filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : allAvailableItems;
+  
   const allMenuItems = categories.flatMap(cat => cat.menu_items || []);
   const currentUrl = window.location.href;
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleChefsSpecial = () => {
+    // Find items marked as chef's special or featured
+    const specialItems = allMenuItems.filter(item => 
+      item.is_chef_special || item.popularity_badge === 'chef-pick'
+    );
+    
+    if (specialItems.length > 0) {
+      // Find the category of the first special item
+      const specialCategory = categories.find(cat => 
+        cat.menu_items?.some(item => item.id === specialItems[0].id)
+      );
+      
+      if (specialCategory) {
+        setSelectedCategory(specialCategory.id);
+        setSearchQuery(''); // Clear search to show all items in category
+      }
+    }
+    
+    // Scroll to menu section
+    const menuElement = document.getElementById('menu-section');
+    menuElement?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleContactRestaurant = () => {
+    if (restaurantInfo.phone_number) {
+      window.open(`tel:${restaurantInfo.phone_number}`, '_self');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,6 +168,16 @@ const CustomerMenu = () => {
 
       {/* Lead Capture Integration */}
       {restaurantId && <LeadCaptureIntegration restaurantId={restaurantId} />}
+
+      {/* Sticky Header */}
+      <StickyHeader
+        restaurantName={restaurantInfo.name}
+        restaurantId={restaurantId || ""}
+        logoUrl={restaurantInfo.logo_url}
+        onSearch={handleSearch}
+        onChefsSpecial={handleChefsSpecial}
+        onContactRestaurant={handleContactRestaurant}
+      />
 
       {/* Hero Section */}
       <CarouselHeroSection 
