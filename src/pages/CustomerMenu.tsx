@@ -13,10 +13,11 @@ import { CallWaiterDialog } from "@/components/customer/CallWaiterDialog";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Button } from "@/components/ui/button";
-import { Phone, ShoppingCart, Clock, MapPin, Star, Award, ChefHat } from "lucide-react";
+import { Phone, ShoppingCart, Clock, MapPin, Star, Award, ChefHat, Search } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
@@ -71,8 +72,13 @@ const CustomerMenu = () => {
   const allMenuItems = categories.flatMap(cat => cat.menu_items || []);
   const currentUrl = window.location.href;
 
-  const handleSearch = (query: string) => {
+  const handlesSearch = (query: string) => {
     setSearchQuery(query);
+  };
+   const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch?.(searchQuery);
+    setIsSearchOpen(false);
   };
 
   const handleChefsSpecial = () => {
@@ -168,7 +174,7 @@ const CustomerMenu = () => {
       />
 
       {/* Enhanced Restaurant Info Section */}
-      <div className="container mx-auto px-4 -mt-12 relative z-20">
+      <div className="container mx-auto px-1 -mt-8 relative z-10">
         {/* Main Info Card */}
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -176,75 +182,65 @@ const CustomerMenu = () => {
           transition={{ duration: 0.6 }}
           className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-8 mb-8"
         >
-          <div className="text-center space-y-6">
-            {/* Restaurant Logo */}
-            {restaurantInfo.logo_url && (
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <img 
-                    src={restaurantInfo.logo_url} 
-                    alt={`${restaurantInfo.name} logo`}
-                    className="h-20 w-20 object-cover rounded-2xl border-4 border-primary/20 shadow-lg"
-                  />
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center">
-                    <Star className="h-3 w-3 text-white fill-current" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Restaurant Name & Tagline */}
-            <div className="space-y-3">
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent leading-tight">
-                {restaurantInfo.name}
-              </h1>
-              {restaurantInfo.tagline && (
-                <p className="text-xl md:text-2xl text-muted-foreground font-medium italic">
-                  "{restaurantInfo.tagline}"
-                </p>
-              )}
-            </div>
-
-            {/* Description */}
-            {restaurantInfo.description && (
-              <p className="text-muted-foreground max-w-3xl mx-auto text-lg leading-relaxed">
-                {restaurantInfo.description}
-              </p>
-            )}
-
-            {/* Restaurant Features */}
-            <div className="flex flex-wrap justify-center gap-3 pt-4">
-              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-primary/10 text-primary border-primary/20">
-                <Award className="h-4 w-4 mr-2" />
-                Premium Quality
-              </Badge>
-              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-green-500/10 text-green-600 border-green-500/20">
-                <Clock className="h-4 w-4 mr-2" />
-                Fast Service
-              </Badge>
-              <Badge variant="secondary" className="px-4 py-2 text-sm font-semibold bg-amber-500/10 text-amber-600 border-amber-500/20">
-                <ChefHat className="h-4 w-4 mr-2" />
-                Fresh Ingredients
-              </Badge>
-            </div>
-          </div>
-
+          <div className="text-center space-y-4">
           {/* Enhanced Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
             <CallWaiterDialog restaurantId={restaurantId || ""}>
               <Button 
                 variant="outline" 
-                className="group flex items-center gap-3 px-6 py-3 rounded-2xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                className="group flex items-center gap-2 px-6 py-2 rounded-2xl border-1 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
               >
                 <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <Phone className="h-4 w-4 text-primary" />
+                  <Phone className="h-3 w-3 text-primary" />
                 </div>
                 <span className="font-semibold">Call Waiter</span>
               </Button>
             </CallWaiterDialog>
-            
-            <CartDrawer restaurantId={restaurantId || ""} />
+            <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleChefsSpecial}
+                            className="flex items-center gap-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          >
+                            <ChefHat className="h-4 w-4" />
+                            Chef's Special
+                          </Button>
+            <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsSearchOpen(!isSearchOpen)}
+                          className="flex items-center gap-2"
+                        >
+                          <Search className="h-4 w-4" />
+                          Search
+                        </Button>            
           </div>
+          {/* Search Bar */}
+                  <AnimatePresence>
+                    {isSearchOpen && (
+                      <motion.form
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        onSubmit={handleSearch}
+                        className="border-t border-border/50 py-4"
+                      >
+                        <div className="flex gap-2">
+                          <Input
+                            type="text"
+                            placeholder="Search menu items..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="flex-1"
+                            autoFocus
+                          />
+                          <Button type="submit" size="sm">
+                            <Search className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
         </motion.div>
 
         <Separator className="my-8 opacity-30" />
