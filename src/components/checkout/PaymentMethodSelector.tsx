@@ -15,87 +15,49 @@ interface PaymentMethodSelectorProps {
   setPaymentMethod: (method: string) => void;
   availableGateways: PaymentGateway[];
   excludeCash?: boolean;
-  restaurantId?: string;
 }
 
 export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   paymentMethod,
   setPaymentMethod,
   availableGateways,
-  excludeCash = false,
-  restaurantId
+  excludeCash = false
 }) => {
-  // Build payment methods based on available gateways
-  const buildPaymentMethods = () => {
-    const methods: Array<{
-      id: string;
-      name: string;
-      description: string;
-      icon: React.ReactNode;
-      enabled: boolean;
-    }> = [];
+  const paymentMethods = [
+    {
+      id: 'mpesa',
+      name: 'M-Pesa',
+      description: 'Pay with M-Pesa mobile money',
+      icon: <Smartphone className="h-5 w-5" />,
+      enabled: true
+    },
+    {
+      id: 'card',
+      name: 'Credit/Debit Card',
+      description: 'Pay with Visa, Mastercard, or other cards',
+      icon: <CreditCard className="h-5 w-5" />,
+      enabled: true
+    },
+    {
+      id: 'bank_transfer',
+      name: 'Bank Transfer',
+      description: 'Direct bank transfer',
+      icon: <Building className="h-5 w-5" />,
+      enabled: true
+    }
+  ];
 
-    // Check each gateway and add corresponding payment methods
-    availableGateways.forEach(gateway => {
-      switch (gateway.type) {
-        case 'pesapal':
-          // Pesapal supports multiple methods
-          methods.push({
-            id: 'mpesa',
-            name: 'M-Pesa',
-            description: 'Pay with M-Pesa mobile money (via Pesapal)',
-            icon: <Smartphone className="h-5 w-5" />,
-            enabled: gateway.enabled
-          });
-          methods.push({
-            id: 'card',
-            name: 'Credit/Debit Card',
-            description: 'Pay with Visa, Mastercard (via Pesapal)',
-            icon: <CreditCard className="h-5 w-5" />,
-            enabled: gateway.enabled
-          });
-          break;
-        case 'mpesa_manual':
-          methods.push({
-            id: 'mpesa_manual',
-            name: 'M-Pesa (Manual)',
-            description: 'Pay via M-Pesa - manual verification',
-            icon: <Smartphone className="h-5 w-5" />,
-            enabled: gateway.enabled
-          });
-          break;
-        case 'bank_transfer':
-          methods.push({
-            id: 'bank_transfer',
-            name: 'Bank Transfer',
-            description: 'Direct bank transfer',
-            icon: <Building className="h-5 w-5" />,
-            enabled: gateway.enabled
-          });
-          break;
-        case 'cash':
-          if (!excludeCash) {
-            methods.push({
-              id: 'cash',
-              name: 'Cash',
-              description: 'Pay with cash on delivery/pickup',
-              icon: <Banknote className="h-5 w-5" />,
-              enabled: gateway.enabled
-            });
-          }
-          break;
-      }
+  if (!excludeCash) {
+    paymentMethods.push({
+      id: 'cash',
+      name: 'Cash',
+      description: 'Pay with cash on delivery/pickup',
+      icon: <Banknote className="h-5 w-5" />,
+      enabled: true
     });
+  }
 
-    // Remove duplicates (e.g., if both pesapal and manual mpesa are enabled)
-    const uniqueMethods = methods.filter((method, index, self) => 
-      index === self.findIndex(m => m.id === method.id)
-    );
-
-    return uniqueMethods;
-  };
-
-  const enabledMethods = buildPaymentMethods().filter(method => method.enabled);
+  const enabledMethods = paymentMethods.filter(method => method.enabled);
 
   if (enabledMethods.length === 0) {
     return (
