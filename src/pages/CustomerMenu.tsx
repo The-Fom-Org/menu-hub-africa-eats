@@ -176,13 +176,13 @@ const CustomerMenu = () => {
       />
 
       {/* Enhanced Restaurant Info Section */}
-      <div className="container mx-auto px-1 -mt-8 relative z-10">
+      <div className="container mx-auto px-1 -mt-5 relative z-8">
         {/* Main Info Card */}
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-8 mb-8"
+          className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-5 mb-5"
         >
             <div className="text-center space-y-4">
               {/* Enhanced Action Buttons */}

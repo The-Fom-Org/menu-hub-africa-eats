@@ -71,7 +71,7 @@ export const CarouselHeroSection = ({
   }, [api]);
 
   return (
-    <section className="relative h-[60vh] min-h-[400px] max-h-[600px] overflow-hidden">
+    <section className="relative h-[30vh] min-h-[200px] max-h-[400px] overflow-hidden">
       {/* Animated background particles */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-20 left-10 w-4 h-4 bg-primary/30 rounded-full animate-pulse"></div>
