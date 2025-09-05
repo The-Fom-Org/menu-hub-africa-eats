@@ -13,6 +13,7 @@ import { CallWaiterDialog } from "@/components/customer/CallWaiterDialog";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Phone, ShoppingCart, Clock, MapPin, Star, Award, ChefHat, Search } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ const CustomerMenu = () => {
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const cart = useCart(restaurantId);
 
   // Call waiter functionality is now handled by CallWaiterDialog component
@@ -76,10 +78,10 @@ const CustomerMenu = () => {
     setSearchQuery(query);
   };
    const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch?.(searchQuery);
-    setIsSearchOpen(false);
-  };
+     e.preventDefault();
+     // Search functionality - already handled by searchQuery state
+     setIsSearchOpen(false);
+   };
 
   const handleChefsSpecial = () => {
     // Find items marked as chef's special or featured
@@ -158,7 +160,7 @@ const CustomerMenu = () => {
         restaurantName={restaurantInfo.name}
         restaurantId={restaurantId || ""}
         logoUrl={restaurantInfo.logo_url}
-        onSearch={handleSearch}
+        onSearch={handlesSearch}
         onChefsSpecial={handleChefsSpecial}
         onContactRestaurant={handleContactRestaurant}
       />
@@ -182,65 +184,67 @@ const CustomerMenu = () => {
           transition={{ duration: 0.6 }}
           className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-8 mb-8"
         >
-          <div className="text-center space-y-4">
-          {/* Enhanced Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
-            <CallWaiterDialog restaurantId={restaurantId || ""}>
-              <Button 
-                variant="outline" 
-                className="group flex items-center gap-2 px-6 py-2 rounded-2xl border-1 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
-              >
-                <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <Phone className="h-3 w-3 text-primary" />
-                </div>
-                <span className="font-semibold">Call Waiter</span>
-              </Button>
-            </CallWaiterDialog>
-            <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleChefsSpecial}
-                            className="flex items-center gap-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                          >
-                            <ChefHat className="h-4 w-4" />
-                            Chef's Special
-                          </Button>
-            <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsSearchOpen(!isSearchOpen)}
-                          className="flex items-center gap-2"
-                        >
-                          <Search className="h-4 w-4" />
-                          Search
-                        </Button>            
-          </div>
-          {/* Search Bar */}
-                  <AnimatePresence>
-                    {isSearchOpen && (
-                      <motion.form
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        onSubmit={handleSearch}
-                        className="border-t border-border/50 py-4"
-                      >
-                        <div className="flex gap-2">
-                          <Input
-                            type="text"
-                            placeholder="Search menu items..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1"
-                            autoFocus
-                          />
-                          <Button type="submit" size="sm">
-                            <Search className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </motion.form>
-                    )}
-                  </AnimatePresence>
+            <div className="text-center space-y-4">
+              {/* Enhanced Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
+                <CallWaiterDialog restaurantId={restaurantId || ""}>
+                  <Button 
+                    variant="outline" 
+                    className="group flex items-center gap-2 px-6 py-2 rounded-2xl border-1 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                  >
+                    <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <Phone className="h-3 w-3 text-primary" />
+                    </div>
+                    <span className="font-semibold">Call Waiter</span>
+                  </Button>
+                </CallWaiterDialog>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleChefsSpecial}
+                  className="flex items-center gap-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                >
+                  <ChefHat className="h-4 w-4" />
+                  Chef's Special
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsSearchOpen(!isSearchOpen)}
+                  className="flex items-center gap-2"
+                >
+                  <Search className="h-4 w-4" />
+                  Search
+                </Button>            
+              </div>
+              
+              {/* Search Bar */}
+              <AnimatePresence>
+                {isSearchOpen && (
+                  <motion.form
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    onSubmit={handleSearch}
+                    className="border-t border-border/50 py-4"
+                  >
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Search menu items..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="flex-1"
+                        autoFocus
+                      />
+                      <Button type="submit" size="sm">
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </div>
         </motion.div>
 
         <Separator className="my-8 opacity-30" />
