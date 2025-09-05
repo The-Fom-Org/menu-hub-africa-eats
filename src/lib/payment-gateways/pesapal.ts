@@ -15,21 +15,36 @@ export class PesapalGateway implements PaymentGateway {
 
   async initializePayment(request: PaymentRequest, config: PaymentGatewayConfig): Promise<PaymentResponse> {
     try {
-      // Call our edge function to handle Pesapal payment initialization
-      const response = await fetch('/api/payments/pesapal/initialize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...request,
+      // Import supabase here to avoid module issues
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        'https://mrluhxwootpggtptglcd.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ybHVoeHdvb3RwZ2d0cHRnbGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTc2MTMsImV4cCI6MjA2ODY5MzYxM30.aH9JWZ3hLtC-hOo3iBbJK64edLFkyJYkHXdOavANXMM'
+      );
+
+      // Call our Supabase edge function to handle Pesapal payment initialization
+      const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
+        body: {
+          amount: request.amount,
+          currency: request.currency,
+          orderId: request.orderId,
+          description: request.description,
+          customerInfo: request.customerInfo,
+          callbackUrl: request.callbackUrl,
+          cancelUrl: request.cancelUrl,
           credentials: config.credentials,
-        }),
+          isSubscription: false // This is for customer orders
+        }
       });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
+      if (error) {
+        return {
+          success: false,
+          error: error.message || 'Payment initialization failed',
+        };
+      }
+
+      if (!data.success) {
         return {
           success: false,
           error: data.error || 'Payment initialization failed',
@@ -51,21 +66,34 @@ export class PesapalGateway implements PaymentGateway {
 
   async verifyPayment(transactionId: string, config: PaymentGatewayConfig): Promise<PaymentStatus> {
     try {
-      const response = await fetch('/api/payments/pesapal/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Import supabase here to avoid module issues
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        'https://mrluhxwootpggtptglcd.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ybHVoeHdvb3RwZ2d0cHRnbGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTc2MTMsImV4cCI6MjA2ODY5MzYxM30.aH9JWZ3hLtC-hOo3iBbJK64edLFkyJYkHXdOavANXMM'
+      );
+
+      // Call our Supabase edge function to handle Pesapal payment verification
+      const { data, error } = await supabase.functions.invoke('pesapal-verify', {
+        body: {
           transactionId,
           credentials: config.credentials,
-        }),
+          isSubscription: false // This is for customer orders
+        }
       });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Payment verification failed');
+      if (error) {
+        return {
+          transactionId,
+          status: 'failed',
+        };
+      }
+
+      if (!data.success) {
+        return {
+          transactionId,
+          status: 'failed',
+        };
       }
 
       return {
