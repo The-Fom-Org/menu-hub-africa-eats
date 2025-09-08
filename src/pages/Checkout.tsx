@@ -134,6 +134,7 @@ const Checkout = () => {
 
   // Show splash video if not finished
   if (!splashFinished) {
+    console.log('🎬 Showing checkout video splash');
     return (
       <motion.div
         className="min-h-screen bg-background flex items-center justify-center"
@@ -149,6 +150,9 @@ const Checkout = () => {
           playsInline
           loop
           className="w-full h-full object-cover"
+          onLoadStart={() => console.log('🎬 Checkout video loading started')}
+          onCanPlay={() => console.log('🎬 Checkout video can play')}
+          onError={(e) => console.error('🎬 Checkout video error:', e)}
         />
       </motion.div>
     );

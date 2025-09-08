@@ -46,6 +46,7 @@ const CustomerMenu = () => {
 
   // Show loading splash screen with food video
   if (loading || showVideoSplash) {
+    console.log('🎬 Showing video splash screen', { loading, showVideoSplash });
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <video
@@ -55,6 +56,9 @@ const CustomerMenu = () => {
           playsInline
           loop
           className="w-full h-full object-cover absolute top-0 left-0"
+          onLoadStart={() => console.log('🎬 Video loading started')}
+          onCanPlay={() => console.log('🎬 Video can play')}
+          onError={(e) => console.error('🎬 Video error:', e)}
         />
 
         {/* Overlay with subtle text */}
