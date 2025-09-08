@@ -5,15 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { CreditCard, Smartphone, Building, Banknote } from 'lucide-react';
 
-interface PaymentGateway {
-  type: string;
-  enabled: boolean;
-}
-
 interface PaymentMethodSelectorProps {
   paymentMethod: string;
   setPaymentMethod: (method: string) => void;
-  availableGateways: PaymentGateway[];
+  availableGateways: string[];
   excludeCash?: boolean;
 }
 
@@ -23,47 +18,55 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   availableGateways,
   excludeCash = false
 }) => {
-  const paymentMethods = [
-    {
-      id: 'mpesa',
-      name: 'M-Pesa',
-      description: 'Pay with M-Pesa mobile money',
-      icon: <Smartphone className="h-5 w-5" />,
-      enabled: true
-    },
-    {
-      id: 'card',
-      name: 'Credit/Debit Card',
-      description: 'Pay with Visa, Mastercard, or other cards',
-      icon: <CreditCard className="h-5 w-5" />,
-      enabled: true
-    },
-    {
-      id: 'bank_transfer',
-      name: 'Bank Transfer',
-      description: 'Direct bank transfer',
-      icon: <Building className="h-5 w-5" />,
-      enabled: true
+  const getPaymentMethodConfig = () => {
+    const methods = [];
+    
+    if (!excludeCash) {
+      methods.push({
+        id: 'cash',
+        name: 'Cash',
+        description: 'Pay at restaurant',
+        icon: <Banknote className="h-5 w-5" />
+      });
     }
-  ];
+    
+    if (availableGateways.includes('pesapal')) {
+      methods.push({
+        id: 'pesapal',
+        name: 'Card Payment',
+        description: 'Visa, Mastercard via Pesapal',
+        icon: <CreditCard className="h-5 w-5" />
+      });
+    }
+    
+    if (availableGateways.includes('mpesa')) {
+      methods.push({
+        id: 'mpesa',
+        name: 'M-Pesa',
+        description: 'Mobile money payment',
+        icon: <Smartphone className="h-5 w-5" />
+      });
+    }
+    
+    if (availableGateways.includes('bank_transfer')) {
+      methods.push({
+        id: 'bank_transfer',
+        name: 'Bank Transfer',
+        description: 'Direct bank transfer',
+        icon: <Building className="h-5 w-5" />
+      });
+    }
+    
+    return methods;
+  };
 
-  if (!excludeCash) {
-    paymentMethods.push({
-      id: 'cash',
-      name: 'Cash',
-      description: 'Pay with cash on delivery/pickup',
-      icon: <Banknote className="h-5 w-5" />,
-      enabled: true
-    });
-  }
-
-  const enabledMethods = paymentMethods.filter(method => method.enabled);
-
-  if (enabledMethods.length === 0) {
+  const methods = getPaymentMethodConfig();
+  
+  if (methods.length === 0) {
     return (
       <Card>
         <CardContent className="py-6 text-center">
-          <p className="text-muted-foreground">No payment methods available</p>
+          <p className="text-muted-foreground">No payment methods configured</p>
         </CardContent>
       </Card>
     );
@@ -72,7 +75,7 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   return (
     <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
       <div className="space-y-3">
-        {enabledMethods.map((method) => (
+        {methods.map((method) => (
           <div key={method.id} className="flex items-center space-x-3 border rounded-lg p-3 hover:bg-muted/50 transition-colors">
             <RadioGroupItem value={method.id} id={method.id} />
             <div className="flex items-center space-x-3 flex-1">

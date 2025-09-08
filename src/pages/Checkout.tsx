@@ -13,6 +13,7 @@ import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard, Info } from 'l
 import OrderCreationHandler from '@/components/checkout/OrderCreationHandler';
 import { useToast } from '@/hooks/use-toast';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
+import { useRestaurantPaymentSettings } from '@/hooks/useRestaurantPaymentSettings';
 import { motion } from "framer-motion";
 
 interface CartItem {
@@ -30,6 +31,7 @@ const Checkout = () => {
   const cart = useCart(restaurantId || '');
   const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
+  const { settings: paymentSettings, getAvailableGateways } = useRestaurantPaymentSettings(restaurantId || '');
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -134,6 +136,7 @@ const Checkout = () => {
 
   // Show splash video if not finished
   if (!splashFinished) {
+    console.log('🎬 Showing checkout video splash');
     return (
       <motion.div
         className="min-h-screen bg-background flex items-center justify-center"
@@ -147,7 +150,11 @@ const Checkout = () => {
           autoPlay
           muted
           playsInline
+          loop
           className="w-full h-full object-cover"
+          onLoadStart={() => console.log('🎬 Checkout video loading started')}
+          onCanPlay={() => console.log('🎬 Checkout video can play')}
+          onError={(e) => console.error('🎬 Checkout video error:', e)}
         />
       </motion.div>
     );
@@ -380,7 +387,7 @@ const Checkout = () => {
                       <PaymentMethodSelector
                         paymentMethod={paymentMethod}
                         setPaymentMethod={setPaymentMethod}
-                        availableGateways={[]}
+                        availableGateways={getAvailableGateways()}
                         excludeCash={true}
                       />
                     </CardContent>

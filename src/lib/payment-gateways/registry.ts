@@ -1,35 +1,10 @@
-import { PaymentGateway } from './types';
-import { PesapalGateway } from './pesapal';
-import { MPesaManualGateway, BankTransferGateway, CashGateway } from './manual';
+// Simple registry that doesn't use the complex PaymentGateway interface
+class SimplePaymentRegistry {
+  private availableGateways = ['pesapal', 'mpesa', 'bank_transfer', 'cash'];
 
-// Payment Gateway Registry
-class PaymentGatewayRegistry {
-  private gateways: Map<string, PaymentGateway> = new Map();
-
-  constructor() {
-    // Register available gateways
-    this.register(new PesapalGateway());
-    this.register(new MPesaManualGateway());
-    this.register(new BankTransferGateway());
-    this.register(new CashGateway());
-  }
-
-  register(gateway: PaymentGateway) {
-    this.gateways.set(gateway.type, gateway);
-  }
-
-  get(type: string): PaymentGateway | undefined {
-    return this.gateways.get(type);
-  }
-
-  getAll(): PaymentGateway[] {
-    return Array.from(this.gateways.values());
-  }
-
-  getAvailable(): PaymentGateway[] {
-    // Return all gateways - in future we can filter based on availability
-    return this.getAll();
+  getAvailable(): string[] {
+    return this.availableGateways;
   }
 }
 
-export const paymentGatewayRegistry = new PaymentGatewayRegistry();
+export const paymentGatewayRegistry = new SimplePaymentRegistry();

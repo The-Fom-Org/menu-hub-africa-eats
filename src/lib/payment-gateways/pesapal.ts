@@ -1,99 +1,104 @@
-import { PaymentGateway, PaymentRequest, PaymentResponse, PaymentStatus, PaymentGatewayConfig } from './types';
+export interface PesapalConfig {
+  consumer_key: string;
+  consumer_secret: string;
+  environment: 'sandbox' | 'production';
+  ipn_id?: string;
+}
 
-export class PesapalGateway implements PaymentGateway {
-  name = 'Pesapal';
-  type = 'pesapal';
-  requiresCredentials = true;
-  supportedMethods = ['M-Pesa', 'Card', 'Bank'];
+export interface PesapalPaymentRequest {
+  id: string;
+  currency: string;
+  amount: number;
+  description: string;
+  callback_url: string;
+  redirect_mode?: string;
+  notification_id?: string;
+  billing_address: {
+    email_address?: string;
+    phone_number?: string;
+    country_code?: string;
+    first_name?: string;
+    middle_name?: string;
+    last_name?: string;
+    line_1?: string;
+    line_2?: string;
+    city?: string;
+    state?: string;
+    postal_code?: string;
+    zip_code?: string;
+  };
+}
 
-  getCredentialFields() {
-    return [
-      { name: 'consumer_key', label: 'Consumer Key', type: 'text', required: true },
-      { name: 'consumer_secret', label: 'Consumer Secret', type: 'password', required: true },
-    ];
+export class PesapalGateway {
+  private config: PesapalConfig;
+
+  constructor(config: PesapalConfig) {
+    this.config = config;
   }
 
-  async initializePayment(request: PaymentRequest, config: PaymentGatewayConfig): Promise<PaymentResponse> {
+  async initializePayment(request: PesapalPaymentRequest): Promise<{ redirect_url: string; order_tracking_id: string }> {
     try {
-      // Call our edge function to handle Pesapal payment initialization
-      const response = await fetch('/api/payments/pesapal/initialize', {
+      console.log('Initializing Pesapal payment via Supabase function:', request);
+      
+      const response = await fetch('/functions/v1/pesapal-initialize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...request,
-          credentials: config.credentials,
+          consumer_key: this.config.consumer_key,
+          consumer_secret: this.config.consumer_secret,
+          environment: this.config.environment,
+          ipn_id: this.config.ipn_id,
         }),
       });
 
-      const data = await response.json();
-      
       if (!response.ok) {
-        return {
-          success: false,
-          error: data.error || 'Payment initialization failed',
-        };
+        throw new Error(`Payment initialization failed: ${response.statusText}`);
       }
 
+      const data = await response.json();
       return {
-        success: true,
-        paymentUrl: data.redirect_url,
-        transactionId: data.tracking_id,
+        redirect_url: data.redirect_url,
+        order_tracking_id: data.order_tracking_id,
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Payment initialization failed',
-      };
+      console.error('Pesapal payment initialization error:', error);
+      throw error;
     }
   }
 
-  async verifyPayment(transactionId: string, config: PaymentGatewayConfig): Promise<PaymentStatus> {
+  async verifyPayment(orderTrackingId: string): Promise<{ status: string; amount: number; currency: string }> {
     try {
-      const response = await fetch('/api/payments/pesapal/verify', {
+      console.log('Verifying Pesapal payment via Supabase function:', orderTrackingId);
+      
+      const response = await fetch('/functions/v1/pesapal-verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          transactionId,
-          credentials: config.credentials,
+          order_tracking_id: orderTrackingId,
+          consumer_key: this.config.consumer_key,
+          consumer_secret: this.config.consumer_secret,
+          environment: this.config.environment,
         }),
       });
 
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.error || 'Payment verification failed');
+        throw new Error(`Payment verification failed: ${response.statusText}`);
       }
 
+      const data = await response.json();
       return {
-        transactionId,
-        status: this.mapPesapalStatus(data.payment_status_description),
+        status: data.status,
         amount: data.amount,
         currency: data.currency,
-        paidAt: data.payment_status_description === 'COMPLETED' ? new Date() : undefined,
-        gatewayReference: data.merchant_reference,
       };
     } catch (error) {
-      return {
-        transactionId,
-        status: 'failed',
-      };
-    }
-  }
-
-  private mapPesapalStatus(pesapalStatus: string): 'pending' | 'completed' | 'failed' | 'cancelled' {
-    switch (pesapalStatus?.toUpperCase()) {
-      case 'COMPLETED':
-        return 'completed';
-      case 'FAILED':
-        return 'failed';
-      case 'CANCELLED':
-        return 'cancelled';
-      default:
-        return 'pending';
+      console.error('Pesapal payment verification error:', error);
+      throw error;
     }
   }
 }
