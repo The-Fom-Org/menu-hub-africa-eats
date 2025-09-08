@@ -147,6 +147,7 @@ const Checkout = () => {
           autoPlay
           muted
           playsInline
+          loop
           className="w-full h-full object-cover"
         />
       </motion.div>

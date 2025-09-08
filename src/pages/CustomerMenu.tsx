@@ -49,13 +49,13 @@ const CustomerMenu = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <video
+          src="/videos/loader2.mp4"
           autoPlay
           muted
           playsInline
+          loop
           className="w-full h-full object-cover absolute top-0 left-0"
-        >
-          <source src="/videos/loader2.mp4" type="video/mp4" />
-        </video>
+        />
 
         {/* Overlay with subtle text */}
         <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center">
