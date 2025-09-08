@@ -130,7 +130,7 @@ const Checkout = () => {
   };
   // simulate 2-second splash delay
   useEffect(() => {
-    const timer = setTimeout(() => setSplashFinished(true), 2000);
+    const timer = setTimeout(() => setSplashFinished(true), 5000);
     return () => clearTimeout(timer);
   }, []);
 

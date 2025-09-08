@@ -39,7 +39,7 @@ const CustomerMenu = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowVideoSplash(false);
-    }, 2000); // 2 seconds
+    }, 5000); // 2 seconds
 
     return () => clearTimeout(timer);
   }, []);
