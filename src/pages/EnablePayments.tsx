@@ -19,6 +19,7 @@ interface PaymentSettings {
     enabled: boolean;
     consumer_key?: string;
     consumer_secret?: string;
+    ipn_id?: string;
   };
   mpesa_manual?: {
     enabled: boolean;
@@ -330,6 +331,19 @@ const EnablePayments = () => {
                             onChange={(e) => handleSettingChange('pesapal', 'consumer_secret', e.target.value)}
                             placeholder="Your Pesapal Consumer Secret"
                           />
+                        </div>
+                        <div>
+                          <Label htmlFor="pesapal_ipn_id">IPN ID (Optional)</Label>
+                          <Input
+                            id="pesapal_ipn_id"
+                            type="text"
+                            value={paymentSettings.pesapal?.ipn_id || ''}
+                            onChange={(e) => handleSettingChange('pesapal', 'ipn_id', e.target.value)}
+                            placeholder="Your Pesapal IPN ID"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Used for payment notifications. Leave blank if not configured.
+                          </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">

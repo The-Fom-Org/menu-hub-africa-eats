@@ -13,6 +13,7 @@ import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard, Info } from 'l
 import OrderCreationHandler from '@/components/checkout/OrderCreationHandler';
 import { useToast } from '@/hooks/use-toast';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
+import { useRestaurantPaymentSettings } from '@/hooks/useRestaurantPaymentSettings';
 import { motion } from "framer-motion";
 
 interface CartItem {
@@ -30,6 +31,7 @@ const Checkout = () => {
   const cart = useCart(restaurantId || '');
   const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
+  const { settings: paymentSettings, getAvailableGateways } = useRestaurantPaymentSettings(restaurantId || '');
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -385,7 +387,7 @@ const Checkout = () => {
                       <PaymentMethodSelector
                         paymentMethod={paymentMethod}
                         setPaymentMethod={setPaymentMethod}
-                        availableGateways={[]}
+                        availableGateways={getAvailableGateways()}
                         excludeCash={true}
                       />
                     </CardContent>
