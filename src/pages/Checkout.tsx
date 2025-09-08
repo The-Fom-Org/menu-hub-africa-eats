@@ -13,6 +13,7 @@ import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard, Info } from 'l
 import OrderCreationHandler from '@/components/checkout/OrderCreationHandler';
 import { useToast } from '@/hooks/use-toast';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
+import { motion } from "framer-motion";
 
 interface CartItem {
   id: string;
@@ -36,6 +37,7 @@ const Checkout = () => {
   const [scheduledTime, setScheduledTime] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isCartInitialized, setIsCartInitialized] = useState(false);
+  const [splashFinished, setSplashFinished] = useState(false);
 
   console.log('🛒 Checkout page cart state:', {
     restaurantId,
@@ -124,21 +126,47 @@ const Checkout = () => {
 
     return true;
   };
+  // simulate 2-second splash delay
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashFinished(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show splash video if not finished
+  if (!splashFinished) {
+    return (
+      <motion.div
+        className="min-h-screen bg-background flex items-center justify-center"
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 0 }}
+        transition={{ duration: 0.8, delay: 1.2 }} // plays for ~1.2s then fades
+        onAnimationComplete={() => setSplashFinished(true)}
+      >
+        <video
+          src="/videos/loader1.mp4"
+          autoPlay
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      </motion.div>
+    );
+  }
+
 
   // Show loading until both restaurant data and cart are loaded
-  if (dataLoading || !isCartInitialized || !restaurantId) {
+     if (dataLoading || !isCartInitialized || !restaurantId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">
-            {dataLoading ? 'Loading restaurant...' : 'Loading cart...'}
+            {dataLoading ? "Loading restaurant..." : "Loading cart..."}
           </p>
         </div>
       </div>
     );
   }
-
   if (!restaurantInfo) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

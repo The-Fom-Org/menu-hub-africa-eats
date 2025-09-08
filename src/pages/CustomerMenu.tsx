@@ -27,25 +27,47 @@ const CustomerMenu = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const cart = useCart(restaurantId);
+  const [showVideoSplash, setShowVideoSplash] = useState(true);
 
   // Call waiter functionality is now handled by CallWaiterDialog component
-
   useEffect(() => {
     if (categories && categories.length > 0 && !selectedCategory) {
       setSelectedCategory(categories[0].id);
     }
   }, [categories, selectedCategory]);
 
-  if (loading) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowVideoSplash(false);
+    }, 2000); // 2 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading splash screen with food video
+  if (loading || showVideoSplash) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading menu...</p>
+        <video
+          autoPlay
+          muted
+          playsInline
+          className="w-full h-full object-cover absolute top-0 left-0"
+        >
+          <source src="/videos/loader2.mp4" type="video/mp4" />
+        </video>
+
+        {/* Overlay with subtle text */}
+        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center">
+          <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-lg">
+            {restaurantInfo?.name || "MenuHub"}
+          </h1>
+          <p className="mt-2 text-white/80 text-lg">Loading your menu...</p>
         </div>
       </div>
     );
   }
+
 
   if (error || !restaurantInfo) {
     return (
@@ -207,7 +229,10 @@ const CustomerMenu = () => {
                   <ChefHat className="h-4 w-4" />
                   Chef's Special
                 </Button>
-                <Button
+              </div>
+            </div>
+        </motion.div>
+        <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -216,7 +241,6 @@ const CustomerMenu = () => {
                   <Search className="h-4 w-4" />
                   Search
                 </Button>            
-              </div>
               
               {/* Search Bar */}
               <AnimatePresence>
@@ -242,10 +266,9 @@ const CustomerMenu = () => {
                       </Button>
                     </div>
                   </motion.form>
+                     
                 )}
               </AnimatePresence>
-            </div>
-        </motion.div>
 
         <Separator className="my-8 opacity-30" />
 
