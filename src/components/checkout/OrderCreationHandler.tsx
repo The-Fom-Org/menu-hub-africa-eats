@@ -132,15 +132,16 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
   };
 
   const handlePesapalPayment = async (order: any, orderData: any, amount: number) => {
-    if (!paymentSettings?.pesapal_consumer_key || !paymentSettings?.pesapal_consumer_secret) {
+    const pesapalSettings = paymentSettings?.payment_methods?.pesapal;
+    if (!pesapalSettings?.consumer_key || !pesapalSettings?.consumer_secret) {
       throw new Error('Pesapal payment settings not configured');
     }
 
     const pesapal = new PesapalGateway({
-      consumer_key: paymentSettings.pesapal_consumer_key,
-      consumer_secret: paymentSettings.pesapal_consumer_secret,
+      consumer_key: pesapalSettings.consumer_key,
+      consumer_secret: pesapalSettings.consumer_secret,
       environment: 'sandbox', // TODO: Make this configurable
-      ipn_id: paymentSettings.pesapal_ipn_id,
+      ipn_id: pesapalSettings.ipn_id,
     });
 
     const paymentRequest: PesapalPaymentRequest = {
@@ -149,7 +150,7 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
       amount: amount,
       description: `Pre-order reservation for ${orderData.customerName || 'Customer'}`,
       callback_url: `${window.location.origin}/order-success?token=${order.customer_token}&restaurant=${restaurantId}`,
-      notification_id: paymentSettings.pesapal_ipn_id,
+      notification_id: pesapalSettings.ipn_id,
       billing_address: {
         email_address: orderData.customerPhone ? `${orderData.customerPhone}@example.com` : undefined,
         phone_number: orderData.customerPhone || undefined,

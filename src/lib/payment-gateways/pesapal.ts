@@ -40,7 +40,7 @@ export class PesapalGateway {
     try {
       console.log('Initializing Pesapal payment via Supabase function:', request);
       
-      const response = await fetch('/functions/v1/pesapal-initialize', {
+      const response = await fetch('https://mrluhxwootpggtptglcd.supabase.co/functions/v1/pesapal-initialize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export class PesapalGateway {
     try {
       console.log('Verifying Pesapal payment via Supabase function:', orderTrackingId);
       
-      const response = await fetch('/functions/v1/pesapal-verify', {
+      const response = await fetch('https://mrluhxwootpggtptglcd.supabase.co/functions/v1/pesapal-verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
