@@ -10,11 +10,12 @@ import { CarouselHeroSection } from "@/components/customer/CarouselHeroSection";
 import { StickyHeader } from "@/components/customer/StickyHeader";
 import { LeadCaptureIntegration } from "@/components/customer/LeadCaptureIntegration";
 import { CallWaiterDialog } from "@/components/customer/CallWaiterDialog";
+import { PaymentStatusChecker } from "@/components/payment/PaymentStatusChecker";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, ShoppingCart, Clock, MapPin, Star, Award, ChefHat, Search } from "lucide-react";
+import { Phone, ShoppingCart, Clock, MapPin, Star, Award, ChefHat, Search, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
@@ -224,6 +225,19 @@ const CustomerMenu = () => {
                     <span className="font-semibold">Call Waiter</span>
                   </Button>
                 </CallWaiterDialog>
+                
+                <PaymentStatusChecker>
+                  <Button 
+                    variant="outline" 
+                    className="group flex items-center gap-2 px-6 py-2 rounded-2xl border-1 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                  >
+                    <div className="p-2 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
+                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                    </div>
+                    <span className="font-semibold">Check Payment</span>
+                  </Button>
+                </PaymentStatusChecker>
+                
                 <Button
                   variant="ghost"
                   size="sm"

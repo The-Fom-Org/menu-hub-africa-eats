@@ -13,7 +13,8 @@ import {
   Crown,
   Settings,
   ClipboardList,
-  Users
+  Users,
+  DollarSign
 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
@@ -124,6 +125,15 @@ export default function Dashboard() {
       href: "/customer-leads",
       color: "text-cyan-600",
       bgColor: "bg-cyan-50",
+      available: true
+    },
+    {
+      title: "Payment Management",
+      description: "Manage and confirm manual payments from customers",
+      icon: DollarSign,
+      href: "/payment-management",
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
       available: true
     }
   ];

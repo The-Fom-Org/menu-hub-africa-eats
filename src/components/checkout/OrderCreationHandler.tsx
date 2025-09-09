@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRestaurantPaymentSettings } from '@/hooks/useRestaurantPaymentSettings';
 import { PesapalGateway, PesapalPaymentRequest } from '@/lib/payment-gateways/pesapal';
 import NotificationPermissionDialog from '@/components/notifications/NotificationPermissionDialog';
+import { PaymentInstructionsDialog } from '@/components/payment/PaymentInstructionsDialog';
 
 interface OrderCreationHandlerProps {
   restaurantId: string;
@@ -20,7 +21,9 @@ interface OrderCreationHandlerProps {
 const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerProps) => {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
+  const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
   const navigate = useNavigate();
   const { clearCart, cartItems, getCartTotal } = useCart(restaurantId);
   const { subscribeToPush, requestPermission, isSupported } = usePushNotifications();
@@ -120,10 +123,10 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
     try {
       if (orderData.paymentMethod === 'pesapal') {
         await handlePesapalPayment(order, orderData, amount);
-      } else if (orderData.paymentMethod === 'mpesa') {
-        await handleMpesaPayment(order, orderData, amount);
+      } else if (orderData.paymentMethod === 'mpesa_manual') {
+        handleMpesaPayment(order, orderData, amount);
       } else if (orderData.paymentMethod === 'bank_transfer') {
-        await handleBankTransferPayment(order, orderData, amount);
+        handleBankTransferPayment(order, orderData, amount);
       }
     } catch (error) {
       console.error('Payment handling error:', error);
@@ -168,26 +171,28 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
     window.location.href = paymentResponse.redirect_url;
   };
 
-  const handleMpesaPayment = async (order: any, orderData: any, amount: number) => {
-    // Show M-Pesa instructions
-    toast({
-      title: "M-Pesa Payment",
-      description: `Please send KSh ${amount.toFixed(2)} to the restaurant's M-Pesa number. Your order will be processed once payment is confirmed.`,
+  const handleMpesaPayment = (order: any, orderData: any, amount: number) => {
+    console.log('Handling M-Pesa payment for order:', order.id);
+    setShowPaymentInstructions(true);
+    setPendingPaymentData({
+      orderId: order.id,
+      paymentMethod: 'mpesa_manual',
+      amount: amount,
+      orderData: orderData,
+      order: order
     });
-    
-    clearCart();
-    navigate(`/order-success?token=${order.customer_token}&restaurant=${restaurantId}&paymentPending=true`);
   };
 
-  const handleBankTransferPayment = async (order: any, orderData: any, amount: number) => {
-    // Show bank transfer instructions
-    toast({
-      title: "Bank Transfer Payment",
-      description: `Please transfer KSh ${amount.toFixed(2)} to the restaurant's bank account. Your order will be processed once payment is confirmed.`,
+  const handleBankTransferPayment = (order: any, orderData: any, amount: number) => {
+    console.log('Handling bank transfer payment for order:', order.id);
+    setShowPaymentInstructions(true);
+    setPendingPaymentData({
+      orderId: order.id,
+      paymentMethod: 'bank_transfer',
+      amount: amount,
+      orderData: orderData,
+      order: order
     });
-    
-    clearCart();
-    navigate(`/order-success?token=${order.customer_token}&restaurant=${restaurantId}&paymentPending=true`);
   };
 
   const finalizeOrder = (order: any, orderData: any) => {
@@ -234,6 +239,16 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
     setShowNotificationDialog(false);
   };
 
+  const handlePaymentConfirmed = () => {
+    if (pendingPaymentData) {
+      clearCart();
+      navigate(`/order-success?token=${pendingPaymentData.order.customer_token}&restaurant=${restaurantId}&paymentPending=true`);
+      setShowPaymentInstructions(false);
+      setPendingPaymentData(null);
+      setIsCreatingOrder(false);
+    }
+  };
+
   return (
     <>
       {children({ createOrder, isCreatingOrder })}
@@ -243,6 +258,20 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
         onOpenChange={setShowNotificationDialog}
         onAllow={handleNotificationAllow}
         onDeny={handleNotificationDeny}
+      />
+      
+      <PaymentInstructionsDialog
+        open={showPaymentInstructions}
+        onOpenChange={setShowPaymentInstructions}
+        paymentMethod={pendingPaymentData?.paymentMethod || ''}
+        paymentSettings={paymentSettings}
+        orderDetails={{
+          orderId: pendingPaymentData?.orderId || '',
+          amount: pendingPaymentData?.amount || 0,
+          currency: 'KES',
+          customerName: pendingPaymentData?.orderData?.customerName || ''
+        }}
+        onPaymentConfirmed={handlePaymentConfirmed}
       />
     </>
   );

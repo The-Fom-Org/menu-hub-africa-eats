@@ -32,6 +32,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import LeadFunnel from "./pages/LeadFunnel";
 import CustomerLeads from "./pages/CustomerLeads";
+import PaymentManagement from "./pages/PaymentManagement";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +70,7 @@ function App() {
             <Route path="/manage-subscription" element={<ManageSubscription />} />
             <Route path="/customer-leads" element={<CustomerLeads />} />
             <Route path="/lead-funnel" element={<LeadFunnel />} />
+            <Route path="/payment-management" element={<PaymentManagement />} />
             <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />
