@@ -6,27 +6,20 @@ export interface PesapalConfig {
 }
 
 export interface PesapalPaymentRequest {
-  id: string;
+  orderId: string;
   currency: string;
   amount: number;
   description: string;
-  callback_url: string;
-  redirect_mode?: string;
-  notification_id?: string;
-  billing_address: {
-    email_address?: string;
-    phone_number?: string;
-    country_code?: string;
-    first_name?: string;
-    middle_name?: string;
-    last_name?: string;
-    line_1?: string;
-    line_2?: string;
-    city?: string;
-    state?: string;
-    postal_code?: string;
-    zip_code?: string;
+  callbackUrl: string;
+  customerInfo: {
+    name?: string;
+    email?: string;
+    phone?: string;
   };
+  consumer_key?: string;
+  consumer_secret?: string;
+  environment?: string;
+  ipn_id?: string;
 }
 
 export class PesapalGateway {
@@ -40,28 +33,47 @@ export class PesapalGateway {
     try {
       console.log('Initializing Pesapal payment via Supabase function:', request);
       
+      const payloadForEdgeFunction = {
+        orderId: request.orderId,
+        currency: request.currency,
+        amount: request.amount,
+        description: request.description,
+        customerInfo: request.customerInfo,
+        callbackUrl: request.callbackUrl,
+        credentials: {
+          consumer_key: this.config.consumer_key,
+          consumer_secret: this.config.consumer_secret,
+        },
+        isSubscription: false,
+      };
+      
+      console.log('Sending payload to Pesapal edge function:', payloadForEdgeFunction);
+      
       const response = await fetch('https://mrluhxwootpggtptglcd.supabase.co/functions/v1/pesapal-initialize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...request,
-          consumer_key: this.config.consumer_key,
-          consumer_secret: this.config.consumer_secret,
-          environment: this.config.environment,
-          ipn_id: this.config.ipn_id,
-        }),
+        body: JSON.stringify(payloadForEdgeFunction),
       });
 
+      const responseText = await response.text();
+      console.log('Pesapal edge function response:', responseText);
+
       if (!response.ok) {
-        throw new Error(`Payment initialization failed: ${response.statusText}`);
+        throw new Error(`Payment initialization failed: ${response.status} ${response.statusText} - ${responseText}`);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(responseText);
+      console.log('Parsed Pesapal response data:', data);
+      
+      if (!data.redirect_url || !data.tracking_id) {
+        throw new Error('Invalid response from payment gateway: missing redirect_url or tracking_id');
+      }
+      
       return {
         redirect_url: data.redirect_url,
-        order_tracking_id: data.order_tracking_id,
+        order_tracking_id: data.tracking_id, // Map tracking_id to order_tracking_id
       };
     } catch (error) {
       console.error('Pesapal payment initialization error:', error);

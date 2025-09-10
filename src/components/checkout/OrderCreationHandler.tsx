@@ -148,17 +148,15 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
     });
 
     const paymentRequest: PesapalPaymentRequest = {
-      id: order.id,
+      orderId: order.id,
       currency: 'KES',
       amount: amount,
       description: `Pre-order reservation for ${orderData.customerName || 'Customer'}`,
-      callback_url: `${window.location.origin}/order-success?token=${order.customer_token}&restaurant=${restaurantId}`,
-      notification_id: pesapalSettings.ipn_id,
-      billing_address: {
-        email_address: orderData.customerPhone ? `${orderData.customerPhone}@example.com` : undefined,
-        phone_number: orderData.customerPhone || undefined,
-        first_name: orderData.customerName || 'Customer',
-        country_code: 'KE',
+      callbackUrl: `${window.location.origin}/order-success?token=${order.customer_token}&restaurant=${restaurantId}`,
+      customerInfo: {
+        name: orderData.customerName || 'Customer',
+        email: orderData.customerPhone ? `${orderData.customerPhone}@example.com` : undefined,
+        phone: orderData.customerPhone || undefined,
       },
     };
 

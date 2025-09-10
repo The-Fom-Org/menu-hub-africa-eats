@@ -110,7 +110,7 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
     }
     
     if (methods.mpesa_manual?.enabled && (methods.mpesa_manual.till_number || methods.mpesa_manual.paybill_number)) {
-      gateways.push('mpesa');
+      gateways.push('mpesa_manual');
     }
     
     if (methods.bank_transfer?.enabled && methods.bank_transfer.bank_name && methods.bank_transfer.account_number) {
