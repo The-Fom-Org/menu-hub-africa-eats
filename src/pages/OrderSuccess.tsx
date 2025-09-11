@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { PaymentCallbackHandler } from '@/components/payment/PaymentCallbackHandler';
 
 interface OrderDetails {
   id: string;
@@ -25,34 +26,43 @@ const OrderSuccess = () => {
   const [searchParams] = useSearchParams();
   const customerToken = searchParams.get('token');
   const restaurantId = searchParams.get('restaurant');
+  const orderTrackingId = searchParams.get('OrderTrackingId'); // Pesapal callback param
   const navigate = useNavigate();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentVerified, setPaymentVerified] = useState(false);
+
+  const handlePaymentVerified = (success: boolean) => {
+    setPaymentVerified(success);
+    // Refresh order details to show updated status
+    if (success && customerToken) {
+      fetchOrderDetails();
+    }
+  };
+
+  const fetchOrderDetails = async () => {
+    if (!customerToken) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('order-lookup', {
+        body: { customerToken }
+      });
+
+      if (error) throw error;
+      
+      if (data.success) {
+        setOrderDetails(data.order);
+      } else {
+        throw new Error('Order not found');
+      }
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrderDetails = async () => {
-      if (!customerToken) return;
-
-      try {
-        // Use secure Edge Function to fetch order by customer token
-        const { data, error } = await supabase.functions.invoke('order-lookup', {
-          body: { customerToken }
-        });
-
-        if (error) throw error;
-        
-        if (data.success) {
-          setOrderDetails(data.order);
-        } else {
-          throw new Error('Order not found');
-        }
-      } catch (error) {
-        console.error('Error fetching order details:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrderDetails();
   }, [customerToken]);
 
@@ -133,6 +143,16 @@ const OrderSuccess = () => {
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="space-y-6">
+          {/* Payment Verification Component */}
+          {customerToken && restaurantId && (
+            <PaymentCallbackHandler
+              orderTrackingId={orderTrackingId}
+              customerToken={customerToken}
+              restaurantId={restaurantId}
+              onPaymentVerified={handlePaymentVerified}
+            />
+          )}
+          
           {/* Success Message */}
           <Card>
             <CardContent className="pt-6">
@@ -164,9 +184,15 @@ const OrderSuccess = () => {
                     <p className="font-mono text-sm">{orderDetails.id.slice(0, 8)}...</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
+                    <p className="text-sm text-muted-foreground">Order Status</p>
                     <Badge variant={getStatusBadgeVariant(orderDetails.order_status)}>
                       {orderDetails.order_status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Payment Status</p>
+                    <Badge variant={orderDetails.payment_status === 'paid' ? 'default' : 'secondary'}>
+                      {orderDetails.payment_status}
                     </Badge>
                   </div>
                   <div>

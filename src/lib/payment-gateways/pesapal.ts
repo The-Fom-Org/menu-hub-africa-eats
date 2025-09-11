@@ -105,10 +105,27 @@ export class PesapalGateway {
       }
 
       const data = await response.json();
+      console.log('Pesapal verification response:', data);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Payment verification failed');
+      }
+      
+      // Map Pesapal status to our standard format
+      const statusMapping = {
+        'COMPLETED': 'completed',
+        'FAILED': 'failed', 
+        'PENDING': 'pending',
+        'CANCELLED': 'cancelled'
+      };
+      
+      const pesapalStatus = data.payment_status_description?.toUpperCase() || 'PENDING';
+      const mappedStatus = statusMapping[pesapalStatus] || 'pending';
+      
       return {
-        status: data.status,
-        amount: data.amount,
-        currency: data.currency,
+        status: mappedStatus,
+        amount: data.amount || 0,
+        currency: data.currency || 'KES',
       };
     } catch (error) {
       console.error('Pesapal payment verification error:', error);
