@@ -2,7 +2,7 @@ export interface PesapalConfig {
   consumer_key: string;
   consumer_secret: string;
   environment: 'sandbox' | 'production';
-  ipn_id?: string;
+  ipn_id?: string; // Optional - for webhook notifications
 }
 
 export interface PesapalPaymentRequest {
@@ -91,10 +91,12 @@ export class PesapalGateway {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          order_tracking_id: orderTrackingId,
-          consumer_key: this.config.consumer_key,
-          consumer_secret: this.config.consumer_secret,
-          environment: this.config.environment,
+          transactionId: orderTrackingId,
+          credentials: {
+            consumer_key: this.config.consumer_key,
+            consumer_secret: this.config.consumer_secret,
+          },
+          isSubscription: false,
         }),
       });
 
