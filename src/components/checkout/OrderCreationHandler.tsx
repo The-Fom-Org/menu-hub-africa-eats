@@ -160,13 +160,24 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
       },
     };
 
-    const paymentResponse = await pesapal.initializePayment(paymentRequest);
-    
-    // Clear cart before redirecting to payment
-    clearCart();
-    
-    // Redirect to Pesapal payment page
-    window.location.href = paymentResponse.redirect_url;
+    try {
+      const paymentResponse = await pesapal.initializePayment(paymentRequest);
+      
+      // Clear cart before redirecting to payment
+      clearCart();
+      
+      // Redirect to Pesapal payment page
+      window.location.href = paymentResponse.redirect_url;
+    } catch (error) {
+      console.error('Pesapal payment initialization failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Payment initialization failed';
+      toast({
+        title: "Payment Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   const handleMpesaPayment = (order: any, orderData: any, amount: number) => {

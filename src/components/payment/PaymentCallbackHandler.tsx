@@ -53,15 +53,18 @@ export const PaymentCallbackHandler = ({
       const paymentStatus = result.status === 'completed' ? 'paid' : 'failed';
       const orderStatus = result.status === 'completed' ? 'confirmed' : 'pending';
       
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ 
-          payment_status: paymentStatus,
-          order_status: orderStatus
-        })
-        .eq('customer_token', customerToken);
-        
-      if (updateError) throw updateError;
+      // Use edge function to update order status (bypasses RLS)
+      const { data: updateResult, error: updateError } = await supabase.functions.invoke('update-order-status', {
+        body: {
+          customerToken,
+          paymentStatus,
+          orderStatus
+        }
+      });
+      
+      if (updateError || !updateResult?.success) {
+        throw new Error(updateError?.message || updateResult?.error || 'Failed to update order status');
+      }
       
       if (result.status === 'completed') {
         setSuccess(true);

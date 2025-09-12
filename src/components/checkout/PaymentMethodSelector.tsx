@@ -39,9 +39,9 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
       });
     }
     
-    if (availableGateways.includes('mpesa')) {
+    if (availableGateways.includes('mpesa_manual')) {
       methods.push({
-        id: 'mpesa',
+        id: 'mpesa_manual',
         name: 'M-Pesa',
         description: 'Mobile money payment',
         icon: <Smartphone className="h-5 w-5" />
