@@ -9,8 +9,7 @@ import { UpsellSection } from "@/components/customer/UpsellSection";
 import { CarouselHeroSection } from "@/components/customer/CarouselHeroSection";
 import { StickyHeader } from "@/components/customer/StickyHeader";
 import { LeadCaptureIntegration } from "@/components/customer/LeadCaptureIntegration";
-import { CallWaiterDialog } from "@/components/customer/CallWaiterDialog";
-import { PaymentStatusChecker } from "@/components/payment/PaymentStatusChecker";
+import { StickyBottomBar } from "@/components/customer/StickyBottomBar";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Button } from "@/components/ui/button";
@@ -212,42 +211,7 @@ const CustomerMenu = () => {
           className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-5 mb-5"
         >
             <div className="text-center space-y-4">
-              {/* Enhanced Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
-                <CallWaiterDialog restaurantId={restaurantId || ""}>
-                  <Button 
-                    variant="outline" 
-                    className="group flex items-center gap-2 px-6 py-2 rounded-2xl border-1 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
-                  >
-                    <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      <Phone className="h-3 w-3 text-primary" />
-                    </div>
-                    <span className="font-semibold">Call Waiter</span>
-                  </Button>
-                </CallWaiterDialog>
-                
-                <PaymentStatusChecker>
-                  <Button 
-                    variant="outline" 
-                    className="group flex items-center gap-2 px-6 py-2 rounded-2xl border-1 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
-                  >
-                    <div className="p-2 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
-                      <CheckCircle2 className="h-3 w-3 text-green-600" />
-                    </div>
-                    <span className="font-semibold">Check Payment</span>
-                  </Button>
-                </PaymentStatusChecker>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleChefsSpecial}
-                  className="flex items-center gap-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                >
-                  <ChefHat className="h-4 w-4" />
-                  Chef's Special
-                </Button>
-              </div>
+               {/* Restaurant info content without action buttons */}
             </div>
         </motion.div>
         <Button
@@ -337,6 +301,15 @@ const CustomerMenu = () => {
           />
         )}
       </div>
+
+      {/* Sticky Bottom Bar */}
+      <StickyBottomBar 
+        restaurantId={restaurantId || ""}
+        onChefsSpecial={handleChefsSpecial}
+      />
+
+      {/* Add bottom padding to prevent content from being hidden behind sticky bar */}
+      <div className="h-20"></div>
     </div>
   );
 };
