@@ -135,19 +135,38 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
   };
 
   const handlePesapalPayment = async (order: any, orderData: any, amount: number) => {
+    console.log('🔄 Initiating Pesapal payment for order:', order.id);
+    
     const pesapalSettings = paymentSettings?.payment_methods?.pesapal;
-    if (!pesapalSettings?.consumer_key || !pesapalSettings?.consumer_secret) {
-      throw new Error('Pesapal payment settings not configured');
+    console.log('💳 Payment settings check:', { 
+      hasSettings: !!pesapalSettings, 
+      hasConsumerKey: !!pesapalSettings?.consumer_key,
+      hasConsumerSecret: !!pesapalSettings?.consumer_secret 
+    });
+    
+    if (!pesapalSettings?.enabled) {
+      const error = 'Pesapal payment is not enabled for this restaurant';
+      console.error('❌', error);
+      toast({
+        title: "Payment Unavailable",
+        description: error,
+        variant: "destructive",
+      });
+      throw new Error(error);
     }
 
-    const pesapal = new PesapalGateway({
-      consumer_key: pesapalSettings.consumer_key,
-      consumer_secret: pesapalSettings.consumer_secret,
-      environment: 'sandbox', // TODO: Make this configurable
-      ipn_id: pesapalSettings.ipn_id,
-    });
+    if (!pesapalSettings?.consumer_key || !pesapalSettings?.consumer_secret) {
+      const error = 'Restaurant Pesapal credentials are not configured. Please contact the restaurant to set up payments.';
+      console.error('❌', error);
+      toast({
+        title: "Payment Configuration Error",
+        description: error,
+        variant: "destructive",
+      });
+      throw new Error(error);
+    }
 
-    const paymentRequest: PesapalPaymentRequest = {
+    const paymentRequest = {
       orderId: order.id,
       currency: 'KES',
       amount: amount,
@@ -158,18 +177,51 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
         email: orderData.customerPhone ? `${orderData.customerPhone}@example.com` : undefined,
         phone: orderData.customerPhone || undefined,
       },
+      credentials: {
+        consumer_key: pesapalSettings.consumer_key,
+        consumer_secret: pesapalSettings.consumer_secret,
+      },
+      isSubscription: false, // This is a customer payment, not a subscription
     };
 
+    console.log('📤 Calling pesapal-initialize edge function with request:', {
+      orderId: paymentRequest.orderId,
+      amount: paymentRequest.amount,
+      currency: paymentRequest.currency,
+      hasCredentials: !!paymentRequest.credentials?.consumer_key
+    });
+
     try {
-      const paymentResponse = await pesapal.initializePayment(paymentRequest);
+      const { data, error } = await supabase.functions.invoke('pesapal-initialize', {
+        body: paymentRequest,
+      });
+
+      console.log('📥 Edge function response:', { data, error });
+
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw new Error(`Payment initialization failed: ${error.message || 'Unknown error'}`);
+      }
+
+      if (!data?.success) {
+        console.error('❌ Payment initialization failed:', data?.error);
+        throw new Error(data?.error || 'Payment initialization failed');
+      }
+
+      if (!data?.redirect_url) {
+        console.error('❌ No redirect URL received from Pesapal');
+        throw new Error('Invalid payment response - no redirect URL');
+      }
+
+      console.log('✅ Payment initialized successfully, redirecting to:', data.redirect_url);
       
       // Clear cart before redirecting to payment
       clearCart();
       
       // Redirect to Pesapal payment page
-      window.location.href = paymentResponse.redirect_url;
+      window.location.href = data.redirect_url;
     } catch (error) {
-      console.error('Pesapal payment initialization failed:', error);
+      console.error('❌ Pesapal payment initialization failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment initialization failed';
       toast({
         title: "Payment Error",

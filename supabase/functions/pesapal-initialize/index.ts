@@ -81,7 +81,9 @@ serve(async (req) => {
     });
 
     if (!authResponse.ok) {
-      throw new Error(`Authentication failed: ${authResponse.statusText}`);
+      const errorData = await authResponse.text();
+      console.error('Authentication failed:', errorData);
+      throw new Error(`Authentication failed: ${authResponse.statusText}. ${errorData}`);
     }
 
     const authData = await authResponse.json();
@@ -144,14 +146,31 @@ serve(async (req) => {
   } catch (error) {
     console.error('Pesapal initialization error:', error);
     
+    // Provide more specific error messages
+    let errorMessage = 'Payment initialization failed';
+    let statusCode = 400;
+    
+    if (error.message.includes('Authentication failed')) {
+      errorMessage = 'Invalid payment credentials. Please check your Pesapal settings.';
+      statusCode = 401;
+    } else if (error.message.includes('Order submission failed')) {
+      errorMessage = 'Failed to create payment request. Please check your order details.';
+    } else if (error.message.includes('credentials are required')) {
+      errorMessage = 'Payment method not properly configured. Please contact the restaurant.';
+      statusCode = 422;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
+        details: error.message, // Include technical details for debugging
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: statusCode,
       }
     );
   }

@@ -99,29 +99,116 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
 
   const getAvailableGateways = () => {
     if (!settings?.payment_methods) {
+      console.log('⚠️ No payment methods configured for restaurant');
       return [];
     }
     
     const gateways = [];
     const methods = settings.payment_methods;
     
+    console.log('🔍 Checking available gateways:', methods);
+    
     if (methods.pesapal?.enabled && methods.pesapal.consumer_key && methods.pesapal.consumer_secret) {
+      console.log('✅ Pesapal gateway available');
       gateways.push('pesapal');
+    } else {
+      console.log('❌ Pesapal gateway not available:', {
+        enabled: methods.pesapal?.enabled,
+        hasConsumerKey: !!methods.pesapal?.consumer_key,
+        hasConsumerSecret: !!methods.pesapal?.consumer_secret
+      });
     }
     
     if (methods.mpesa_manual?.enabled && (methods.mpesa_manual.till_number || methods.mpesa_manual.paybill_number)) {
+      console.log('✅ M-Pesa manual gateway available');
       gateways.push('mpesa_manual');
+    } else {
+      console.log('❌ M-Pesa manual gateway not available:', {
+        enabled: methods.mpesa_manual?.enabled,
+        hasTillNumber: !!methods.mpesa_manual?.till_number,
+        hasPaybillNumber: !!methods.mpesa_manual?.paybill_number
+      });
     }
     
     if (methods.bank_transfer?.enabled && methods.bank_transfer.bank_name && methods.bank_transfer.account_number) {
+      console.log('✅ Bank transfer gateway available');
       gateways.push('bank_transfer');
+    } else {
+      console.log('❌ Bank transfer gateway not available:', {
+        enabled: methods.bank_transfer?.enabled,
+        hasBankName: !!methods.bank_transfer?.bank_name,
+        hasAccountNumber: !!methods.bank_transfer?.account_number
+      });
     }
     
     if (methods.cash?.enabled) {
+      console.log('✅ Cash payment available');
       gateways.push('cash');
+    } else {
+      console.log('❌ Cash payment not available:', { enabled: methods.cash?.enabled });
     }
     
+    console.log('📋 Available payment gateways:', gateways);
     return gateways;
+  };
+
+  const validatePaymentSetup = () => {
+    const validationResults = {
+      isValid: false,
+      errors: [] as string[],
+      warnings: [] as string[],
+    };
+
+    if (!settings?.payment_methods) {
+      validationResults.errors.push('No payment methods configured');
+      return validationResults;
+    }
+
+    const methods = settings.payment_methods;
+    let hasValidMethod = false;
+
+    // Validate Pesapal
+    if (methods.pesapal?.enabled) {
+      if (!methods.pesapal.consumer_key) {
+        validationResults.errors.push('Pesapal Consumer Key is missing');
+      } else if (!methods.pesapal.consumer_secret) {
+        validationResults.errors.push('Pesapal Consumer Secret is missing');
+      } else {
+        hasValidMethod = true;
+      }
+    }
+
+    // Validate M-Pesa Manual
+    if (methods.mpesa_manual?.enabled) {
+      if (!methods.mpesa_manual.till_number && !methods.mpesa_manual.paybill_number) {
+        validationResults.errors.push('M-Pesa Till Number or Paybill Number is required');
+      } else {
+        hasValidMethod = true;
+      }
+    }
+
+    // Validate Bank Transfer
+    if (methods.bank_transfer?.enabled) {
+      if (!methods.bank_transfer.bank_name) {
+        validationResults.errors.push('Bank name is missing for bank transfer');
+      } else if (!methods.bank_transfer.account_number) {
+        validationResults.errors.push('Account number is missing for bank transfer');
+      } else {
+        hasValidMethod = true;
+      }
+    }
+
+    // Cash is always valid if enabled
+    if (methods.cash?.enabled) {
+      hasValidMethod = true;
+    }
+
+    if (!hasValidMethod) {
+      validationResults.errors.push('No valid payment methods configured');
+    }
+
+    validationResults.isValid = validationResults.errors.length === 0 && hasValidMethod;
+    return validationResults;
   };
 
   return {
@@ -130,6 +217,7 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
     error,
     updatePaymentSettings,
     getAvailableGateways,
+    validatePaymentSetup,
     refresh: fetchPaymentSettings,
   };
 };
