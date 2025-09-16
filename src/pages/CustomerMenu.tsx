@@ -211,10 +211,8 @@ const CustomerMenu = () => {
           className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-5 mb-5"
         >
             <div className="text-center space-y-4">
-               {/* Restaurant info content without action buttons */}
-            </div>
-        </motion.div>
-        <Button
+               {/* Search function */}
+               <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -251,6 +249,8 @@ const CustomerMenu = () => {
                      
                 )}
               </AnimatePresence>
+            </div>
+        </motion.div>
 
         <Separator className="my-8 opacity-30" />
 
