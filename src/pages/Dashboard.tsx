@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useBranch } from "@/contexts/BranchContext";
 import { useSubscriptionData } from "@/hooks/useSubscriptionData";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw } from "lucide-react";
@@ -15,8 +14,7 @@ import {
   Settings,
   ClipboardList,
   Users,
-  DollarSign,
-  Building2
+  DollarSign
 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
@@ -24,9 +22,8 @@ import { UpgradePrompt } from "@/components/dashboard/UpgradePrompt";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
-  const { selectedBranch, loading: branchLoading } = useBranch();
   const navigate = useNavigate();
-  const { subscriptionData, loading: checkingSubscription, refetch } = useSubscriptionData(selectedBranch?.restaurant_id);
+  const { subscriptionData, loading: checkingSubscription, refetch } = useSubscriptionData(user?.id);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -35,24 +32,12 @@ export default function Dashboard() {
     }
   }, [user, loading, navigate]);
 
-  if (loading || branchLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading if no branch is selected yet
-  if (!selectedBranch && !branchLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">No restaurant branch selected</p>
-          <p className="text-sm text-muted-foreground">Please create a restaurant branch to continue</p>
         </div>
       </div>
     );
@@ -98,12 +83,12 @@ export default function Dashboard() {
       available: true
     },
     {
-      title: "Branch Management",
-      description: "Manage your restaurant branches and locations",
-      icon: Building2,
-      href: "/branch-management",
-      color: "text-teal-600",
-      bgColor: "bg-teal-50",
+      title: "Custom Branding",
+      description: "Customize your menu's appearance and branding",
+      icon: Palette,
+      href: "/custom-branding",
+      color: "text-pink-600",
+      bgColor: "bg-pink-50",
       available: true
     },
     {
