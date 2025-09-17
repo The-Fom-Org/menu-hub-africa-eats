@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CartDrawer } from "./CartDrawer";
+import { PaymentStatusChecker } from "@/components/payment/PaymentStatusChecker";
 import { 
   Search, 
   ChefHat, 
@@ -18,8 +19,7 @@ interface StickyHeaderProps {
   restaurantName: string;
   restaurantId: string;
   logoUrl?: string;
-  onSearch?: (query: string) => void;
-  onChefsSpecial?: () => void;
+  restaurantId: string;
   onContactRestaurant?: () => void;
 }
 
@@ -81,25 +81,19 @@ export const StickyHeader = ({
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="flex items-center gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Search
-            </Button>
             
-            <Button
-              variant="ghost"
+            <PaymentStatusChecker>
+            <Button 
+              variant="outline" 
               size="sm"
-              onClick={handleChefsSpecial}
-              className="flex items-center gap-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+              className="flex-1 group flex items-center gap-2 rounded-xl border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
             >
-              <ChefHat className="h-4 w-4" />
-              Chef's Special
+              <div className="p-1.5 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
+                <CheckCircle2 className="h-3 w-3 text-green-600" />
+              </div>
+              <span className="font-medium text-sm">Check Payment</span>
             </Button>
+          </PaymentStatusChecker>
             
             <Button
               variant="ghost"
@@ -127,33 +121,6 @@ export const StickyHeader = ({
           </div>
         </div>
 
-        {/* Search Bar */}
-        <AnimatePresence>
-          {isSearchOpen && (
-            <motion.form
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              onSubmit={handleSearch}
-              className="border-t border-border/50 py-4"
-            >
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  placeholder="Search menu items..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
-                  autoFocus
-                />
-                <Button type="submit" size="sm">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
-
         {/* Mobile Menu */}
         <AnimatePresence>
           {isMobileMenuOpen && (
@@ -163,23 +130,6 @@ export const StickyHeader = ({
               exit={{ height: 0, opacity: 0 }}
               className="md:hidden border-t border-border/50 py-4 space-y-2"
             >
-              <Button
-                variant="ghost"
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="w-full justify-start"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Search Menu
-              </Button>
-              
-              <Button
-                variant="ghost"
-                onClick={handleChefsSpecial}
-                className="w-full justify-start text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-              >
-                <ChefHat className="h-4 w-4 mr-2" />
-                Chef's Special
-              </Button>
               
               <Button
                 variant="ghost"
@@ -189,6 +139,19 @@ export const StickyHeader = ({
                 <Phone className="h-4 w-4 mr-2" />
                 Contact Restaurant
               </Button>
+
+              <PaymentStatusChecker>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex-1 group flex items-center gap-2 rounded-xl border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                >
+                  <div className="p-1.5 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
+                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  </div>
+                  <span className="font-medium text-sm">Check Payment</span>
+                </Button>
+              </PaymentStatusChecker>
             </motion.div>
           )}
         </AnimatePresence>

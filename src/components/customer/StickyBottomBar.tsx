@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { CallWaiterDialog } from "@/components/customer/CallWaiterDialog";
-import { PaymentStatusChecker } from "@/components/payment/PaymentStatusChecker";
 import { Phone, CheckCircle2, ChefHat } from "lucide-react";
 
 interface StickyBottomBarProps {
@@ -26,18 +25,7 @@ export const StickyBottomBar = ({ restaurantId, onChefsSpecial }: StickyBottomBa
             </Button>
           </CallWaiterDialog>
           
-          <PaymentStatusChecker>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="flex-1 group flex items-center gap-2 rounded-xl border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
-            >
-              <div className="p-1.5 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
-                <CheckCircle2 className="h-3 w-3 text-green-600" />
-              </div>
-              <span className="font-medium text-sm">Check Payment</span>
-            </Button>
-          </PaymentStatusChecker>
+          
           
           <Button
             variant="outline"
