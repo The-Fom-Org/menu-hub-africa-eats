@@ -11,7 +11,8 @@ import {
   X,
   MapPin,
   Clock,
-  Star
+  Star,
+  CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -19,7 +20,6 @@ interface StickyHeaderProps {
   restaurantName: string;
   restaurantId: string;
   logoUrl?: string;
-  restaurantId: string;
   onContactRestaurant?: () => void;
 }
 
@@ -27,24 +27,9 @@ export const StickyHeader = ({
   restaurantName,
   restaurantId,
   logoUrl,
-  onSearch,
-  onChefsSpecial,
   onContactRestaurant
 }: StickyHeaderProps) => {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch?.(searchQuery);
-    setIsSearchOpen(false);
-  };
-
-  const handleChefsSpecial = () => {
-    onChefsSpecial?.();
-    setIsMobileMenuOpen(false);
-  };
 
   const handleContactRestaurant = () => {
     onContactRestaurant?.();
