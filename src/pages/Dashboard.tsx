@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscriptionData } from "@/hooks/useSubscriptionData";
+import { useBranch } from "@/contexts/BranchContext";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw } from "lucide-react";
 import { 
@@ -14,7 +15,8 @@ import {
   Settings,
   ClipboardList,
   Users,
-  DollarSign
+  DollarSign,
+  Building2
 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
@@ -22,8 +24,9 @@ import { UpgradePrompt } from "@/components/dashboard/UpgradePrompt";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
+  const { currentBranch, loading: branchLoading } = useBranch();
   const navigate = useNavigate();
-  const { subscriptionData, loading: checkingSubscription, refetch } = useSubscriptionData(user?.id);
+  const { subscriptionData, loading: checkingSubscription, refetch } = useSubscriptionData(currentBranch?.restaurant_id);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -32,7 +35,7 @@ export default function Dashboard() {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  if (loading || branchLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -128,14 +131,14 @@ export default function Dashboard() {
       available: true
     },
     {
-      title: "Payment Management",
-      description: "Manage and confirm manual payments from customers",
-      icon: DollarSign,
-      href: "/payment-management",
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
+      title: "Branch Management",
+      description: "Manage multiple restaurant locations and branches",
+      icon: Building2,
+      href: "/branch-management",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
       available: true
-    }
+    },
   ];
 
   return (

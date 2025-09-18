@@ -5,14 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, QrCode, Download, Share, Copy, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMenuData } from "@/hooks/useMenuData";
+import { useBranchMenuData } from "@/hooks/useBranchMenuData";
+import { useBranch } from "@/contexts/BranchContext";
 import QRCodeLib from 'qrcode';
 
 const QRCodePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading } = useAuth();
-  const { categories } = useMenuData();
+  const { currentBranch, loading: branchLoading } = useBranch();
+  const { categories } = useBranchMenuData();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const hasMenuItems = categories.some(cat => cat.menu_items && cat.menu_items.length > 0);
@@ -24,8 +26,8 @@ const QRCodePage = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user && hasMenuItems && canvasRef.current) {
-      const menuUrl = `${window.location.origin}/menu/${user.id}?qr=true`;
+    if (currentBranch && hasMenuItems && canvasRef.current) {
+      const menuUrl = `${window.location.origin}/menu/${currentBranch.restaurant_id}?qr=true`;
       QRCodeLib.toCanvas(canvasRef.current, menuUrl, {
         width: 256,
         margin: 2,
@@ -35,10 +37,12 @@ const QRCodePage = () => {
         }
       });
     }
-  }, [user, hasMenuItems]);
+  }, [currentBranch, hasMenuItems]);
 
   const handleCopyLink = () => {
-    const menuLink = `${window.location.origin}/menu/${user?.id}`;
+    if (!currentBranch) return;
+    
+    const menuLink = `${window.location.origin}/menu/${currentBranch.restaurant_id}`;
     navigator.clipboard.writeText(menuLink);
     toast({
       title: "Link copied!",
