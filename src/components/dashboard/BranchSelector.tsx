@@ -17,8 +17,8 @@ export function BranchSelector() {
   const { currentBranch, userBranches, switchBranch } = useBranch();
   const navigate = useNavigate();
 
-  // Only show if user has multiple branches or none selected
-  if (!currentBranch || userBranches.length <= 1) {
+  // Show if user has any branches - even just one so they can add more
+  if (!currentBranch || userBranches.length === 0) {
     return null;
   }
 
@@ -33,7 +33,7 @@ export function BranchSelector() {
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent align="end" className="w-64 bg-background border shadow-lg z-50">
         <DropdownMenuLabel>Select Restaurant Branch</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
@@ -65,10 +65,10 @@ export function BranchSelector() {
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           onClick={() => navigate('/branch-management')}
-          className="cursor-pointer"
+          className="cursor-pointer text-primary"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Manage Branches
+          Add New Restaurant
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
