@@ -5,6 +5,8 @@ import { Crown, RefreshCw } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { BranchSelector } from "./BranchSelector";
 import { QuickAddBranch } from "./QuickAddBranch";
+import { ConnectToRestaurant } from "./ConnectToRestaurant";
+import { RestaurantIdDisplay } from "./RestaurantIdDisplay";
 
 interface SubscriptionData {
   subscribed: boolean;
@@ -39,8 +41,12 @@ export function DashboardHeader({
         {/* Branch selector for multi-branch users */}
         <BranchSelector />
         
-        {/* Quick add branch button */}
-        <QuickAddBranch />
+        {/* Restaurant management buttons */}
+        <div className="flex items-center gap-2">
+          <QuickAddBranch />
+          <ConnectToRestaurant />
+          <RestaurantIdDisplay />
+        </div>
         
         {/* Notification bell for kitchen orders */}
         <NotificationBell />
