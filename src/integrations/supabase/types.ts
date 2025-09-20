@@ -417,6 +417,30 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_settings: {
+        Row: {
+          created_at: string
+          id: string
+          ordering_enabled: boolean
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordering_enabled?: boolean
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordering_enabled?: boolean
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       restaurants: {
         Row: {
           address: string | null

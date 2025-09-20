@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useCustomerMenuData } from "@/hooks/useCustomerMenuData";
+import { useCustomerOrderingStatus } from "@/hooks/useCustomerOrderingStatus";
 import { useCart } from "@/hooks/useCart";
 import { CartDrawer } from "@/components/customer/CartDrawer";
 import { CategoryEmojis } from "@/components/customer/CategoryEmojis";
@@ -23,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
+  const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(restaurantId || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -282,6 +284,7 @@ const CustomerMenu = () => {
                       key={item.id}
                       item={item}
                       restaurantId={restaurantId || ""}
+                      orderingEnabled={orderingEnabled}
                     />
                   ))}
                 </div>
@@ -290,8 +293,8 @@ const CustomerMenu = () => {
           )}
         </div>
 
-        {/* Upsell Section */}
-        {cart.hasItems() && (
+        {/* Upsell Section - only show if ordering is enabled */}
+        {orderingEnabled && cart.hasItems() && (
           <UpsellSection
             restaurantId={restaurantId || ""}
             currentCartItems={cart.cartItems}
@@ -300,14 +303,19 @@ const CustomerMenu = () => {
         )}
       </div>
 
-      {/* Sticky Bottom Bar */}
-      <StickyBottomBar 
-        restaurantId={restaurantId || ""}
-        onChefsSpecial={handleChefsSpecial}
-      />
+      {/* Sticky Bottom Bar - only show if ordering is enabled */}
+      {orderingEnabled && (
+        <StickyBottomBar 
+          restaurantId={restaurantId || ""}
+          onChefsSpecial={handleChefsSpecial}
+        />
+      )}
 
       {/* Add bottom padding to prevent content from being hidden behind sticky bar */}
       <div className="h-20"></div>
+
+      {/* Cart Drawer - only show if ordering is enabled */}
+      {orderingEnabled && <CartDrawer restaurantId={restaurantId || ""} />}
     </div>
   );
 };

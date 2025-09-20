@@ -37,22 +37,32 @@ export function ConnectToRestaurant() {
         .from('restaurants')
         .select('id, name')
         .eq('id', restaurantId.trim())
-        .single();
+        .maybeSingle();
 
-      if (restaurantError) {
-        throw new Error('Restaurant not found. Please check the ID and try again.');
+      if (restaurantError || !restaurant) {
+        toast({
+          title: "Restaurant Not Found",
+          description: "No restaurant found with that ID. Please check the ID and try again.",
+          variant: "destructive",
+        });
+        return;
       }
 
       // Check if user is already connected to this restaurant
-      const { data: existingBranch, error: branchCheckError } = await supabase
+      const { data: existingBranch } = await supabase
         .from('user_branches')
         .select('id')
         .eq('user_id', user.id)
         .eq('restaurant_id', restaurantId.trim())
-        .single();
+        .maybeSingle();
 
       if (existingBranch) {
-        throw new Error('You are already connected to this restaurant.');
+        toast({
+          title: "Already Connected",
+          description: `You are already connected to ${restaurant.name}.`,
+          variant: "destructive",
+        });
+        return;
       }
 
       // Create the branch relationship

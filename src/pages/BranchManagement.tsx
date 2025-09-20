@@ -10,7 +10,9 @@ import { useBranch } from "@/contexts/BranchContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Building2, Plus, Settings, Trash2 } from "lucide-react";
+import { ArrowLeft, Building2, Plus, Settings, Trash2, LinkIcon, Copy } from "lucide-react";
+import { ConnectToRestaurant } from "@/components/dashboard/ConnectToRestaurant";
+import { RestaurantIdDisplay } from "@/components/dashboard/RestaurantIdDisplay";
 import {
   Dialog,
   DialogContent,
@@ -35,59 +37,9 @@ export default function BranchManagement() {
     tagline: "",
   });
 
-  const handleCreateRestaurant = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      setIsCreating(true);
-
-      // Create new restaurant
-      const { data: restaurant, error: restaurantError } = await supabase
-        .from('restaurants')
-        .insert({
-          name: newRestaurant.name,
-          description: newRestaurant.description,
-          phone_number: newRestaurant.phone_number,
-          tagline: newRestaurant.tagline,
-          primary_color: '#059669',
-          secondary_color: '#dc2626',
-        })
-        .select()
-        .single();
-
-      if (restaurantError) throw restaurantError;
-
-      // Create user-restaurant relationship
-      const { error: branchError } = await supabase
-        .from('user_branches')
-        .insert({
-          user_id: user.id,
-          restaurant_id: restaurant.id,
-          role: 'owner',
-          is_default: userBranches.length === 0, // Make first restaurant default
-        });
-
-      if (branchError) throw branchError;
-
-      toast({
-        title: "Restaurant Created",
-        description: `${newRestaurant.name} has been added to your account.`,
-      });
-
-      // Reset form and refresh
-      setNewRestaurant({ name: "", description: "", phone_number: "", tagline: "" });
-      setIsDialogOpen(false);
-      await refreshBranches();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create restaurant",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
+  const handleCreateRestaurant = () => {
+    // Redirect to signup page to create a new restaurant account
+    navigate('/signup?mode=new-restaurant');
   };
 
   const handleSetDefault = async (branchId: string) => {
@@ -145,72 +97,17 @@ export default function BranchManagement() {
               </p>
             </div>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Restaurant
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Restaurant</DialogTitle>
-                  <DialogDescription>
-                    Create a new restaurant branch to manage separately.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreateRestaurant}>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Restaurant Name</Label>
-                      <Input
-                        id="name"
-                        value={newRestaurant.name}
-                        onChange={(e) => setNewRestaurant(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="e.g., Mama Mia's Downtown"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={newRestaurant.description}
-                        onChange={(e) => setNewRestaurant(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Brief description of your restaurant"
-                        rows={3}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        value={newRestaurant.phone_number}
-                        onChange={(e) => setNewRestaurant(prev => ({ ...prev, phone_number: e.target.value }))}
-                        placeholder="+254 700 123 456"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tagline">Tagline</Label>
-                      <Input
-                        id="tagline"
-                        value={newRestaurant.tagline}
-                        onChange={(e) => setNewRestaurant(prev => ({ ...prev, tagline: e.target.value }))}
-                        placeholder="Your restaurant's motto"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isCreating}>
-                      {isCreating ? "Creating..." : "Create Restaurant"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <div className="flex items-center gap-2">
+              <Button 
+                className="flex items-center gap-2"
+                onClick={handleCreateRestaurant}
+              >
+                <Plus className="h-4 w-4" />
+                Add Restaurant
+              </Button>
+              <ConnectToRestaurant />
+              <RestaurantIdDisplay />
+            </div>
           </div>
 
           {/* Restaurant List */}
