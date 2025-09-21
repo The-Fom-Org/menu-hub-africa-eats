@@ -60,14 +60,32 @@ export const useRestaurantSettings = (): RestaurantSettings => {
     if (!currentBranch?.restaurant_id) return;
 
     try {
-      const { error } = await supabase
+      // First check if settings exist
+      const { data: existingSettings } = await supabase
         .from('restaurant_settings')
-        .upsert({
-          restaurant_id: currentBranch.restaurant_id,
-          ordering_enabled: enabled,
-        });
+        .select('id')
+        .eq('restaurant_id', currentBranch.restaurant_id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingSettings) {
+        // Update existing settings
+        const { error } = await supabase
+          .from('restaurant_settings')
+          .update({ ordering_enabled: enabled })
+          .eq('restaurant_id', currentBranch.restaurant_id);
+
+        if (error) throw error;
+      } else {
+        // Insert new settings
+        const { error } = await supabase
+          .from('restaurant_settings')
+          .insert({
+            restaurant_id: currentBranch.restaurant_id,
+            ordering_enabled: enabled,
+          });
+
+        if (error) throw error;
+      }
 
       setOrderingEnabled(enabled);
       toast({
