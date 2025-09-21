@@ -99,8 +99,8 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
 
   const getAvailableGateways = () => {
     if (!settings?.payment_methods) {
-      console.log('⚠️ No payment methods configured for restaurant');
-      return [];
+      console.log('⚠️ No payment methods configured for restaurant, returning default cash option');
+      return ['cash']; // Always allow cash payments as default
     }
     
     const gateways = [];
