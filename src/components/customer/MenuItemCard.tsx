@@ -210,8 +210,8 @@ export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: Men
             </div>
           </CardHeader>
 
-          {/* Actions - only show if ordering is enabled */}
-          {orderingEnabled && (
+          {/* Actions - show different content based on ordering status */}
+          {orderingEnabled ? (
             <CardContent className="pt-0 pb-3 px-3 mt-auto">
               <div className="flex items-center gap-1 sm:gap-2">
                 <Button
@@ -260,6 +260,12 @@ export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: Men
                     </Button>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          ) : (
+            <CardContent className="pt-0 pb-3 px-3 mt-auto">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-center">
+                <span className="text-red-600 text-xs font-medium">Ordering Currently Disabled</span>
               </div>
             </CardContent>
           )}

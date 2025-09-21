@@ -25,6 +25,14 @@ const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
   const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(restaurantId || "");
+  
+  console.log('🍽️ [CustomerMenu] Current state:', {
+    restaurantId,
+    restaurantInfo: restaurantInfo ? { name: restaurantInfo.name, logo_url: restaurantInfo.logo_url } : null,
+    orderingEnabled,
+    orderingLoading,
+    loading
+  });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -294,14 +302,29 @@ const CustomerMenu = () => {
           )}
         </div>
 
-        {/* Upsell Section - only show if ordering is enabled */}
-        {orderingEnabled && cart.hasItems() && (
-          <UpsellSection
-            restaurantId={restaurantId || ""}
-            currentCartItems={cart.cartItems}
-            allItems={allMenuItems}
-          />
-        )}
+      {/* Upsell Section - only show if ordering is enabled */}
+      {orderingEnabled && cart.hasItems() && (
+        <UpsellSection
+          restaurantId={restaurantId || ""}
+          currentCartItems={cart.cartItems}
+          allItems={allMenuItems}
+        />
+      )}
+      
+      {/* Message when ordering is disabled */}
+      {!orderingEnabled && (
+        <div className="mt-8 text-center">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 max-w-md mx-auto">
+            <div className="text-amber-600 mb-2">
+              <Clock className="h-8 w-8 mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold text-amber-800 mb-2">Ordering Currently Unavailable</h3>
+            <p className="text-amber-700 text-sm">
+              We're temporarily not accepting new orders. Please check back later or contact the restaurant directly.
+            </p>
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Sticky Bottom Bar - only show if ordering is enabled */}
