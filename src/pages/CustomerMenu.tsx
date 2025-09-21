@@ -188,6 +188,7 @@ const CustomerMenu = () => {
         restaurantName={restaurantInfo.name}
         restaurantId={restaurantId || ""}
         logoUrl={restaurantInfo.logo_url}
+        orderingEnabled={orderingEnabled}
         onContactRestaurant={handleContactRestaurant}
       />
 
@@ -312,7 +313,7 @@ const CustomerMenu = () => {
       )}
 
       {/* Add bottom padding to prevent content from being hidden behind sticky bar */}
-      <div className="h-20"></div>
+      {orderingEnabled && <div className="h-20"></div>}
 
       {/* Cart Drawer - only show if ordering is enabled */}
       {orderingEnabled && <CartDrawer restaurantId={restaurantId || ""} />}

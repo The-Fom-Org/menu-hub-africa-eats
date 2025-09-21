@@ -20,6 +20,7 @@ interface StickyHeaderProps {
   restaurantName: string;
   restaurantId: string;
   logoUrl?: string;
+  orderingEnabled?: boolean;
   onContactRestaurant?: () => void;
 }
 
@@ -27,6 +28,7 @@ export const StickyHeader = ({
   restaurantName,
   restaurantId,
   logoUrl,
+  orderingEnabled = true,
   onContactRestaurant
 }: StickyHeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -90,12 +92,12 @@ export const StickyHeader = ({
               Contact
             </Button>
             
-            <CartDrawer restaurantId={restaurantId} />
+            {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            <CartDrawer restaurantId={restaurantId} />
+            {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
             <Button
               variant="ghost"
               size="sm"

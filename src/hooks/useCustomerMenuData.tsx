@@ -76,31 +76,52 @@ export const useCustomerMenuData = (restaurantId: string) => {
 
       setCategories(filteredCategories);
 
-      // Fetch restaurant profile info (only public-safe fields for customer menu)
-      const { data: profileData, error: profileError } = await (supabase as any)
-        .from('profiles')
-        .select('restaurant_name, logo_url, cover_image_url, primary_color, secondary_color')
-        .eq('user_id', restaurantId)
+      // Fetch restaurant info from restaurants table
+      const { data: restaurantData, error: restaurantError } = await supabase
+        .from('restaurants')
+        .select('name, description, logo_url, cover_image_url, primary_color, secondary_color, phone_number, tagline')
+        .eq('id', restaurantId)
         .single();
 
-      if (profileData) {
+      if (restaurantData) {
         setRestaurantInfo({
           id: restaurantId,
-          name: profileData.restaurant_name || "MenuHub Restaurant",
-          description: "Delicious meals made with love",
-          logo_url: profileData.logo_url,
-          cover_image_url: profileData.cover_image_url,
-          primary_color: profileData.primary_color,
-          secondary_color: profileData.secondary_color,
+          name: restaurantData.name || "MenuHub Restaurant",
+          description: restaurantData.description || "Delicious meals made with love",
+          logo_url: restaurantData.logo_url,
+          cover_image_url: restaurantData.cover_image_url,
+          tagline: restaurantData.tagline,
+          primary_color: restaurantData.primary_color,
+          secondary_color: restaurantData.secondary_color,
+          phone_number: restaurantData.phone_number,
         });
       } else {
-        setRestaurantInfo({
-          id: restaurantId,
-          name: "MenuHub Restaurant",
-          description: "Delicious meals made with love",
-          logo_url: undefined,
-          cover_image_url: undefined,
-        });
+        // Fallback: Try profiles table for backward compatibility
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('restaurant_name, logo_url, cover_image_url, primary_color, secondary_color')
+          .eq('user_id', restaurantId)
+          .single();
+
+        if (profileData) {
+          setRestaurantInfo({
+            id: restaurantId,
+            name: profileData.restaurant_name || "MenuHub Restaurant",
+            description: "Delicious meals made with love",
+            logo_url: profileData.logo_url,
+            cover_image_url: profileData.cover_image_url,
+            primary_color: profileData.primary_color,
+            secondary_color: profileData.secondary_color,
+          });
+        } else {
+          setRestaurantInfo({
+            id: restaurantId,
+            name: "MenuHub Restaurant",
+            description: "Delicious meals made with love",
+            logo_url: undefined,
+            cover_image_url: undefined,
+          });
+        }
       }
 
     } catch (error) {
