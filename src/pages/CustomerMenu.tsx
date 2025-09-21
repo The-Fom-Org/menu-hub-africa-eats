@@ -186,6 +186,8 @@ const CustomerMenu = () => {
         restaurantName={restaurantInfo.name}
         restaurantId={restaurantId || ""}
         logoUrl={restaurantInfo.logo_url}
+        onSearch={handlesSearch}
+        onChefsSpecial={handleChefsSpecial}
         onContactRestaurant={handleContactRestaurant}
       />
 
