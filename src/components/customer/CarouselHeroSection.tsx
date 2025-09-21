@@ -81,6 +81,7 @@ export const CarouselHeroSection = ({
                   <div className="absolute inset-0">
                     <img 
                       src={slide.imageUrl} 
+                      alt={slide.title || `${restaurantName} slide ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/40"></div>
@@ -93,7 +94,10 @@ export const CarouselHeroSection = ({
                     {slide.isDefault ? (
                       // Default slide content with the original speed and freshness cues
                       <div className="flex items-center justify-center gap-2 md:gap-3 text-sm md:text-base flex-wrap">
-                        
+                        <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-2 py-1">
+                          <Clock className="h-4 w-4" />
+                          <span className="font-medium">Ready in 15 minutes</span>
+                        </div>
                         <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-2 py-1">
                           <Star className="h-4 w-4 fill-current" />
                           <span className="font-medium">Freshly made, just for you</span>

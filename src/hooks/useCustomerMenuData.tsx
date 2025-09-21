@@ -47,11 +47,10 @@ export const useCustomerMenuData = (restaurantId: string) => {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('🔍 [CustomerMenuData] Fetching data for restaurant:', restaurantId);
 
-      // Fetch menu categories with items
-      const { data: categoriesData, error: categoriesError } = await supabase
+      // For now, we'll use the user_id as restaurant_id since we don't have a separate restaurants table
+      // In a real implementation, you'd want a separate restaurants table
+      const { data: categoriesData, error: categoriesError } = await (supabase as any)
         .from('menu_categories')
         .select(`
           *,
@@ -77,61 +76,31 @@ export const useCustomerMenuData = (restaurantId: string) => {
 
       setCategories(filteredCategories);
 
-      // Fetch restaurant info from restaurants table
-      console.log('🏪 [CustomerMenuData] Fetching restaurant info for ID:', restaurantId);
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurants')
-        .select('name, description, logo_url, cover_image_url, primary_color, secondary_color, phone_number, tagline')
-        .eq('id', restaurantId)
+      // Fetch restaurant profile info (only public-safe fields for customer menu)
+      const { data: profileData, error: profileError } = await (supabase as any)
+        .from('profiles')
+        .select('restaurant_name, logo_url, cover_image_url, primary_color, secondary_color')
+        .eq('user_id', restaurantId)
         .single();
 
-      console.log('🏪 [CustomerMenuData] Restaurant data:', restaurantData, 'Error:', restaurantError);
-
-      if (restaurantData) {
-        const info = {
+      if (profileData) {
+        setRestaurantInfo({
           id: restaurantId,
-          name: restaurantData.name || "MenuHub Restaurant",
-          description: restaurantData.description || "Delicious meals made with love",
-          logo_url: restaurantData.logo_url,
-          cover_image_url: restaurantData.cover_image_url,
-          tagline: restaurantData.tagline,
-          primary_color: restaurantData.primary_color,
-          secondary_color: restaurantData.secondary_color,
-          phone_number: restaurantData.phone_number,
-        };
-        console.log('✅ [CustomerMenuData] Setting restaurant info:', info);
-        setRestaurantInfo(info);
+          name: profileData.restaurant_name || "MenuHub Restaurant",
+          description: "Delicious meals made with love",
+          logo_url: profileData.logo_url,
+          cover_image_url: profileData.cover_image_url,
+          primary_color: profileData.primary_color,
+          secondary_color: profileData.secondary_color,
+        });
       } else {
-        console.log('⚠️ [CustomerMenuData] No restaurant data found, trying profiles fallback');
-        // Fallback: Try profiles table for backward compatibility
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('restaurant_name, logo_url, cover_image_url, primary_color, secondary_color')
-          .eq('user_id', restaurantId)
-          .single();
-
-        if (profileData) {
-          const fallbackInfo = {
-            id: restaurantId,
-            name: profileData.restaurant_name || "MenuHub Restaurant",
-            description: "Delicious meals made with love",
-            logo_url: profileData.logo_url,
-            cover_image_url: profileData.cover_image_url,
-            primary_color: profileData.primary_color,
-            secondary_color: profileData.secondary_color,
-          };
-          console.log('✅ [CustomerMenuData] Setting fallback restaurant info:', fallbackInfo);
-          setRestaurantInfo(fallbackInfo);
-        } else {
-          console.log('❌ [CustomerMenuData] No restaurant or profile data found, using default');
-          setRestaurantInfo({
-            id: restaurantId,
-            name: "MenuHub Restaurant",
-            description: "Delicious meals made with love",
-            logo_url: undefined,
-            cover_image_url: undefined,
-          });
-        }
+        setRestaurantInfo({
+          id: restaurantId,
+          name: "MenuHub Restaurant",
+          description: "Delicious meals made with love",
+          logo_url: undefined,
+          cover_image_url: undefined,
+        });
       }
 
     } catch (error) {

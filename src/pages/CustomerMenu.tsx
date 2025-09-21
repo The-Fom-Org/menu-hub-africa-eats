@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useCustomerMenuData } from "@/hooks/useCustomerMenuData";
-import { useCustomerOrderingStatus } from "@/hooks/useCustomerOrderingStatus";
 import { useCart } from "@/hooks/useCart";
 import { CartDrawer } from "@/components/customer/CartDrawer";
 import { CategoryEmojis } from "@/components/customer/CategoryEmojis";
@@ -24,15 +23,6 @@ import { motion, AnimatePresence } from "framer-motion";
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
-  const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(restaurantId || "");
-  
-  console.log('🍽️ [CustomerMenu] Current state:', {
-    restaurantId,
-    restaurantInfo: restaurantInfo ? { name: restaurantInfo.name, logo_url: restaurantInfo.logo_url } : null,
-    orderingEnabled,
-    orderingLoading,
-    loading
-  });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -196,7 +186,6 @@ const CustomerMenu = () => {
         restaurantName={restaurantInfo.name}
         restaurantId={restaurantId || ""}
         logoUrl={restaurantInfo.logo_url}
-        orderingEnabled={orderingEnabled}
         onContactRestaurant={handleContactRestaurant}
       />
 
@@ -217,9 +206,9 @@ const CustomerMenu = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-2 mb-2"
+          className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-5 mb-5"
         >
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-4">
                {/* Search function */}
                <Button
                   variant="ghost"
@@ -261,7 +250,7 @@ const CustomerMenu = () => {
             </div>
         </motion.div>
 
-        <Separator className="my-2 opacity-30" />
+        <Separator className="my-8 opacity-30" />
 
         {/* Category Navigation */}
         <CategoryEmojis
@@ -293,7 +282,6 @@ const CustomerMenu = () => {
                       key={item.id}
                       item={item}
                       restaurantId={restaurantId || ""}
-                      orderingEnabled={orderingEnabled}
                     />
                   ))}
                 </div>
@@ -302,44 +290,24 @@ const CustomerMenu = () => {
           )}
         </div>
 
-      {/* Upsell Section - only show if ordering is enabled */}
-      {orderingEnabled && cart.hasItems() && (
-        <UpsellSection
-          restaurantId={restaurantId || ""}
-          currentCartItems={cart.cartItems}
-          allItems={allMenuItems}
-        />
-      )}
-      
-      {/* Message when ordering is disabled */}
-      {!orderingEnabled && (
-        <div className="mt-8 text-center">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 max-w-md mx-auto">
-            <div className="text-amber-600 mb-2">
-              <Clock className="h-8 w-8 mx-auto" />
-            </div>
-            <h3 className="text-lg font-semibold text-amber-800 mb-2">Ordering Currently Unavailable</h3>
-            <p className="text-amber-700 text-sm">
-              We're temporarily not accepting new orders. Please check back later or contact the restaurant directly.
-            </p>
-          </div>
-        </div>
-      )}
+        {/* Upsell Section */}
+        {cart.hasItems() && (
+          <UpsellSection
+            restaurantId={restaurantId || ""}
+            currentCartItems={cart.cartItems}
+            allItems={allMenuItems}
+          />
+        )}
       </div>
 
-      {/* Sticky Bottom Bar - only show if ordering is enabled */}
-      {orderingEnabled && (
-        <StickyBottomBar 
-          restaurantId={restaurantId || ""}
-          onChefsSpecial={handleChefsSpecial}
-        />
-      )}
+      {/* Sticky Bottom Bar */}
+      <StickyBottomBar 
+        restaurantId={restaurantId || ""}
+        onChefsSpecial={handleChefsSpecial}
+      />
 
       {/* Add bottom padding to prevent content from being hidden behind sticky bar */}
-      {orderingEnabled && <div className="h-20"></div>}
-
-      {/* Cart Drawer - only show if ordering is enabled */}
-      {orderingEnabled && <CartDrawer restaurantId={restaurantId || ""} />}
+      <div className="h-20"></div>
     </div>
   );
 };

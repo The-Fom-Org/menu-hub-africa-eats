@@ -4,25 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
 import { useWaiterCalls } from '@/hooks/useWaiterCalls';
-import { useRestaurantSettings } from '@/hooks/useRestaurantSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, Hash, AlertCircle, Package, BellRing, UserCheck, Settings } from 'lucide-react';
+import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, Hash, AlertCircle, Package, BellRing, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import OrderTableNumberEditor from '@/components/orders/OrderTableNumberEditor';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 
 const Orders = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { orders, loading, updateOrderStatus, markOrderPaid, updateTableNumber } = useOrderManagement(user?.id || '');
   const { waiterCalls, pendingCalls, acknowledgedCalls, completedCalls, loading: waiterCallsLoading, updateWaiterCallStatus } = useWaiterCalls(user?.id || '');
-  const { ordering_enabled, loading: settingsLoading, updateOrderingEnabled } = useRestaurantSettings();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -401,23 +397,9 @@ const Orders = () => {
               </Button>
               <h1 className="text-lg sm:text-2xl font-bold text-foreground">Orders Management</h1>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center space-x-2">
-                <Settings className="h-4 w-4" />
-                <Label htmlFor="ordering-toggle" className="text-sm font-medium">
-                  Ordering System
-                </Label>
-                <Switch
-                  id="ordering-toggle"
-                  checked={ordering_enabled}
-                  onCheckedChange={updateOrderingEnabled}
-                  disabled={settingsLoading}
-                />
-              </div>
-              <Badge variant="outline" className="text-xs sm:text-sm">
-                {orders.length} Total Orders
-              </Badge>
-            </div>
+            <Badge variant="outline" className="ml-auto text-xs sm:text-sm">
+              {orders.length} Total Orders
+            </Badge>
           </div>
         </div>
       </header>

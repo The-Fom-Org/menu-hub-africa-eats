@@ -9,12 +9,12 @@ interface SubscriptionData {
   managed_by_sales?: boolean;
 }
 
-export function useSubscriptionData(restaurantId: string | undefined) {
+export function useSubscriptionData(userId: string | undefined) {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(false);
 
   const checkSubscriptionStatus = async () => {
-    if (!restaurantId) return;
+    if (!userId) return;
     
     try {
       setLoading(true);
@@ -22,7 +22,7 @@ export function useSubscriptionData(restaurantId: string | undefined) {
       const { data: subData, error: subError } = await supabase
         .from('subscribers')
         .select('subscribed, subscription_tier, subscription_end, managed_by_sales')
-        .eq('restaurant_id', restaurantId)
+        .eq('restaurant_id', userId)
         .maybeSingle();
 
       if (!subError && subData) {
@@ -54,10 +54,10 @@ export function useSubscriptionData(restaurantId: string | undefined) {
   };
 
   useEffect(() => {
-    if (restaurantId) {
+    if (userId) {
       checkSubscriptionStatus();
     }
-  }, [restaurantId]);
+  }, [userId]);
 
   return {
     subscriptionData,

@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useBranchMenuData } from "@/hooks/useBranchMenuData";
-import { useBranch } from "@/contexts/BranchContext";
+import { useMenuData } from "@/hooks/useMenuData";
 import { AddCategoryDialog } from "@/components/dialogs/AddCategoryDialog";
 import { AddMenuItemDialog } from "@/components/dialogs/AddMenuItemDialog";
 import { EditMenuItemDialog } from "@/components/dialogs/EditMenuItemDialog";
@@ -20,9 +19,8 @@ const EditMenu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading } = useAuth();
-  const { currentBranch, loading: branchLoading } = useBranch();
-  const { categories, loading: menuLoading, addCategory, addMenuItem, updateMenuItem, deleteMenuItem, refetch } = useBranchMenuData();
-  const { plan, maxMenuItems, currentMenuItemCount, canAddMenuItem } = useSubscriptionLimits(currentBranch?.restaurant_id);
+  const { categories, loading: menuLoading, addCategory, addMenuItem, updateMenuItem, deleteMenuItem, refetch } = useMenuData();
+  const { plan, maxMenuItems, currentMenuItemCount, canAddMenuItem } = useSubscriptionLimits();
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editingCategory, setEditingCategory] = useState<any>(null);
 
@@ -31,17 +29,6 @@ const EditMenu = () => {
       navigate("/login");
     }
   }, [user, loading, navigate]);
-
-  if (loading || branchLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading menu...</p>
-        </div>
-      </div>
-    );
-  }
 
   const handleDeleteItem = async (itemId: string, itemName: string) => {
     if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {

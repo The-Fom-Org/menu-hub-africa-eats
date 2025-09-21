@@ -4,15 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Plus, Menu, Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useBranchMenuData } from "@/hooks/useBranchMenuData";
-import { useBranch } from "@/contexts/BranchContext";
+import { useMenuData } from "@/hooks/useMenuData";
 import { AddCategoryDialog } from "@/components/dialogs/AddCategoryDialog";
 
 const DigitalMenu = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { currentBranch, loading: branchLoading } = useBranch();
-  const { categories, addCategory } = useBranchMenuData();
+  const { categories, addCategory } = useMenuData();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -20,7 +18,7 @@ const DigitalMenu = () => {
     }
   }, [user, loading, navigate]);
 
-  if (loading || branchLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -153,7 +151,7 @@ const DigitalMenu = () => {
               <Button 
                 variant="ghost" 
                 className="w-full mt-4 group-hover:bg-primary/10 group-hover:text-primary"
-                onClick={() => currentBranch && window.open(`/menu/${currentBranch.restaurant_id}`, '_blank')}
+                onClick={() => user && window.open(`/menu/${user.id}`, '_blank')}
               >
                 Preview Menu
               </Button>
@@ -190,7 +188,7 @@ const DigitalMenu = () => {
                 variant="outline" 
                 size="lg"
                 className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
-                onClick={() => currentBranch && window.open(`/menu/${currentBranch.restaurant_id}`, '_blank')}
+                onClick={() => user && window.open(`/menu/${user.id}`, '_blank')}
               >
                 Preview Menu
               </Button>

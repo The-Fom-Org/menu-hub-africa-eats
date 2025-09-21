@@ -33,7 +33,6 @@ import AdminLogin from "./pages/AdminLogin";
 import LeadFunnel from "./pages/LeadFunnel";
 import CustomerLeads from "./pages/CustomerLeads";
 import PaymentManagement from "./pages/PaymentManagement";
-import BranchManagement from "./pages/BranchManagement";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,7 +71,6 @@ function App() {
             <Route path="/customer-leads" element={<CustomerLeads />} />
             <Route path="/lead-funnel" element={<LeadFunnel />} />
             <Route path="/payment-management" element={<PaymentManagement />} />
-            <Route path="/branch-management" element={<BranchManagement />} />
             <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />

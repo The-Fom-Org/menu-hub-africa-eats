@@ -11,8 +11,7 @@ import {
   X,
   MapPin,
   Clock,
-  Star,
-  CheckCircle2
+  Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -20,7 +19,7 @@ interface StickyHeaderProps {
   restaurantName: string;
   restaurantId: string;
   logoUrl?: string;
-  orderingEnabled?: boolean;
+  restaurantId: string;
   onContactRestaurant?: () => void;
 }
 
@@ -28,10 +27,24 @@ export const StickyHeader = ({
   restaurantName,
   restaurantId,
   logoUrl,
-  orderingEnabled = true,
+  onSearch,
+  onChefsSpecial,
   onContactRestaurant
 }: StickyHeaderProps) => {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch?.(searchQuery);
+    setIsSearchOpen(false);
+  };
+
+  const handleChefsSpecial = () => {
+    onChefsSpecial?.();
+    setIsMobileMenuOpen(false);
+  };
 
   const handleContactRestaurant = () => {
     onContactRestaurant?.();
@@ -47,30 +60,24 @@ export const StickyHeader = ({
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Restaurant Name */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
-              {restaurantInfo?.logo_url ? (
-                <img 
-                  src={restaurantInfo.logo_url} 
-                  alt={restaurantInfo.name}
-                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover"
-                />
-              ) : (
-                <div 
-                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base"
-                  style={{ backgroundColor: restaurantInfo?.primary_color || 'hsl(var(--primary))' }}
-                >
-                  {restaurantInfo?.name?.charAt(0) || 'R'}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <h1 className="font-bold text-sm sm:text-lg text-foreground truncate">
-                  {restaurantInfo?.name}
-                </h1>
-                <p className="text-xs text-muted-foreground truncate">
-                  {restaurantInfo?.tagline}
-                </p>
+          <div className="flex items-center space-x-3">
+            {logoUrl && (
+              <img 
+                src={logoUrl} 
+                alt={`${restaurantName} logo`}
+                className="h-10 w-10 object-cover rounded-xl border-2 border-primary/20"
+              />
+            )}
+            <div>
+              <h1 className="text-lg font-bold text-foreground truncate max-w-[150px] sm:max-w-none">
+                {restaurantName}
+              </h1>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Star className="h-3 w-3 mr-1 fill-current text-yellow-500" />
+                <span>Premium Quality</span>
               </div>
             </div>
+          </div>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-2">
@@ -98,12 +105,12 @@ export const StickyHeader = ({
               Contact
             </Button>
             
-            {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
+            <CartDrawer restaurantId={restaurantId} />
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
+            <CartDrawer restaurantId={restaurantId} />
             <Button
               variant="ghost"
               size="sm"

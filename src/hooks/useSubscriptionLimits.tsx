@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { useBranchMenuData } from './useBranchMenuData';
+import { useMenuData } from './useMenuData';
 
 export interface SubscriptionLimits {
   plan: 'free' | 'standard' | 'advanced';
@@ -16,7 +16,7 @@ export interface SubscriptionLimits {
 
 export const useSubscriptionLimits = (restaurantId?: string): SubscriptionLimits => {
   const { user } = useAuth();
-  const { categories } = useBranchMenuData();
+  const { categories } = useMenuData();
   const [plan, setPlan] = useState<'free' | 'standard' | 'advanced'>('free');
   const [isLoading, setIsLoading] = useState(true);
 

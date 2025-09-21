@@ -12,7 +12,6 @@ import { motion } from "framer-motion";
 interface MenuItemCardProps {
   item: CustomerMenuItem;
   restaurantId: string;
-  orderingEnabled?: boolean;
 }
 
 const appetite = {
@@ -47,7 +46,7 @@ const getBadgeText = (badge: string) => {
   }
 };
 
-export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: MenuItemCardProps) => {
+export const MenuItemCard = ({ item, restaurantId }: MenuItemCardProps) => {
   const cart = useCart(restaurantId);
   const { toast } = useToast();
   const [showCustomization, setShowCustomization] = useState(false);
@@ -210,76 +209,66 @@ export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: Men
             </div>
           </CardHeader>
 
-          {/* Actions - show different content based on ordering status */}
-          {orderingEnabled ? (
-            <CardContent className="pt-0 pb-3 px-3 mt-auto">
-              <div className="flex items-center gap-1 sm:gap-2">
+          {/* Actions */}
+          <CardContent className="pt-0 pb-3 px-3 mt-auto">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCustomization(true)}
+                className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs h-8 px-2 sm:px-3 min-w-0"
+                disabled={isProcessing}
+              >
+                <span className="truncate">Customize</span>
+              </Button>
+
+              {currentQuantity === 0 ? (
                 <Button
-                  variant="outline"
+                  onClick={handleQuickAdd}
                   size="sm"
-                  onClick={() => setShowCustomization(true)}
-                  className="flex-1 rounded-full border-muted-foreground/20 hover:bg-muted text-xs h-8 px-2 sm:px-3 min-w-0"
+                  className="px-2 sm:px-3 rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs h-8 min-w-0 flex-shrink-0"
+                  style={{ background: appetite.primary, color: "white" }}
                   disabled={isProcessing}
                 >
-                  <span className="truncate">Customize</span>
+                  <ShoppingCart className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">{isProcessing ? "Adding…" : "Add"}</span>
                 </Button>
-
-                {currentQuantity === 0 ? (
+              ) : (
+                <div className="flex items-center gap-1 bg-muted rounded-full p-1">
                   <Button
-                    onClick={handleQuickAdd}
+                    variant="ghost"
                     size="sm"
-                    className="px-2 sm:px-3 rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-xs h-8 min-w-0 flex-shrink-0"
-                    style={{ background: appetite.primary, color: "white" }}
+                    onClick={handleDecrease}
+                    className="h-6 w-6 p-0 rounded-full hover:bg-background"
                     disabled={isProcessing}
                   >
-                    <ShoppingCart className="h-3 w-3 sm:mr-1" />
-                    <span className="hidden sm:inline">{isProcessing ? "Adding…" : "Add"}</span>
+                    <Minus className="h-3 w-3" />
                   </Button>
-                ) : (
-                  <div className="flex items-center gap-1 bg-muted rounded-full p-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleDecrease}
-                      className="h-6 w-6 p-0 rounded-full hover:bg-background"
-                      disabled={isProcessing}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="text-sm font-bold w-5 text-center">
-                      {currentQuantity}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleQuickAdd}
-                      className="h-6 w-6 p-0 rounded-full hover:bg-background"
-                      disabled={isProcessing}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          ) : (
-            <CardContent className="pt-0 pb-3 px-3 mt-auto">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-center">
-                <span className="text-red-600 text-xs font-medium">Ordering Currently Disabled</span>
-              </div>
-            </CardContent>
-          )}
+                  <span className="text-sm font-bold w-5 text-center">
+                    {currentQuantity}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleQuickAdd}
+                    className="h-6 w-6 p-0 rounded-full hover:bg-background"
+                    disabled={isProcessing}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
         </div>
       </motion.div>
 
-      {orderingEnabled && (
-        <MenuItemCustomizationDialog
-          item={item}
-          open={showCustomization}
-          onOpenChange={setShowCustomization}
-          onAddToCart={handleAddToCart}
-        />
-      )}
+      <MenuItemCustomizationDialog
+        item={item}
+        open={showCustomization}
+        onOpenChange={setShowCustomization}
+        onAddToCart={handleAddToCart}
+      />
     </>
   );
 };
