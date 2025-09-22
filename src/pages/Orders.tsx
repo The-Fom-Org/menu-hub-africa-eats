@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRestaurant } from '@/hooks/useUserRestaurant';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
 import { useWaiterCalls } from '@/hooks/useWaiterCalls';
 import { useRestaurantSettings } from '@/hooks/useRestaurantSettings';
@@ -19,10 +20,11 @@ import OrderTableNumberEditor from '@/components/orders/OrderTableNumberEditor';
 
 const Orders = () => {
   const { user, loading: authLoading } = useAuth();
+  const { restaurantId, loading: restaurantLoading } = useUserRestaurant(user?.id);
   const navigate = useNavigate();
-  const { orders, loading, updateOrderStatus, markOrderPaid, updateTableNumber } = useOrderManagement(user?.id || '');
-  const { waiterCalls, pendingCalls, acknowledgedCalls, completedCalls, loading: waiterCallsLoading, updateWaiterCallStatus } = useWaiterCalls(user?.id || '');
-  const { settings, loading: settingsLoading, updateOrderingEnabled } = useRestaurantSettings(user?.id || '');
+  const { orders, loading, updateOrderStatus, markOrderPaid, updateTableNumber } = useOrderManagement(restaurantId || '');
+  const { waiterCalls, pendingCalls, acknowledgedCalls, completedCalls, loading: waiterCallsLoading, updateWaiterCallStatus } = useWaiterCalls(restaurantId || '');
+  const { settings, loading: settingsLoading, updateOrderingEnabled } = useRestaurantSettings(restaurantId || '');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -39,7 +41,7 @@ const Orders = () => {
     ['completed', 'cancelled'].includes(order.order_status)
   );
 
-  if (authLoading || loading || waiterCallsLoading || settingsLoading) {
+  if (authLoading || restaurantLoading || loading || waiterCallsLoading || settingsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
