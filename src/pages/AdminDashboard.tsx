@@ -55,8 +55,8 @@ interface Profile {
 }
 
 export default function AdminDashboard() {
-  const { user, loading } = useAuth();
-  const { isAdmin, user, loading } = useAdmin();
+  const { user: authUser, loading: authLoading } = useAuth();
+  const { isAdmin, user: adminUser, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
@@ -78,11 +78,10 @@ export default function AdminDashboard() {
   const [newNotes, setNewNotes] = useState("");
 
   useEffect(() => {
-    if (!loading && !user && !isAdmin) {
+    if (!adminLoading && !isAdmin) {
       navigate("/admin-login");
-      return;
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [isAdmin, adminLoading, navigate]);
 
   const planLabel = (plan: string | null | undefined) => {
     switch (plan) {
@@ -426,7 +425,7 @@ export default function AdminDashboard() {
     setEditForm({});
   };
 
-  if (loading) {
+  if (adminLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
