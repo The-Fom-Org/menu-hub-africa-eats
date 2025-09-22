@@ -205,15 +205,15 @@ const CustomerMenu = () => {
       />
 
       {/* Enhanced Restaurant Info Section */}
-      <div className="container mx-auto px-1 -mt-5 relative z-8">
+      <div className="container mx-auto px-1 -mt-5 relative z-5">
         {/* Main Info Card */}
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-5 mb-5"
+          className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl p-2 mb-2"
         >
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-2">
                {/* Search function */}
                <Button
                   variant="ghost"
@@ -255,7 +255,7 @@ const CustomerMenu = () => {
             </div>
         </motion.div>
 
-        <Separator className="my-8 opacity-30" />
+        <Separator className="my-3 opacity-30" />
 
         {/* Category Navigation */}
         <CategoryEmojis

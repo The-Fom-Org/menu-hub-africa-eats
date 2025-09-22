@@ -62,16 +62,16 @@ export const StickyHeader = ({
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Restaurant Name */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {logoUrl && (
               <img 
                 src={logoUrl} 
                 alt={`${restaurantName} logo`}
-                className="h-10 w-10 object-cover rounded-xl border-2 border-primary/20"
+                className="h-5 w-5 object-cover rounded-xl border-2 border-primary/20"
               />
             )}
             <div>
-              <h1 className="text-lg font-bold text-foreground truncate max-w-[150px] sm:max-w-none">
+              <h1 className="text-lg font-bold text-foreground truncate max-w-[80px] sm:max-w-none">
                 {restaurantName}
               </h1>
               <div className="flex items-center text-xs text-muted-foreground">
@@ -83,15 +83,6 @@ export const StickyHeader = ({
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="flex items-center gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Search
-            </Button>
             
             <Button
               variant="ghost"
@@ -165,15 +156,6 @@ export const StickyHeader = ({
               exit={{ height: 0, opacity: 0 }}
               className="md:hidden border-t border-border/50 py-4 space-y-2"
             >
-              <Button
-                variant="ghost"
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="w-full justify-start"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Search Menu
-              </Button>
-              
               <Button
                 variant="ghost"
                 onClick={handleChefsSpecial}
