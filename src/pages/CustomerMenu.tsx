@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useCustomerMenuData } from "@/hooks/useCustomerMenuData";
+import { useCustomerOrderingStatus } from "@/hooks/useCustomerOrderingStatus";
 import { useCart } from "@/hooks/useCart";
 import { CartDrawer } from "@/components/customer/CartDrawer";
 import { CategoryEmojis } from "@/components/customer/CategoryEmojis";
@@ -23,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const CustomerMenu = () => {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
+  const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(restaurantId || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -45,7 +47,7 @@ const CustomerMenu = () => {
   }, []);
 
   // Show loading splash screen with food video
-  if (loading || showVideoSplash) {
+  if (loading || orderingLoading || showVideoSplash) {
     console.log('🎬 Showing video splash screen', { loading, showVideoSplash });
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -189,6 +191,7 @@ const CustomerMenu = () => {
         onSearch={handlesSearch}
         onChefsSpecial={handleChefsSpecial}
         onContactRestaurant={handleContactRestaurant}
+        orderingEnabled={orderingEnabled}
       />
 
       {/* Hero Section */}
@@ -284,6 +287,7 @@ const CustomerMenu = () => {
                       key={item.id}
                       item={item}
                       restaurantId={restaurantId || ""}
+                      orderingEnabled={orderingEnabled}
                     />
                   ))}
                 </div>
@@ -293,7 +297,7 @@ const CustomerMenu = () => {
         </div>
 
         {/* Upsell Section */}
-        {cart.hasItems() && (
+        {orderingEnabled && cart.hasItems() && (
           <UpsellSection
             restaurantId={restaurantId || ""}
             currentCartItems={cart.cartItems}
@@ -302,14 +306,16 @@ const CustomerMenu = () => {
         )}
       </div>
 
-      {/* Sticky Bottom Bar */}
-      <StickyBottomBar 
-        restaurantId={restaurantId || ""}
-        onChefsSpecial={handleChefsSpecial}
-      />
+      {/* Sticky Bottom Bar - only show when ordering is enabled */}
+      {orderingEnabled && (
+        <StickyBottomBar 
+          restaurantId={restaurantId || ""}
+          onChefsSpecial={handleChefsSpecial}
+        />
+      )}
 
-      {/* Add bottom padding to prevent content from being hidden behind sticky bar */}
-      <div className="h-20"></div>
+      {/* Add bottom padding to prevent content from being hidden behind sticky bar - only when ordering is enabled */}
+      {orderingEnabled && <div className="h-20"></div>}
     </div>
   );
 };

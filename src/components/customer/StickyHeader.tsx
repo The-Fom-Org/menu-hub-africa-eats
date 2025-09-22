@@ -21,6 +21,7 @@ interface StickyHeaderProps {
   onSearch?: (query: string) => void;
   onChefsSpecial?: () => void;
   onContactRestaurant?: () => void;
+  orderingEnabled?: boolean;
 }
 
 export const StickyHeader = ({
@@ -29,7 +30,8 @@ export const StickyHeader = ({
   logoUrl,
   onSearch,
   onChefsSpecial,
-  onContactRestaurant
+  onContactRestaurant,
+  orderingEnabled = true
 }: StickyHeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,12 +113,12 @@ export const StickyHeader = ({
               Contact
             </Button>
             
-            <CartDrawer restaurantId={restaurantId} />
+            {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            <CartDrawer restaurantId={restaurantId} />
+            {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
             <Button
               variant="ghost"
               size="sm"

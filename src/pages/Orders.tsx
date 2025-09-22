@@ -4,13 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
 import { useWaiterCalls } from '@/hooks/useWaiterCalls';
+import { useRestaurantSettings } from '@/hooks/useRestaurantSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, Hash, AlertCircle, Package, BellRing, UserCheck } from 'lucide-react';
+import { ArrowLeft, Clock, User, Phone, Receipt, CheckCircle, XCircle, Hash, AlertCircle, Package, BellRing, UserCheck, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import OrderTableNumberEditor from '@/components/orders/OrderTableNumberEditor';
 
@@ -19,6 +22,7 @@ const Orders = () => {
   const navigate = useNavigate();
   const { orders, loading, updateOrderStatus, markOrderPaid, updateTableNumber } = useOrderManagement(user?.id || '');
   const { waiterCalls, pendingCalls, acknowledgedCalls, completedCalls, loading: waiterCallsLoading, updateWaiterCallStatus } = useWaiterCalls(user?.id || '');
+  const { settings, loading: settingsLoading, updateOrderingEnabled } = useRestaurantSettings(user?.id || '');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -35,7 +39,7 @@ const Orders = () => {
     ['completed', 'cancelled'].includes(order.order_status)
   );
 
-  if (authLoading || loading || waiterCallsLoading) {
+  if (authLoading || loading || waiterCallsLoading || settingsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -397,9 +401,31 @@ const Orders = () => {
               </Button>
               <h1 className="text-lg sm:text-2xl font-bold text-foreground">Orders Management</h1>
             </div>
-            <Badge variant="outline" className="ml-auto text-xs sm:text-sm">
-              {orders.length} Total Orders
-            </Badge>
+            
+            <div className="flex items-center gap-4 ml-auto">
+              {/* Ordering Toggle */}
+              <div className="flex items-center space-x-2 bg-muted/50 p-2 rounded-lg">
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="ordering-toggle" className="text-sm font-medium">
+                  Enable Ordering
+                </Label>
+                <Switch
+                  id="ordering-toggle"
+                  checked={settings?.ordering_enabled ?? true}
+                  onCheckedChange={updateOrderingEnabled}
+                />
+                <Badge 
+                  variant={settings?.ordering_enabled ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {settings?.ordering_enabled ? "ON" : "OFF"}
+                </Badge>
+              </div>
+              
+              <Badge variant="outline" className="text-xs sm:text-sm">
+                {orders.length} Total Orders
+              </Badge>
+            </div>
           </div>
         </div>
       </header>
