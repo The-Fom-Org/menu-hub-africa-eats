@@ -12,6 +12,8 @@ export const useCustomerOrderingStatus = (restaurantId: string) => {
         return;
       }
 
+      console.log('🔄 Fetching ordering status for restaurant:', restaurantId);
+
       try {
         const { data, error } = await (supabase as any)
           .from('restaurant_settings')
@@ -20,15 +22,17 @@ export const useCustomerOrderingStatus = (restaurantId: string) => {
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching ordering status:', error);
+          console.error('❌ Error fetching ordering status:', error);
           // Default to enabled on error
           setOrderingEnabled(true);
         } else {
           // If no settings found, default to enabled
-          setOrderingEnabled(data?.ordering_enabled ?? true);
+          const enabled = data?.ordering_enabled ?? true;
+          console.log('✅ Ordering status fetched:', enabled);
+          setOrderingEnabled(enabled);
         }
       } catch (error) {
-        console.error('Error in fetchOrderingStatus:', error);
+        console.error('❌ Error in fetchOrderingStatus:', error);
         setOrderingEnabled(true);
       } finally {
         setLoading(false);
@@ -38,6 +42,7 @@ export const useCustomerOrderingStatus = (restaurantId: string) => {
     fetchOrderingStatus();
 
     // Set up real-time subscription for settings changes
+    console.log('📡 Setting up real-time subscription for restaurant:', restaurantId);
     const subscription = supabase
       .channel('restaurant_settings')
       .on(
@@ -49,14 +54,18 @@ export const useCustomerOrderingStatus = (restaurantId: string) => {
           filter: `restaurant_id=eq.${restaurantId}`
         },
         (payload) => {
+          console.log('📡 Real-time update received:', payload);
           if (payload.new && 'ordering_enabled' in payload.new) {
-            setOrderingEnabled((payload.new as any).ordering_enabled);
+            const enabled = (payload.new as any).ordering_enabled;
+            console.log('🔄 Updating ordering status via real-time:', enabled);
+            setOrderingEnabled(enabled);
           }
         }
       )
       .subscribe();
 
     return () => {
+      console.log('🔌 Cleaning up ordering status subscription');
       subscription.unsubscribe();
     };
   }, [restaurantId]);
