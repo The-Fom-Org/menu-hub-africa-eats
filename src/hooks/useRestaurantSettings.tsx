@@ -20,7 +20,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('restaurant_settings')
         .select('*')
         .eq('restaurant_id', restaurantId)
@@ -35,7 +35,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
         setSettings(data);
       } else {
         // Create default settings if none exist
-        const { data: newSettings, error: createError } = await supabase
+        const { data: newSettings, error: createError } = await (supabase as any)
           .from('restaurant_settings')
           .insert({
             restaurant_id: restaurantId,
@@ -62,7 +62,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
 
     try {
       // First try to update if settings exist
-      const { data: existingData } = await supabase
+      const { data: existingData } = await (supabase as any)
         .from('restaurant_settings')
         .select('id')
         .eq('restaurant_id', restaurantId)
@@ -71,7 +71,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
       let result;
       if (existingData) {
         // Update existing settings
-        result = await supabase
+        result = await (supabase as any)
           .from('restaurant_settings')
           .update({ 
             ordering_enabled: enabled,
@@ -82,7 +82,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
           .single();
       } else {
         // Insert new settings
-        result = await supabase
+        result = await (supabase as any)
           .from('restaurant_settings')
           .insert({
             restaurant_id: restaurantId,

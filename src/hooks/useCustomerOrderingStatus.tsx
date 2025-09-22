@@ -13,7 +13,7 @@ export const useCustomerOrderingStatus = (restaurantId: string) => {
       }
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('restaurant_settings')
           .select('ordering_enabled')
           .eq('restaurant_id', restaurantId)
@@ -50,7 +50,7 @@ export const useCustomerOrderingStatus = (restaurantId: string) => {
         },
         (payload) => {
           if (payload.new && 'ordering_enabled' in payload.new) {
-            setOrderingEnabled(payload.new.ordering_enabled);
+            setOrderingEnabled((payload.new as any).ordering_enabled);
           }
         }
       )
