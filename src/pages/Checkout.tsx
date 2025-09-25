@@ -13,8 +13,6 @@ import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard, Info } from 'l
 import OrderCreationHandler from '@/components/checkout/OrderCreationHandler';
 import { useToast } from '@/hooks/use-toast';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
-import { useRestaurantPaymentSettings } from '@/hooks/useRestaurantPaymentSettings';
-import { motion } from "framer-motion";
 
 interface CartItem {
   id: string;
@@ -31,7 +29,6 @@ const Checkout = () => {
   const cart = useCart(restaurantId || '');
   const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
-  const { settings: paymentSettings, getAvailableGateways } = useRestaurantPaymentSettings(restaurantId || '');
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -39,7 +36,6 @@ const Checkout = () => {
   const [scheduledTime, setScheduledTime] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isCartInitialized, setIsCartInitialized] = useState(false);
-  const [splashFinished, setSplashFinished] = useState(false);
 
   console.log('🛒 Checkout page cart state:', {
     restaurantId,
@@ -128,52 +124,21 @@ const Checkout = () => {
 
     return true;
   };
-  // simulate 2-second splash delay
-  useEffect(() => {
-    const timer = setTimeout(() => setSplashFinished(true), 5000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Show splash video if not finished
-  if (!splashFinished) {
-    console.log('🎬 Showing checkout video splash');
-    return (
-      <motion.div
-        className="min-h-screen bg-background flex items-center justify-center"
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: 0.8, delay: 1.2 }} // plays for ~1.2s then fades
-        onAnimationComplete={() => setSplashFinished(true)}
-      >
-        <video
-          src="/videos/loader1.mp4"
-          autoPlay
-          muted
-          playsInline
-          loop
-          className="w-full h-full object-cover"
-          onLoadStart={() => console.log('🎬 Checkout video loading started')}
-          onCanPlay={() => console.log('🎬 Checkout video can play')}
-          onError={(e) => console.error('🎬 Checkout video error:', e)}
-        />
-      </motion.div>
-    );
-  }
-
 
   // Show loading until both restaurant data and cart are loaded
-     if (dataLoading || !isCartInitialized || !restaurantId) {
+  if (dataLoading || !isCartInitialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">
-            {dataLoading ? "Loading restaurant..." : "Loading cart..."}
+            {dataLoading ? 'Loading restaurant...' : 'Loading cart...'}
           </p>
         </div>
       </div>
     );
   }
+
   if (!restaurantInfo) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -186,7 +151,7 @@ const Checkout = () => {
   }
 
   return (
-    <OrderCreationHandler restaurantId={restaurantId}>
+    <OrderCreationHandler>
       {({ createOrder, isCreatingOrder }) => (
         <div className="min-h-screen bg-background">
           <header className="bg-card border-b shadow-sm">
@@ -387,7 +352,7 @@ const Checkout = () => {
                       <PaymentMethodSelector
                         paymentMethod={paymentMethod}
                         setPaymentMethod={setPaymentMethod}
-                        availableGateways={getAvailableGateways()}
+                        availableGateways={[]}
                         excludeCash={true}
                       />
                     </CardContent>
