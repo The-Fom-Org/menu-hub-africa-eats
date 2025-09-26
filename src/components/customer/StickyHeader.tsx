@@ -2,7 +2,6 @@ import { useState, useEffect} from "react";
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import { PaymentStatusChecker } from "@/components/payment/PaymentStatusChecker";
 import { CartDrawer } from "./CartDrawer";
 import { useCart } from '@/hooks/useCart';
@@ -42,7 +41,6 @@ export const StickyHeader = ({
   const [searchQuery, setSearchQuery] = useState("");
   const { setOrderType } = useCart(restaurantId!);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { restaurantInfo } = useCustomerMenuData(restaurantId!);
   const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
   const [searchParams] = useSearchParams();
 
@@ -97,7 +95,7 @@ export const StickyHeader = ({
                 {restaurantName}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {restaurantInfo?.tagline || (customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later')}
+                {(customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later')}
               </p>
             </div>
           </div>

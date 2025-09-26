@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Clock, Star, ChefHat, Award, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import {
   Carousel,
   CarouselContent,
@@ -36,7 +35,7 @@ export const CarouselHeroSection = ({
 }: CarouselHeroSectionProps) => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
-  const { restaurantInfo } = useCustomerMenuData(restaurantId!);
+ 
 
   // Create slides array with default slide first
   const slides: HeroSlide[] = [
@@ -126,9 +125,6 @@ export const CarouselHeroSection = ({
                             {restaurantName}
                           </h1>
                           
-                          <p className="text-xl md:text-2xl text-white/90 font-medium drop-shadow-lg">
-                            {restaurantInfo?.tagline}
-                          </p>
                         </motion.div>
 
                         {/* Feature Badges */}

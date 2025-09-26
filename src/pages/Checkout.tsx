@@ -295,7 +295,7 @@ const Checkout = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="tableNumber" className="text-xs sm:text-sm">Table Number (Optional)</Label>
+                      <Label htmlFor="tableNumber" className="text-xs sm:text-sm">Table Number/ Area Code</Label>
                       <Input
                         id="tableNumber"
                         value={tableNumber}
