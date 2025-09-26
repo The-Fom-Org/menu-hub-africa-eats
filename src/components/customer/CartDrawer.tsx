@@ -306,7 +306,7 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
         </Button>
       </SheetTrigger>
       
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col h-full">
+      <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
           <div className="flex items-center justify-between">
             <div>

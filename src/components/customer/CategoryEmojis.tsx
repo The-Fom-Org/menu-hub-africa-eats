@@ -6,12 +6,17 @@ export const getCategoryEmoji = (categoryName: string): string => {
   const name = categoryName.toLowerCase();
   
   // Common category mappings
-  if (name.includes('burger') || name.includes('beef') || name.includes('meat')) return '🍔';
+  if (name.includes('burger')) return '🍔';
   if (name.includes('pizza')) return '🍕';
+  if (name.includes('wine')) return '🍷';
+  if (name.includes('pork')) return '🐷';
+  if (name.includes ('beef') || name.includes('mbuzi') || name.includes('meat')) return '🍖';
   if (name.includes('salad') || name.includes('green') || name.includes('vegetable')) return '🥗';
-  if (name.includes('drink') || name.includes('beverage') || name.includes('juice') || name.includes('soda')) return '🍹';
+  if (name.includes('drink') || name.includes('beverage') || name.includes('juice') || name.includes('Tots') || name.includes('soda')) return '🍹';
   if (name.includes('dessert') || name.includes('sweet') || name.includes('cake') || name.includes('ice cream')) return '🍰';
   if (name.includes('chicken') || name.includes('poultry')) return '🍗';
+  if (name.includes('beers')) return '🍺';
+  if ( name.includes('cocktails')) return '🍸';
   if (name.includes('fish') || name.includes('seafood') || name.includes('ocean')) return '🐟';
   if (name.includes('pasta') || name.includes('noodle') || name.includes('spaghetti')) return '🍝';
   if (name.includes('soup') || name.includes('stew')) return '🍲';

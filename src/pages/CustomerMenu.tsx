@@ -41,7 +41,7 @@ const CustomerMenu = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowVideoSplash(false);
-    }, 5000); // 2 seconds
+    }, 2000); // 2 seconds
 
     return () => clearTimeout(timer);
   }, []);
@@ -73,7 +73,6 @@ const CustomerMenu = () => {
       </div>
     );
   }
-
 
   if (error || !restaurantInfo) {
     return (
@@ -221,7 +220,7 @@ const CustomerMenu = () => {
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
                   className="flex items-center gap-2"
                 >
-                  <Search className="h-4 w-4" />
+                  <Search className="h-3 w-8" />
                   Search
                 </Button>            
               
@@ -245,7 +244,7 @@ const CustomerMenu = () => {
                         autoFocus
                       />
                       <Button type="submit" size="sm">
-                        <Search className="h-4 w-4" />
+                        <Search className="h-3 w-8" />
                       </Button>
                     </div>
                   </motion.form>
@@ -255,7 +254,7 @@ const CustomerMenu = () => {
             </div>
         </motion.div>
 
-        <Separator className="my-3 opacity-30" />
+        <Separator className="my-1 opacity-30" />
 
         {/* Category Navigation */}
         <CategoryEmojis
@@ -265,16 +264,16 @@ const CustomerMenu = () => {
         />
 
         {/* Menu Items */}
-        <div className="mt-8" id="menu-section">
+        <div className="mt-5" id="menu-section">
           {selectedCategoryData && (
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
+              <h2 className="text-2xl font-bold text-foreground mb-4 text-center">
                 {selectedCategoryData.name}
               </h2>
               
               {availableItems.length === 0 ? (
                 <div className="text-center py-12">
-                  <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <Clock className="h-6 w-12 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-semibold mb-2">No items available</h3>
                   <p className="text-muted-foreground">
                     This category doesn't have any available items right now.

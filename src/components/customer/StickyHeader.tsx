@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect} from "react";
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
+import { PaymentStatusChecker } from "@/components/payment/PaymentStatusChecker";
 import { CartDrawer } from "./CartDrawer";
+import { useCart } from '@/hooks/useCart';
 import { 
   Search, 
   ChefHat, 
@@ -10,7 +14,8 @@ import {
   X,
   MapPin,
   Clock,
-  Star
+  Star,
+  CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -35,7 +40,11 @@ export const StickyHeader = ({
 }: StickyHeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { setOrderType } = useCart(restaurantId!);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { restaurantInfo } = useCustomerMenuData(restaurantId!);
+  const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
+  const [searchParams] = useSearchParams();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +61,19 @@ export const StickyHeader = ({
     onContactRestaurant?.();
     setIsMobileMenuOpen(false);
   };
+  useEffect(() => {
+    // Detect customer flow based on URL parameters or referrer
+    const qrParam = searchParams.get('qr');
+    const tableParam = searchParams.get('table');
+    
+    if (qrParam === 'true' || tableParam) {
+      setCustomerFlow('qr');
+      setOrderType('now');
+    } else {
+      setCustomerFlow('direct');
+      setOrderType('later');
+    }
+  }, [searchParams, setOrderType]);
 
   return (
     <motion.header 
@@ -74,25 +96,27 @@ export const StickyHeader = ({
               <h1 className="text-lg font-bold text-foreground truncate max-w-[80px] sm:max-w-none">
                 {restaurantName}
               </h1>
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Star className="h-3 w-3 mr-1 fill-current text-yellow-500" />
-                <span>Premium Quality</span>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                {restaurantInfo?.tagline || (customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later')}
+              </p>
             </div>
           </div>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-2">
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleChefsSpecial}
-              className="flex items-center gap-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-            >
-              <ChefHat className="h-4 w-4" />
-              Chef's Special
-            </Button>
+            <PaymentStatusChecker>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex-1 group flex items-center gap-2 rounded-xl border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                        >
+                          <div className="p-1.5 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          </div>
+                          <span className="font-medium text-sm">Check Payment</span>
+                        </Button>
+                      </PaymentStatusChecker>
             
             <Button
               variant="ghost"
@@ -101,7 +125,7 @@ export const StickyHeader = ({
               className="flex items-center gap-2"
             >
               <Phone className="h-4 w-4" />
-              Contact
+              Contact Restaurant
             </Button>
             
             {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
@@ -156,15 +180,19 @@ export const StickyHeader = ({
               exit={{ height: 0, opacity: 0 }}
               className="md:hidden border-t border-border/50 py-4 space-y-2"
             >
-              <Button
-                variant="ghost"
-                onClick={handleChefsSpecial}
-                className="w-full justify-start text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-              >
-                <ChefHat className="h-4 w-4 mr-2" />
-                Chef's Special
-              </Button>
-              
+              <PaymentStatusChecker>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="flex-1 group flex items-center gap-2 rounded-xl border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                          >
+                            <div className="p-1.5 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
+                              <CheckCircle2 className="h-3 w-3 text-green-600" />
+                            </div>
+                            <span className="font-medium text-sm">Check Payment</span>
+                          </Button>
+              </PaymentStatusChecker>
+                            
               <Button
                 variant="ghost"
                 onClick={handleContactRestaurant}
