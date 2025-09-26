@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Clock, Star, ChefHat, Award, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import {
   Carousel,
   CarouselContent,
@@ -36,7 +35,6 @@ export const CarouselHeroSection = ({
 }: CarouselHeroSectionProps) => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
-  const { restaurantInfo } = useCustomerMenuData(restaurantId!);
 
   // Create slides array with default slide first
   const slides: HeroSlide[] = [
@@ -125,65 +123,6 @@ export const CarouselHeroSection = ({
                           <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight drop-shadow-xl">
                             {restaurantName}
                           </h1>
-                          
-                          <p className="text-xl md:text-2xl text-white/90 font-medium drop-shadow-lg">
-                            {restaurantInfo?.tagline}
-                          </p>
-                        </motion.div>
-
-                        {/* Feature Badges */}
-                        <motion.div 
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6, delay: 0.4 }}
-                          className="flex flex-wrap items-center justify-center gap-4 mt-8"
-                        >
-                          <div className="group flex items-center gap-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-md rounded-2xl px-6 py-3 border border-green-400/30 hover:border-green-400/50 transition-all duration-300">
-                            <div className="p-2 bg-green-500/20 rounded-full group-hover:bg-green-500/30 transition-colors">
-                              <Clock className="h-5 w-5 text-green-400" />
-                            </div>
-                            <div className="text-left">
-                              <span className="text-white font-semibold text-sm block">Lightning Fast</span>
-                              <span className="text-green-200 text-xs">Ready in 15 mins</span>
-                            </div>
-                          </div>
-                          
-                          <div className="group flex items-center gap-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-md rounded-2xl px-6 py-3 border border-amber-400/30 hover:border-amber-400/50 transition-all duration-300">
-                            <div className="p-2 bg-amber-500/20 rounded-full group-hover:bg-amber-500/30 transition-colors">
-                              <ChefHat className="h-5 w-5 text-amber-400" />
-                            </div>
-                            <div className="text-left">
-                              <span className="text-white font-semibold text-sm block">Chef's Special</span>
-                              <span className="text-amber-200 text-xs">Made fresh daily</span>
-                            </div>
-                          </div>
-                          
-                          <div className="group flex items-center gap-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-md rounded-2xl px-6 py-3 border border-purple-400/30 hover:border-purple-400/50 transition-all duration-300">
-                            <div className="p-2 bg-purple-500/20 rounded-full group-hover:bg-purple-500/30 transition-colors">
-                              <Award className="h-5 w-5 text-purple-400" />
-                            </div>
-                            <div className="text-left">
-                              <span className="text-white font-semibold text-sm block">5-Star Quality</span>
-                              <span className="text-purple-200 text-xs">Premium ingredients</span>
-                            </div>
-                          </div>
-                        </motion.div>
-
-                        {/* CTA Button */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6, delay: 0.6 }}
-                          className="mt-8"
-                        >
-                          <Button 
-                            onClick={onScrollToMenu}
-                            size="lg"
-                            className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-bold px-8 py-6 text-lg rounded-2xl shadow-2xl border border-white/20 hover:scale-105 transition-all duration-300"
-                          >
-                            <span>Explore Our Menu</span>
-                            <Sparkles className="ml-2 h-5 w-5 animate-pulse" />
-                          </Button>
                         </motion.div>
                       </>
                     ) : (
