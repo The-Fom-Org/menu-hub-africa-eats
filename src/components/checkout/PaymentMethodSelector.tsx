@@ -23,29 +23,29 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   availableGateways,
   excludeCash = false
 }) => {
-  const paymentMethods = [
-    {
-      id: 'mpesa',
-      name: 'M-Pesa',
-      description: 'Pay with M-Pesa mobile money',
-      icon: <Smartphone className="h-5 w-5" />,
-      enabled: true
-    },
-    {
-      id: 'card',
-      name: 'Credit/Debit Card',
-      description: 'Pay with Visa, Mastercard, or other cards',
-      icon: <CreditCard className="h-5 w-5" />,
-      enabled: true
-    },
-    {
-      id: 'bank_transfer',
-      name: 'Bank Transfer',
-      description: 'Direct bank transfer',
-      icon: <Building className="h-5 w-5" />,
-      enabled: true
-    }
-  ];
+      const paymentMethods = [
+        {
+          id: 'pesapal',
+          name: 'Pesapal',
+          description: 'Pay with credit/debit card or mobile money via Pesapal',
+          icon: <CreditCard className="h-5 w-5" />,
+          enabled: true
+        },
+        {
+          id: 'mpesa',
+          name: 'M-Pesa',
+          description: 'Pay with M-Pesa mobile money',
+          icon: <Smartphone className="h-5 w-5" />,
+          enabled: true
+        },
+        {
+          id: 'bank_transfer',
+          name: 'Bank Transfer',
+          description: 'Direct bank transfer',
+          icon: <Building className="h-5 w-5" />,
+          enabled: true
+        }
+      ];
 
   if (!excludeCash) {
     paymentMethods.push({

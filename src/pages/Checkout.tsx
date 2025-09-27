@@ -151,9 +151,7 @@ const Checkout = () => {
   }
 
   return (
-    <OrderCreationHandler restaurantId={''} children={function (params: { createOrder: (orderData: any) => Promise<void>; isCreatingOrder: boolean; }): React.ReactNode {
-      throw new Error('Function not implemented.');
-    } }>
+    <OrderCreationHandler restaurantId={restaurantId || ''}>
       {({ createOrder, isCreatingOrder }) => (
         <div className="min-h-screen bg-background">
           <header className="bg-card border-b shadow-sm">

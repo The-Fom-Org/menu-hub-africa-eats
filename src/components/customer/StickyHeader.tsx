@@ -103,7 +103,8 @@ export const StickyHeader = ({
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-2">
             
-            <PaymentStatusChecker>
+            {orderingEnabled && (
+              <PaymentStatusChecker>
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -114,7 +115,8 @@ export const StickyHeader = ({
                           </div>
                           <span className="font-medium text-sm">Check Payment</span>
                         </Button>
-                      </PaymentStatusChecker>
+              </PaymentStatusChecker>
+            )}
             
             <Button
               variant="ghost"
@@ -178,18 +180,20 @@ export const StickyHeader = ({
               exit={{ height: 0, opacity: 0 }}
               className="md:hidden border-t border-border/50 py-4 space-y-2"
             >
+            {orderingEnabled && (
               <PaymentStatusChecker>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="flex-1 group flex items-center gap-2 rounded-xl border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
-                          >
-                            <div className="p-1.5 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
-                              <CheckCircle2 className="h-3 w-3 text-green-600" />
-                            </div>
-                            <span className="font-medium text-sm">Check Payment</span>
-                          </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex-1 group flex items-center gap-2 rounded-xl border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                        >
+                          <div className="p-1.5 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          </div>
+                          <span className="font-medium text-sm">Check Payment</span>
+                        </Button>
               </PaymentStatusChecker>
+            )}
                             
               <Button
                 variant="ghost"

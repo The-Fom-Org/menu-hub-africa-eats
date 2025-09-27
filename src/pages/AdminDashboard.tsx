@@ -541,8 +541,8 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     Found {subscribers.length} existing subscriber{subscribers.length !== 1 ? 's' : ''}:
-                  </p>
-                < /div>
+                </p>
+                </div>
               </>
             )}  
             {/* Show activate subscription option for searched restaurants without existing subscription */}
@@ -577,7 +577,7 @@ export default function AdminDashboard() {
                 </Card>
               </>
             )}
-          </CardContent>
+            </CardContent>
         </Card>
 
           <Card>
