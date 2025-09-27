@@ -13,6 +13,8 @@ export const useUserRestaurant = (userId: string | undefined) => {
       }
 
       try {
+        console.log('🔍 Fetching restaurant for user:', userId);
+        
         const { data, error } = await (supabase as any)
           .from('user_branches')
           .select('restaurant_id')
@@ -21,12 +23,15 @@ export const useUserRestaurant = (userId: string | undefined) => {
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching user restaurant:', error);
+          console.error('❌ Error fetching user restaurant:', error);
+          console.error('❌ Full error:', JSON.stringify(error, null, 2));
         } else {
-          setRestaurantId((data as any)?.restaurant_id || null);
+          const foundRestaurantId = (data as any)?.restaurant_id || null;
+          console.log('✅ Found restaurant ID:', foundRestaurantId, 'for user:', userId);
+          setRestaurantId(foundRestaurantId);
         }
       } catch (error) {
-        console.error('Error in fetchUserRestaurant:', error);
+        console.error('❌ Error in fetchUserRestaurant:', error);
       } finally {
         setLoading(false);
       }

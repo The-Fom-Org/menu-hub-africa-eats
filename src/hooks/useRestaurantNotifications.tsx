@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRestaurant } from '@/hooks/useUserRestaurant';
 import { useToast } from '@/hooks/use-toast';
 import { playRingtone, RINGTONE_OPTIONS, RingtoneId } from '@/lib/audio/ringtones';
 
@@ -36,6 +37,7 @@ const defaultSettings: NotificationSettings = {
 
 export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
   const { user } = useAuth();
+  const { restaurantId, loading: restaurantLoading } = useUserRestaurant(user?.id);
   const { toast } = useToast();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,17 +53,17 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     let isMounted = true;
 
     async function loadSettings() {
-      if (!user?.id) {
+      if (!restaurantId || restaurantLoading) {
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
-      console.log('[Notifications] Loading settings for', user.id);
+      console.log('[Notifications] Loading settings for', restaurantId);
 
       const { data, error } = await (supabase as any)
         .from('restaurant_notification_settings')
         .select('*')
-        .eq('restaurant_id', user.id)
+        .eq('restaurant_id', restaurantId)
         .maybeSingle();
 
       if (error) {
@@ -75,7 +77,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
         const { data: inserted, error: insertError } = await (supabase as any)
           .from('restaurant_notification_settings')
           .insert({
-            restaurant_id: user.id,
+            restaurant_id: restaurantId,
             ringtone: defaultSettings.ringtone,
             volume: defaultSettings.volume,
             notifications_enabled: defaultSettings.notifications_enabled,
@@ -107,13 +109,13 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     return () => {
       isMounted = false;
     };
-  }, [user?.id]);
+  }, [restaurantId, restaurantLoading]);
 
   // Realtime subscription for new orders and waiter calls
   useEffect(() => {
-    if (!user?.id) return;
+    if (!restaurantId || restaurantLoading) return;
 
-    console.log('[Notifications] Setting up realtime subscription for user:', user.id);
+    console.log('[Notifications] Setting up realtime subscription for restaurant:', restaurantId);
 
     if (channelRef.current) {
       console.log('[Notifications] Removing existing channel');
@@ -122,7 +124,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     }
 
     const channel = supabase
-      .channel(`notify-${user.id}`)
+      .channel(`notify-${restaurantId}`)
       // New orders
       .on(
         'postgres_changes',
@@ -130,7 +132,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           event: 'INSERT',
           schema: 'public',
           table: 'orders',
-          filter: `restaurant_id=eq.${user.id}`,
+          filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload: any) => {
           console.log('[Notifications] New order received:', payload.new?.id);
@@ -160,7 +162,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           event: 'INSERT',
           schema: 'public',
           table: 'waiter_calls',
-          filter: `restaurant_id=eq.${user.id}`,
+          filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload: any) => {
           const table = payload?.new?.table_number || 'unknown';
@@ -204,7 +206,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
         channelRef.current = null;
       }
     };
-  }, [user?.id]); // Only depend on user.id to avoid subscription recreation
+  }, [restaurantId, restaurantLoading]); // Only depend on restaurantId to avoid subscription recreation
 
   // Mark all as read
   const markAllAsRead = () => {
@@ -215,7 +217,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
   };
 
   const saveSettings = async () => {
-    if (!user?.id || !settings) return;
+    if (!restaurantId || !settings) return;
     setIsSaving(true);
     console.log('[Notifications] Saving settings:', settings);
 
@@ -235,7 +237,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
         const { data: inserted, error } = await (supabase as any)
           .from('restaurant_notification_settings')
           .insert({
-            restaurant_id: user.id,
+            restaurant_id: restaurantId,
             ringtone: settings.ringtone,
             volume: settings.volume,
             notifications_enabled: settings.notifications_enabled,
