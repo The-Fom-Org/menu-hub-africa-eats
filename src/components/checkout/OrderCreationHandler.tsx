@@ -32,6 +32,33 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
 
   const createOrder = async (orderData: any) => {
     console.log('📝 Creating order with data:', orderData);
+    console.log('🏪 Restaurant ID being used:', restaurantId);
+    console.log('🛒 Cart items:', cartItems);
+    console.log('💰 Total amount:', getCartTotal());
+    
+    // Validate required data
+    if (!restaurantId) {
+      const error = 'Restaurant ID is missing';
+      console.error('❌', error);
+      toast({
+        title: "Order failed",
+        description: error,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (cartItems.length === 0) {
+      const error = 'No items in cart';
+      console.error('❌', error);
+      toast({
+        title: "Order failed",
+        description: error,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsCreatingOrder(true);
 
     try {
@@ -44,6 +71,7 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
       const customerToken = crypto.randomUUID();
 
       // Create the order without selecting it back (avoids RLS SELECT restriction)
+      console.log('🔄 Inserting order into database...');
       const { error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -64,6 +92,7 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
 
       if (orderError) {
         console.error('❌ Order creation failed:', orderError);
+        console.error('❌ Error details:', JSON.stringify(orderError, null, 2));
         throw orderError;
       }
 
@@ -71,6 +100,7 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
       console.log('✅ Order created successfully:', order);
 
       // Create order items
+      console.log('🔄 Creating order items...');
       const orderItems = cartItems.map(item => ({
         order_id: order.id,
         menu_item_id: item.id,
@@ -79,12 +109,15 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
         customizations: item.customizations || {},
       }));
 
+      console.log('📦 Order items to insert:', orderItems);
+
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
       if (itemsError) {
         console.error('❌ Order items creation failed:', itemsError);
+        console.error('❌ Items error details:', JSON.stringify(itemsError, null, 2));
         throw itemsError;
       }
 
@@ -258,13 +291,16 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
 
   const finalizeOrder = (order: any, orderData: any) => {
     console.log('🎉 Finalizing order:', order.id);
+    console.log('🔄 Clearing cart and navigating to success page...');
     clearCart();
     toast({
       title: "Order created successfully!",
       description: "Your order has been submitted and is being processed.",
     });
     // Pass the customer token instead of the order ID for secure access
-    navigate(`/order-success?token=${order.customer_token}&restaurant=${restaurantId}`);
+    const successUrl = `/order-success?token=${order.customer_token}&restaurant=${restaurantId}`;
+    console.log('🔄 Navigating to:', successUrl);
+    navigate(successUrl);
     setIsCreatingOrder(false);
   };
 
