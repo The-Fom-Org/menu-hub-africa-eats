@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
+import { useUserRestaurant } from '@/hooks/useUserRestaurant';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +14,6 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ShoppingCart, User, Phone, Clock, CreditCard, Info } from 'lucide-react';
 import OrderCreationHandler from '@/components/checkout/OrderCreationHandler';
-import { useToast } from '@/hooks/use-toast';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
 
 interface CartItem {
@@ -24,8 +26,15 @@ interface CartItem {
 
 const Checkout = () => {
   const [searchParams] = useSearchParams();
-  const restaurantId = searchParams.get('restaurantId');
+  const paramRestaurantId = searchParams.get('restaurantId');
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { restaurantId: userRestaurantId, loading: restaurantLoading } = useUserRestaurant(user?.id);
+  
+  // Use the authenticated user's restaurant ID if available, otherwise fall back to param
+  const restaurantId = userRestaurantId || paramRestaurantId;
+  
+  // Only initialize cart and fetch data if we have a restaurant ID
   const cart = useCart(restaurantId || '');
   const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
@@ -126,13 +135,13 @@ const Checkout = () => {
   };
 
   // Show loading until both restaurant data and cart are loaded
-  if (dataLoading || !isCartInitialized) {
+  if (dataLoading || restaurantLoading || !isCartInitialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">
-            {dataLoading ? 'Loading restaurant...' : 'Loading cart...'}
+            {dataLoading ? 'Loading restaurant...' : restaurantLoading ? 'Loading restaurant info...' : 'Loading cart...'}
           </p>
         </div>
       </div>

@@ -417,6 +417,78 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_settings: {
+        Row: {
+          created_at: string
+          id: string
+          ordering_enabled: boolean
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordering_enabled?: boolean
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordering_enabled?: boolean
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      restaurants: {
+        Row: {
+          address: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          phone_number: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          phone_number?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone_number?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           admin_notes: string | null
@@ -513,6 +585,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_branches: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          restaurant_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          restaurant_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          restaurant_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_branches_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waiter_calls: {
         Row: {
           created_at: string
@@ -554,7 +664,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ensure_user_has_restaurant: {
+        Args: { target_user_id: string }
+        Returns: string
+      }
+      migrate_profiles_to_restaurants: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

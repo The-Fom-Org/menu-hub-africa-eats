@@ -6,6 +6,8 @@ import { useCart } from '@/hooks/useCart';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { useRestaurantPaymentSettings } from '@/hooks/useRestaurantPaymentSettings';
+import { useUserRestaurant } from '@/hooks/useUserRestaurant';
+import { useAuth } from '@/hooks/useAuth';
 import { PesapalGateway, PesapalPaymentRequest } from '@/lib/payment-gateways/pesapal';
 import NotificationPermissionDialog from '@/components/notifications/NotificationPermissionDialog';
 import { PaymentInstructionsDialog } from '@/components/payment/PaymentInstructionsDialog';
@@ -18,13 +20,19 @@ interface OrderCreationHandlerProps {
   }) => React.ReactNode;
 }
 
-const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerProps) => {
+const OrderCreationHandler = ({ restaurantId: propRestaurantId, children }: OrderCreationHandlerProps) => {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { restaurantId: userRestaurantId, loading: restaurantLoading } = useUserRestaurant(user?.id);
+  
+  // Use the authenticated user's restaurant ID if available, otherwise fall back to prop
+  const restaurantId = userRestaurantId || propRestaurantId;
+  
   const { clearCart, cartItems, getCartTotal } = useCart(restaurantId);
   const { subscribeToPush, requestPermission, isSupported } = usePushNotifications();
   const { toast } = useToast();
@@ -38,7 +46,18 @@ const OrderCreationHandler = ({ restaurantId, children }: OrderCreationHandlerPr
     
     // Validate required data
     if (!restaurantId) {
-      const error = 'Restaurant ID is missing';
+      const error = 'Restaurant ID is missing - please ensure you are logged in and have a restaurant associated with your account';
+      console.error('❌', error);
+      toast({
+        title: "Order failed",
+        description: error,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (restaurantLoading) {
+      const error = 'Still loading restaurant information - please wait';
       console.error('❌', error);
       toast({
         title: "Order failed",
