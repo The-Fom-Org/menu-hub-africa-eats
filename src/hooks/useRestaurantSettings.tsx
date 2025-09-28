@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface RestaurantSettings {
   id: string;
-  restaurant_id: string;
+  user_id: string;
   ordering_enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -23,7 +23,7 @@ export const useRestaurantSettings = (userId: string) => {
       const { data, error } = await (supabase as any)
         .from('restaurant_settings')
         .select('*')
-        .eq('restaurant_id', userId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (error) {
@@ -38,7 +38,7 @@ export const useRestaurantSettings = (userId: string) => {
         const { data: newSettings, error: createError } = await (supabase as any)
           .from('restaurant_settings')
           .insert({
-            restaurant_id: userId,
+            user_id: userId,
             ordering_enabled: true
           })
           .select()
@@ -65,7 +65,7 @@ export const useRestaurantSettings = (userId: string) => {
       const { data: existingData } = await (supabase as any)
         .from('restaurant_settings')
         .select('id')
-        .eq('restaurant_id', userId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       let result;
@@ -77,7 +77,7 @@ export const useRestaurantSettings = (userId: string) => {
             ordering_enabled: enabled,
             updated_at: new Date().toISOString()
           })
-          .eq('restaurant_id', userId)
+          .eq('user_id', userId)
           .select()
           .single();
       } else {
@@ -85,7 +85,7 @@ export const useRestaurantSettings = (userId: string) => {
         result = await (supabase as any)
           .from('restaurant_settings')
           .insert({
-            restaurant_id: userId,
+            user_id: userId,
             ordering_enabled: enabled
           })
           .select()
