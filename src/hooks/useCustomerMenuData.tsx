@@ -55,7 +55,9 @@ export const useCustomerMenuData = (urlParamId: string) => {
       setLoading(true);
       setError(null);
 
-      // First, get the restaurant ID from user_branches table using the URL param (which is user ID)
+      console.log('🔍 Fetching menu data for URL param:', urlParamId);
+
+      // Try to get restaurant ID from user_branches first (new model)
       const { data: userBranchData, error: branchError } = await (supabase as any)
         .from('user_branches')
         .select('restaurant_id')
@@ -63,27 +65,64 @@ export const useCustomerMenuData = (urlParamId: string) => {
         .eq('is_default', true)
         .maybeSingle();
 
-      if (branchError) {
-        console.error('❌ Error fetching user restaurant:', branchError);
-        throw branchError;
-      }
+      let actualRestaurantId = userBranchData?.restaurant_id;
+      let useNewModel = !!actualRestaurantId;
 
-      const actualRestaurantId = userBranchData?.restaurant_id;
       if (!actualRestaurantId) {
-        throw new Error('Restaurant not found for this user');
+        console.log('⚠️ No restaurant found in user_branches, using legacy model');
+        // Fallback to legacy model - use user ID directly
+        actualRestaurantId = urlParamId;
+        useNewModel = false;
       }
 
-      console.log('✅ Found restaurant ID:', actualRestaurantId, 'for user:', urlParamId);
+      console.log('✅ Using restaurant ID:', actualRestaurantId, 'New model:', useNewModel);
 
-      // Fetch menu categories using the actual restaurant ID
-      const { data: categoriesData, error: categoriesError } = await (supabase as any)
-        .from('menu_categories')
-        .select(`
-          *,
-          menu_items (*)
-        `)
-        .eq('user_id', actualRestaurantId)
-        .order('created_at', { ascending: true });
+      // Fetch menu categories - try restaurant ID first, fallback to user ID
+      let categoriesData = null;
+      let categoriesError = null;
+
+      if (useNewModel) {
+        const result = await (supabase as any)
+          .from('menu_categories')
+          .select(`
+            *,
+            menu_items (*)
+          `)
+          .eq('user_id', actualRestaurantId)
+          .order('created_at', { ascending: true });
+
+        categoriesData = result.data;
+        categoriesError = result.error;
+
+        // If no data found with restaurant ID, try user ID (legacy)
+        if (!categoriesError && (!categoriesData || categoriesData.length === 0)) {
+          console.log('📦 No categories found with restaurant ID, trying user ID');
+          const fallbackResult = await (supabase as any)
+            .from('menu_categories')
+            .select(`
+              *,
+              menu_items (*)
+            `)
+            .eq('user_id', urlParamId)
+            .order('created_at', { ascending: true });
+          
+          categoriesData = fallbackResult.data;
+          categoriesError = fallbackResult.error;
+        }
+      } else {
+        // Use user ID directly (legacy model)
+        const result = await (supabase as any)
+          .from('menu_categories')
+          .select(`
+            *,
+            menu_items (*)
+          `)
+          .eq('user_id', urlParamId)
+          .order('created_at', { ascending: true });
+
+        categoriesData = result.data;
+        categoriesError = result.error;
+      }
 
       if (categoriesError) throw categoriesError;
 
@@ -102,33 +141,83 @@ export const useCustomerMenuData = (urlParamId: string) => {
 
       setCategories(filteredCategories);
 
-      // Fetch restaurant info from the restaurants table
-      const { data: restaurantData, error: restaurantError } = await (supabase as any)
-        .from('restaurants')
-        .select('name, description, phone_number, logo_url, cover_image_url, primary_color, secondary_color, tagline')
-        .eq('id', actualRestaurantId)
-        .single();
+      // Fetch restaurant info
+      if (useNewModel && actualRestaurantId) {
+        // Try new restaurants table first
+        const { data: restaurantData, error: restaurantError } = await (supabase as any)
+          .from('restaurants')
+          .select('name, description, phone_number, logo_url, cover_image_url, primary_color, secondary_color, tagline')
+          .eq('id', actualRestaurantId)
+          .maybeSingle();
 
-      if (restaurantData) {
-        setRestaurantInfo({
-          id: actualRestaurantId,
-          name: restaurantData.name || "MenuHub Restaurant",
-          description: restaurantData.description || "Delicious meals made with love",
-          logo_url: restaurantData.logo_url,
-          cover_image_url: restaurantData.cover_image_url,
-          tagline: restaurantData.tagline,
-          primary_color: restaurantData.primary_color,
-          secondary_color: restaurantData.secondary_color,
-          phone_number: restaurantData.phone_number,
-        });
+        if (restaurantData && !restaurantError) {
+          setRestaurantInfo({
+            id: actualRestaurantId,
+            name: restaurantData.name || "MenuHub Restaurant",
+            description: restaurantData.description || "Delicious meals made with love",
+            logo_url: restaurantData.logo_url,
+            cover_image_url: restaurantData.cover_image_url,
+            tagline: restaurantData.tagline,
+            primary_color: restaurantData.primary_color,
+            secondary_color: restaurantData.secondary_color,
+            phone_number: restaurantData.phone_number,
+          });
+        } else {
+          // Fallback to profiles table
+          console.log('⚠️ Restaurant data not found in restaurants table, trying profiles');
+          const { data: profileData } = await (supabase as any)
+            .from('profiles')
+            .select('restaurant_name, logo_url, cover_image_url, primary_color, secondary_color, description, phone_number, tagline')
+            .eq('user_id', urlParamId)
+            .maybeSingle();
+
+          if (profileData) {
+            setRestaurantInfo({
+              id: actualRestaurantId,
+              name: profileData.restaurant_name || "MenuHub Restaurant",
+              description: profileData.description || "Delicious meals made with love",
+              logo_url: profileData.logo_url,
+              cover_image_url: profileData.cover_image_url,
+              tagline: profileData.tagline,
+              primary_color: profileData.primary_color,
+              secondary_color: profileData.secondary_color,
+              phone_number: profileData.phone_number,
+            });
+          } else {
+            setRestaurantInfo({
+              id: actualRestaurantId,
+              name: "MenuHub Restaurant",
+              description: "Delicious meals made with love",
+            });
+          }
+        }
       } else {
-        setRestaurantInfo({
-          id: actualRestaurantId,
-          name: "MenuHub Restaurant",
-          description: "Delicious meals made with love",
-          logo_url: undefined,
-          cover_image_url: undefined,
-        });
+        // Legacy model - use profiles table
+        const { data: profileData } = await (supabase as any)
+          .from('profiles')
+          .select('restaurant_name, logo_url, cover_image_url, primary_color, secondary_color, description, phone_number, tagline')
+          .eq('user_id', urlParamId)
+          .maybeSingle();
+
+        if (profileData) {
+          setRestaurantInfo({
+            id: urlParamId,
+            name: profileData.restaurant_name || "MenuHub Restaurant",
+            description: profileData.description || "Delicious meals made with love",
+            logo_url: profileData.logo_url,
+            cover_image_url: profileData.cover_image_url,
+            tagline: profileData.tagline,
+            primary_color: profileData.primary_color,
+            secondary_color: profileData.secondary_color,
+            phone_number: profileData.phone_number,
+          });
+        } else {
+          setRestaurantInfo({
+            id: urlParamId,
+            name: "MenuHub Restaurant",
+            description: "Delicious meals made with love",
+          });
+        }
       }
 
     } catch (error) {

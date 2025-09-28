@@ -20,7 +20,9 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
       }
 
       try {
-        // First, get the restaurant ID from user_branches table
+        console.log('🔍 Fetching ordering status for URL param:', urlParamId);
+
+        // Try to get restaurant ID from user_branches first (new model)
         const { data: userBranchData, error: branchError } = await (supabase as any)
           .from('user_branches')
           .select('restaurant_id')
@@ -28,18 +30,16 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
           .eq('is_default', true)
           .maybeSingle();
 
-        if (branchError) {
-          console.error('❌ Error fetching user restaurant for ordering status:', branchError);
+        let actualRestaurantId = userBranchData?.restaurant_id;
+        
+        if (!actualRestaurantId) {
+          console.log('⚠️ No restaurant found in user_branches for ordering status, using user ID as fallback');
+          // Fallback to legacy model - there might not be restaurant settings
           setOrderingEnabled(true);
           return;
         }
 
-        const actualRestaurantId = userBranchData?.restaurant_id;
-        if (!actualRestaurantId) {
-          console.error('❌ Restaurant not found for user:', urlParamId);
-          setOrderingEnabled(true);
-          return;
-        }
+        console.log('✅ Found restaurant ID for ordering status:', actualRestaurantId);
 
         const { data, error } = await (supabase as any)
           .from('restaurant_settings')
@@ -55,6 +55,7 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
           // If no settings found, default to enabled
           const enabled = data?.ordering_enabled ?? true;
           setOrderingEnabled(enabled);
+          console.log('✅ Ordering status:', enabled);
         }
       } catch (error) {
         console.error('❌ Error in fetchOrderingStatus:', error);
