@@ -28,7 +28,9 @@ const CustomerMenu = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
-  const cart = useCart(orderingEnabled ? urlUserId : null);
+  
+  // Wait for ordering status to load before initializing cart
+  const cart = useCart(orderingEnabled && !orderingLoading ? urlUserId : null);
   const [showVideoSplash, setShowVideoSplash] = useState(true);
 
   // Get actual restaurant ID from restaurant info
