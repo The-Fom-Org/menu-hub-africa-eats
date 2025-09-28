@@ -22,14 +22,17 @@ import { motion, AnimatePresence } from "framer-motion";
 
 
 const CustomerMenu = () => {
-  const { restaurantId } = useParams<{ restaurantId: string }>();
-  const { categories, restaurantInfo, loading, error } = useCustomerMenuData(restaurantId || "");
-  const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(restaurantId || "");
+  const { restaurantId: urlUserId } = useParams<{ restaurantId: string }>();
+  const { categories, restaurantInfo, loading, error } = useCustomerMenuData(urlUserId || "");
+  const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(urlUserId || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
-  const cart = useCart(restaurantId);
+  const cart = useCart(urlUserId);
   const [showVideoSplash, setShowVideoSplash] = useState(true);
+
+  // Get actual restaurant ID from restaurant info
+  const actualRestaurantId = restaurantInfo?.id;
 
   // Call waiter functionality is now handled by CallWaiterDialog component
   useEffect(() => {
@@ -180,12 +183,12 @@ const CustomerMenu = () => {
       />
 
       {/* Lead Capture Integration */}
-      {restaurantId && <LeadCaptureIntegration restaurantId={restaurantId} />}
+      {urlUserId && <LeadCaptureIntegration restaurantId={actualRestaurantId || urlUserId} />}
 
       {/* Sticky Header */}
       <StickyHeader
         restaurantName={restaurantInfo.name}
-        restaurantId={restaurantId || ""}
+        restaurantId={actualRestaurantId || urlUserId || ""}
         logoUrl={restaurantInfo.logo_url}
         onSearch={handlesSearch}
         onChefsSpecial={handleChefsSpecial}
@@ -285,7 +288,7 @@ const CustomerMenu = () => {
                     <MenuItemCard
                       key={item.id}
                       item={item}
-                      restaurantId={restaurantId || ""}
+                      restaurantId={actualRestaurantId || urlUserId || ""}
                       orderingEnabled={orderingEnabled}
                     />
                   ))}
@@ -298,7 +301,7 @@ const CustomerMenu = () => {
         {/* Upsell Section */}
         {orderingEnabled && cart.hasItems() && (
           <UpsellSection
-            restaurantId={restaurantId || ""}
+            restaurantId={actualRestaurantId || urlUserId || ""}
             currentCartItems={cart.cartItems}
             allItems={allMenuItems}
           />
@@ -308,7 +311,7 @@ const CustomerMenu = () => {
       {/* Sticky Bottom Bar - only show when ordering is enabled */}
       {orderingEnabled && (
         <StickyBottomBar 
-          restaurantId={restaurantId || ""}
+          restaurantId={actualRestaurantId || urlUserId || ""}
           onChefsSpecial={handleChefsSpecial}
         />
       )}

@@ -37,7 +37,14 @@ export interface RestaurantInfo {
   phone_number?: string;
 }
 
-export const useCustomerMenuData = (restaurantId: string) => {
+/**
+ * Hook to fetch customer-facing menu data and restaurant information.
+ * 
+ * @param urlParamId - The user ID from the URL (typically from QR codes like /menu/:restaurantId)
+ *                     This gets resolved to the actual restaurant ID via user_branches table
+ * @returns Menu categories with available items and restaurant branding information
+ */
+export const useCustomerMenuData = (urlParamId: string) => {
   const [categories, setCategories] = useState<CustomerMenuCategory[]>([]);
   const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,15 +55,34 @@ export const useCustomerMenuData = (restaurantId: string) => {
       setLoading(true);
       setError(null);
 
-      // For now, we'll use the user_id as restaurant_id since we don't have a separate restaurants table
-      // In a real implementation, you'd want a separate restaurants table
+      // First, get the restaurant ID from user_branches table using the URL param (which is user ID)
+      const { data: userBranchData, error: branchError } = await (supabase as any)
+        .from('user_branches')
+        .select('restaurant_id')
+        .eq('user_id', urlParamId)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (branchError) {
+        console.error('❌ Error fetching user restaurant:', branchError);
+        throw branchError;
+      }
+
+      const actualRestaurantId = userBranchData?.restaurant_id;
+      if (!actualRestaurantId) {
+        throw new Error('Restaurant not found for this user');
+      }
+
+      console.log('✅ Found restaurant ID:', actualRestaurantId, 'for user:', urlParamId);
+
+      // Fetch menu categories using the actual restaurant ID
       const { data: categoriesData, error: categoriesError } = await (supabase as any)
         .from('menu_categories')
         .select(`
           *,
           menu_items (*)
         `)
-        .eq('user_id', restaurantId)
+        .eq('user_id', actualRestaurantId)
         .order('created_at', { ascending: true });
 
       if (categoriesError) throw categoriesError;
@@ -76,26 +102,28 @@ export const useCustomerMenuData = (restaurantId: string) => {
 
       setCategories(filteredCategories);
 
-      // Fetch restaurant profile info (only public-safe fields for customer menu)
-      const { data: profileData, error: profileError } = await (supabase as any)
-        .from('profiles')
-        .select('restaurant_name, logo_url, cover_image_url, primary_color, secondary_color')
-        .eq('user_id', restaurantId)
+      // Fetch restaurant info from the restaurants table
+      const { data: restaurantData, error: restaurantError } = await (supabase as any)
+        .from('restaurants')
+        .select('name, description, phone_number, logo_url, cover_image_url, primary_color, secondary_color, tagline')
+        .eq('id', actualRestaurantId)
         .single();
 
-      if (profileData) {
+      if (restaurantData) {
         setRestaurantInfo({
-          id: restaurantId,
-          name: profileData.restaurant_name || "MenuHub Restaurant",
-          description: "Delicious meals made with love",
-          logo_url: profileData.logo_url,
-          cover_image_url: profileData.cover_image_url,
-          primary_color: profileData.primary_color,
-          secondary_color: profileData.secondary_color,
+          id: actualRestaurantId,
+          name: restaurantData.name || "MenuHub Restaurant",
+          description: restaurantData.description || "Delicious meals made with love",
+          logo_url: restaurantData.logo_url,
+          cover_image_url: restaurantData.cover_image_url,
+          tagline: restaurantData.tagline,
+          primary_color: restaurantData.primary_color,
+          secondary_color: restaurantData.secondary_color,
+          phone_number: restaurantData.phone_number,
         });
       } else {
         setRestaurantInfo({
-          id: restaurantId,
+          id: actualRestaurantId,
           name: "MenuHub Restaurant",
           description: "Delicious meals made with love",
           logo_url: undefined,
@@ -112,10 +140,10 @@ export const useCustomerMenuData = (restaurantId: string) => {
   };
 
   useEffect(() => {
-    if (restaurantId) {
+    if (urlParamId) {
       fetchMenuData();
     }
-  }, [restaurantId]);
+  }, [urlParamId]);
 
   return {
     categories,

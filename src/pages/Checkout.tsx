@@ -105,7 +105,7 @@ const Checkout = () => {
         description: "Your cart is empty. Please add items before checkout.",
         variant: "destructive",
       });
-      navigate(`/menu/${restaurantId}`);
+      navigate(`/menu/${paramRestaurantId || restaurantId}`);
       return;
     }
   }, [cart, restaurantId, navigate, toast, isCartInitialized]);
@@ -170,7 +170,7 @@ const Checkout = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => navigate(`/menu/${restaurantId}`)}
+                    onClick={() => navigate(`/menu/${paramRestaurantId || restaurantId}`)}
                     className="text-xs sm:text-sm"
                   >
                     <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
