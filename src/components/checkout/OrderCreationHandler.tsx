@@ -6,7 +6,6 @@ import { useCart } from '@/hooks/useCart';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { useRestaurantPaymentSettings } from '@/hooks/useRestaurantPaymentSettings';
-import { useUserRestaurant } from '@/hooks/useUserRestaurant';
 import { useAuth } from '@/hooks/useAuth';
 import { PesapalGateway, PesapalPaymentRequest } from '@/lib/payment-gateways/pesapal';
 import NotificationPermissionDialog from '@/components/notifications/NotificationPermissionDialog';
@@ -28,10 +27,9 @@ const OrderCreationHandler = ({ restaurantId: propRestaurantId, children }: Orde
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { restaurantId: userRestaurantId, loading: restaurantLoading } = useUserRestaurant(user?.id);
   
-  // Use the authenticated user's restaurant ID if available, otherwise fall back to prop
-  const restaurantId = userRestaurantId || propRestaurantId;
+  // Use the prop restaurant ID directly since it's now the user ID
+  const restaurantId = propRestaurantId;
   
   const { clearCart, cartItems, getCartTotal } = useCart(restaurantId);
   const { subscribeToPush, requestPermission, isSupported } = usePushNotifications();
@@ -56,16 +54,7 @@ const OrderCreationHandler = ({ restaurantId: propRestaurantId, children }: Orde
       return;
     }
     
-    if (restaurantLoading) {
-      const error = 'Still loading restaurant information - please wait';
-      console.error('❌', error);
-      toast({
-        title: "Order failed",
-        description: error,
-        variant: "destructive",
-      });
-      return;
-    }
+    // Validation removed since restaurantLoading no longer exists
     
     if (cartItems.length === 0) {
       const error = 'No items in cart';
@@ -96,7 +85,8 @@ const OrderCreationHandler = ({ restaurantId: propRestaurantId, children }: Orde
         .insert({
           id: orderId,
           customer_token: customerToken,
-          restaurant_id: restaurantId,
+          user_id: restaurantId,
+          restaurant_id: restaurantId, // Keep for backward compatibility
           customer_name: orderData.customerName,
           customer_phone: orderData.customerPhone,
           table_number: orderData.tableNumber,

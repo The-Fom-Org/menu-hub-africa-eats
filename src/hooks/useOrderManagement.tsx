@@ -25,7 +25,7 @@ export interface Order {
   }>;
 }
 
-export const useOrderManagement = (restaurantId: string) => {
+export const useOrderManagement = (userId: string) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -47,7 +47,7 @@ export const useOrderManagement = (restaurantId: string) => {
             )
           )
         `)
-        .eq('restaurant_id', restaurantId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -71,7 +71,7 @@ export const useOrderManagement = (restaurantId: string) => {
         .from('orders')
         .update({ order_status: status })
         .eq('id', orderId)
-        .eq('restaurant_id', restaurantId);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -129,7 +129,7 @@ export const useOrderManagement = (restaurantId: string) => {
           order_status: 'confirmed'
         })
         .eq('id', orderId)
-        .eq('restaurant_id', restaurantId);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -183,7 +183,7 @@ export const useOrderManagement = (restaurantId: string) => {
         .from('orders')
         .update({ table_number: tableNumber })
         .eq('id', orderId)
-        .eq('restaurant_id', restaurantId);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -213,14 +213,14 @@ export const useOrderManagement = (restaurantId: string) => {
   };
 
   useEffect(() => {
-    if (restaurantId) {
+    if (userId) {
       fetchOrders();
     }
-  }, [restaurantId]);
+  }, [userId]);
 
   // Set up real-time subscription for order updates
   useEffect(() => {
-    if (!restaurantId) return;
+    if (!userId) return;
 
     const subscription = supabase
       .channel('order-changes')
@@ -229,7 +229,7 @@ export const useOrderManagement = (restaurantId: string) => {
           event: '*', 
           schema: 'public', 
           table: 'orders',
-          filter: `restaurant_id=eq.${restaurantId}`
+          filter: `user_id=eq.${userId}`
         }, 
         () => {
           console.log('Order changed, refreshing...');
@@ -241,7 +241,7 @@ export const useOrderManagement = (restaurantId: string) => {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [restaurantId]);
+  }, [userId]);
 
   return {
     orders,

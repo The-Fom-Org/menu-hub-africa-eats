@@ -160,7 +160,7 @@ const Checkout = () => {
   }
 
   return (
-    <OrderCreationHandler restaurantId={restaurantId || ''}>
+    <OrderCreationHandler restaurantId={paramRestaurantId || ''}>
       {({ createOrder, isCreatingOrder }) => (
         <div className="min-h-screen bg-background">
           <header className="bg-card border-b shadow-sm">
@@ -170,7 +170,7 @@ const Checkout = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => navigate(`/menu/${paramRestaurantId || restaurantId}`)}
+                    onClick={() => navigate(`/menu/${paramRestaurantId}`)}
                     className="text-xs sm:text-sm"
                   >
                     <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />

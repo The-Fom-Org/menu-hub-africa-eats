@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 interface WaiterCall {
   id: string;
   restaurant_id: string;
+  user_id: string;
   table_number: string;
   customer_name?: string;
   notes?: string;
@@ -13,19 +14,19 @@ interface WaiterCall {
   updated_at: string;
 }
 
-export const useWaiterCalls = (restaurantId: string) => {
+export const useWaiterCalls = (userId: string) => {
   const [waiterCalls, setWaiterCalls] = useState<WaiterCall[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchWaiterCalls = async () => {
-    if (!restaurantId) return;
+    if (!userId) return;
     
     try {
       const { data, error } = await supabase
         .from('waiter_calls')
         .select('*')
-        .eq('restaurant_id', restaurantId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -83,7 +84,7 @@ export const useWaiterCalls = (restaurantId: string) => {
 
   // Set up real-time subscription
   useEffect(() => {
-    if (!restaurantId) return;
+    if (!userId) return;
 
     fetchWaiterCalls();
 
@@ -95,7 +96,7 @@ export const useWaiterCalls = (restaurantId: string) => {
           event: '*',
           schema: 'public',
           table: 'waiter_calls',
-          filter: `restaurant_id=eq.${restaurantId}`
+          filter: `user_id=eq.${userId}`
         },
         (payload) => {
           console.log('Waiter call change detected:', payload);
@@ -107,7 +108,7 @@ export const useWaiterCalls = (restaurantId: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [restaurantId]);
+  }, [userId]);
 
   const pendingCalls = waiterCalls.filter(call => call.status === 'pending');
   const acknowledgedCalls = waiterCalls.filter(call => call.status === 'acknowledged');

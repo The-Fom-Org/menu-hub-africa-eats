@@ -10,20 +10,20 @@ interface RestaurantSettings {
   updated_at: string;
 }
 
-export const useRestaurantSettings = (restaurantId: string) => {
+export const useRestaurantSettings = (userId: string) => {
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchSettings = async () => {
-    if (!restaurantId) return;
+    if (!userId) return;
     
     try {
       setLoading(true);
       const { data, error } = await (supabase as any)
         .from('restaurant_settings')
         .select('*')
-        .eq('restaurant_id', restaurantId)
+        .eq('restaurant_id', userId)
         .maybeSingle();
 
       if (error) {
@@ -38,7 +38,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
         const { data: newSettings, error: createError } = await (supabase as any)
           .from('restaurant_settings')
           .insert({
-            restaurant_id: restaurantId,
+            restaurant_id: userId,
             ordering_enabled: true
           })
           .select()
@@ -58,14 +58,14 @@ export const useRestaurantSettings = (restaurantId: string) => {
   };
 
   const updateOrderingEnabled = async (enabled: boolean) => {
-    if (!restaurantId) return false;
+    if (!userId) return false;
 
     try {
       // First try to update if settings exist
       const { data: existingData } = await (supabase as any)
         .from('restaurant_settings')
         .select('id')
-        .eq('restaurant_id', restaurantId)
+        .eq('restaurant_id', userId)
         .maybeSingle();
 
       let result;
@@ -77,7 +77,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
             ordering_enabled: enabled,
             updated_at: new Date().toISOString()
           })
-          .eq('restaurant_id', restaurantId)
+          .eq('restaurant_id', userId)
           .select()
           .single();
       } else {
@@ -85,7 +85,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
         result = await (supabase as any)
           .from('restaurant_settings')
           .insert({
-            restaurant_id: restaurantId,
+            restaurant_id: userId,
             ordering_enabled: enabled
           })
           .select()
@@ -121,7 +121,7 @@ export const useRestaurantSettings = (restaurantId: string) => {
 
   useEffect(() => {
     fetchSettings();
-  }, [restaurantId]);
+  }, [userId]);
 
   return {
     settings,

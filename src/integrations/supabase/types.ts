@@ -243,6 +243,7 @@ export type Database = {
           table_number: string | null
           total_amount: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -260,6 +261,7 @@ export type Database = {
           table_number?: string | null
           total_amount: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -277,6 +279,7 @@ export type Database = {
           table_number?: string | null
           total_amount?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -634,6 +637,7 @@ export type Database = {
           status: string
           table_number: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -645,6 +649,7 @@ export type Database = {
           status?: string
           table_number?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -656,6 +661,7 @@ export type Database = {
           status?: string
           table_number?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
