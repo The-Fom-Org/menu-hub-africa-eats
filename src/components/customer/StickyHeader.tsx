@@ -39,7 +39,7 @@ export const StickyHeader = ({
 }: StickyHeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { setOrderType } = useCart(restaurantId!);
+  const { setOrderType } = useCart(orderingEnabled ? restaurantId! : null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
   const [searchParams] = useSearchParams();
@@ -60,6 +60,9 @@ export const StickyHeader = ({
     setIsMobileMenuOpen(false);
   };
   useEffect(() => {
+    // Only set order type if ordering is enabled
+    if (!orderingEnabled || !setOrderType) return;
+    
     // Detect customer flow based on URL parameters or referrer
     const qrParam = searchParams.get('qr');
     const tableParam = searchParams.get('table');
@@ -71,7 +74,7 @@ export const StickyHeader = ({
       setCustomerFlow('direct');
       setOrderType('later');
     }
-  }, [searchParams, setOrderType]);
+  }, [searchParams, setOrderType, orderingEnabled]);
 
   return (
     <motion.header 
@@ -94,9 +97,12 @@ export const StickyHeader = ({
               <h1 className="text-lg font-bold text-foreground truncate max-w-[80px] sm:max-w-none">
                 {restaurantName}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {(customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later')}
-              </p>
+               <p className="text-sm text-muted-foreground">
+                 {orderingEnabled 
+                   ? (customerFlow === 'qr' ? 'Order for now' : 'Pre-order for later')
+                   : 'Browse our menu'
+                 }
+               </p>
             </div>
           </div>
 

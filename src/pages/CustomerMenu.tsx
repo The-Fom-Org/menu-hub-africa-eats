@@ -28,7 +28,7 @@ const CustomerMenu = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
-  const cart = useCart(urlUserId);
+  const cart = useCart(orderingEnabled ? urlUserId : null);
   const [showVideoSplash, setShowVideoSplash] = useState(true);
 
   // Get actual restaurant ID from restaurant info
@@ -299,7 +299,7 @@ const CustomerMenu = () => {
         </div>
 
         {/* Upsell Section */}
-        {orderingEnabled && cart.hasItems() && (
+        {orderingEnabled && cart && cart.hasItems() && (
           <UpsellSection
             restaurantId={actualRestaurantId || urlUserId || ""}
             currentCartItems={cart.cartItems}
