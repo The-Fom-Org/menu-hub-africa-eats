@@ -304,6 +304,7 @@ const CustomerMenu = () => {
             restaurantId={actualRestaurantId || urlUserId || ""}
             currentCartItems={cart.cartItems}
             allItems={allMenuItems}
+            orderingEnabled={orderingEnabled}
           />
         )}
       </div>
@@ -313,6 +314,7 @@ const CustomerMenu = () => {
         <StickyBottomBar 
           restaurantId={actualRestaurantId || urlUserId || ""}
           onChefsSpecial={handleChefsSpecial}
+          orderingEnabled={orderingEnabled}
         />
       )}
 

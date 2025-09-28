@@ -5,9 +5,12 @@ import { Phone, ChefHat } from "lucide-react";
 interface StickyBottomBarProps {
   restaurantId: string;
   onChefsSpecial: () => void;
+  orderingEnabled?: boolean;
 }
 
-export const StickyBottomBar = ({ restaurantId, onChefsSpecial }: StickyBottomBarProps) => {
+export const StickyBottomBar = ({ restaurantId, onChefsSpecial, orderingEnabled = true }: StickyBottomBarProps) => {
+  // Don't show bottom bar if ordering is disabled
+  if (!orderingEnabled) return null;
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border/50 shadow-lg">
       <div className="container mx-auto px-2 py-3">

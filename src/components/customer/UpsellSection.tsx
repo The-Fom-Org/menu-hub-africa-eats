@@ -11,11 +11,15 @@ interface UpsellSectionProps {
   restaurantId: string;
   allItems: CustomerMenuItem[];
   currentCartItems: any[];
+  orderingEnabled?: boolean;
 }
 
-export const UpsellSection = ({ restaurantId, allItems, currentCartItems }: UpsellSectionProps) => {
+export const UpsellSection = ({ restaurantId, allItems, currentCartItems, orderingEnabled = true }: UpsellSectionProps) => {
   const { addToCart } = useCart(restaurantId);
   const { toast } = useToast();
+
+  // Don't show upsell if ordering is disabled
+  if (!orderingEnabled) return null;
 
   // Filter items for upsell - drinks, desserts, and high-margin items
   const upsellItems = allItems.filter(item => {
