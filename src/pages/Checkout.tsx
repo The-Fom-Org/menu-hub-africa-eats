@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
-import { useUserRestaurant } from '@/hooks/useUserRestaurant';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,10 +28,9 @@ const Checkout = () => {
   const paramRestaurantId = searchParams.get('restaurantId');
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { restaurantId: userRestaurantId, loading: restaurantLoading } = useUserRestaurant(user?.id);
   
-  // Use the authenticated user's restaurant ID if available, otherwise fall back to param
-  const restaurantId = userRestaurantId || paramRestaurantId;
+  // Use the URL parameter directly as the user ID
+  const restaurantId = paramRestaurantId;
   
   // Only initialize cart and fetch data if we have a restaurant ID
   const cart = useCart(restaurantId || '');
@@ -135,13 +133,13 @@ const Checkout = () => {
   };
 
   // Show loading until both restaurant data and cart are loaded
-  if (dataLoading || restaurantLoading || !isCartInitialized) {
+  if (dataLoading || !isCartInitialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">
-            {dataLoading ? 'Loading restaurant...' : restaurantLoading ? 'Loading restaurant info...' : 'Loading cart...'}
+            {dataLoading ? 'Loading restaurant...' : 'Loading cart...'}
           </p>
         </div>
       </div>

@@ -1,8 +1,6 @@
-
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useUserRestaurant } from '@/hooks/useUserRestaurant';
 import { useToast } from '@/hooks/use-toast';
 import { playRingtone, RINGTONE_OPTIONS, RingtoneId } from '@/lib/audio/ringtones';
 
@@ -37,7 +35,7 @@ const defaultSettings: NotificationSettings = {
 
 export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
   const { user } = useAuth();
-  const { restaurantId, loading: restaurantLoading } = useUserRestaurant(user?.id);
+  const userId = user?.id; // Use user ID directly instead of restaurant mapping
   const { toast } = useToast();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,17 +51,17 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     let isMounted = true;
 
     async function loadSettings() {
-      if (!restaurantId || restaurantLoading) {
+      if (!userId) {
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
-      console.log('[Notifications] Loading settings for', restaurantId);
+      console.log('[Notifications] Loading settings for', userId);
 
       const { data, error } = await (supabase as any)
         .from('restaurant_notification_settings')
         .select('*')
-        .eq('restaurant_id', restaurantId)
+        .eq('restaurant_id', userId)
         .maybeSingle();
 
       if (error) {
@@ -77,7 +75,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
         const { data: inserted, error: insertError } = await (supabase as any)
           .from('restaurant_notification_settings')
           .insert({
-            restaurant_id: restaurantId,
+            restaurant_id: userId,
             ringtone: defaultSettings.ringtone,
             volume: defaultSettings.volume,
             notifications_enabled: defaultSettings.notifications_enabled,
@@ -100,7 +98,6 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           notifications_enabled: data.notifications_enabled ?? defaultSettings.notifications_enabled,
         });
       }
-
       setIsLoading(false);
     }
 
@@ -109,13 +106,13 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     return () => {
       isMounted = false;
     };
-  }, [restaurantId, restaurantLoading]);
+  }, [userId]);
 
   // Realtime subscription for new orders and waiter calls
   useEffect(() => {
-    if (!restaurantId || restaurantLoading) return;
+    if (!userId) return;
 
-    console.log('[Notifications] Setting up realtime subscription for restaurant:', restaurantId);
+    console.log('[Notifications] Setting up realtime subscription for user:', userId);
 
     if (channelRef.current) {
       console.log('[Notifications] Removing existing channel');
@@ -124,7 +121,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     }
 
     const channel = supabase
-      .channel(`notify-${restaurantId}`)
+      .channel(`notify-${userId}`)
       // New orders
       .on(
         'postgres_changes',
@@ -132,7 +129,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           event: 'INSERT',
           schema: 'public',
           table: 'orders',
-          filter: `restaurant_id=eq.${restaurantId}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload: any) => {
           console.log('[Notifications] New order received:', payload.new?.id);
@@ -140,19 +137,10 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           setPulse(true);
           setTimeout(() => setPulse(false), 1500);
 
-          // Get current settings at event time
-          const currentSettings = settings || defaultSettings;
-          if (currentSettings.notifications_enabled) {
-            const ringtone = currentSettings.ringtone;
-            const volume = currentSettings.volume;
-            console.log('[Notifications] Playing ringtone:', ringtone, 'at volume:', volume);
-            playRingtone(ringtone, volume);
+          // Play notification sound if enabled
+          if (settings?.notifications_enabled && settings?.ringtone && settings?.volume) {
+            playRingtone(settings.ringtone, settings.volume / 100);
           }
-
-          toast({
-            title: 'New Order!',
-            description: `Order #${payload.new?.id?.slice(-6)} received`,
-          });
         }
       )
       // New waiter calls
@@ -162,7 +150,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           event: 'INSERT',
           schema: 'public',
           table: 'waiter_calls',
-          filter: `restaurant_id=eq.${restaurantId}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload: any) => {
           const table = payload?.new?.table_number || 'unknown';
@@ -171,33 +159,22 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           setPulse(true);
           setTimeout(() => setPulse(false), 1500);
 
-          // Get current settings at event time
-          const currentSettings = settings || defaultSettings;
-          if (currentSettings.notifications_enabled) {
-            const ringtone = currentSettings.ringtone;
-            const volume = currentSettings.volume;
-            console.log('[Notifications] Playing ringtone for waiter call:', ringtone, 'at volume:', volume);
-            playRingtone(ringtone, volume);
+          // Play notification sound if enabled
+          if (settings?.notifications_enabled && settings?.ringtone && settings?.volume) {
+            playRingtone(settings.ringtone, settings.volume / 100);
           }
-
-          // Inform via toast for clarity that this is a waiter request
-          toast({
-            title: 'Waiter Needed!',
-            description: `Table ${table} requested assistance.`,
-            variant: 'default',
-          });
         }
       )
-      .subscribe((status) => {
-        console.log('[Notifications] Subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[Notifications] Successfully subscribed to realtime updates');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Notifications] Channel error, attempting to reconnect...');
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('[Notifications] Subscription error:', err);
+        } else {
+          console.log('[Notifications] Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            channelRef.current = channel;
+          }
         }
       });
-
-    channelRef.current = channel;
 
     return () => {
       console.log('[Notifications] Cleaning up subscription');
@@ -206,7 +183,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
         channelRef.current = null;
       }
     };
-  }, [restaurantId, restaurantLoading]); // Only depend on restaurantId to avoid subscription recreation
+  }, [userId, settings?.notifications_enabled, settings?.ringtone, settings?.volume]);
 
   // Mark all as read
   const markAllAsRead = () => {
@@ -217,7 +194,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
   };
 
   const saveSettings = async () => {
-    if (!restaurantId || !settings) return;
+    if (!userId || !settings) return;
     setIsSaving(true);
     console.log('[Notifications] Saving settings:', settings);
 
@@ -237,7 +214,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
         const { data: inserted, error } = await (supabase as any)
           .from('restaurant_notification_settings')
           .insert({
-            restaurant_id: restaurantId,
+            restaurant_id: userId,
             ringtone: settings.ringtone,
             volume: settings.volume,
             notifications_enabled: settings.notifications_enabled,
@@ -246,17 +223,18 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
           .maybeSingle();
 
         if (error) throw error;
-        if (inserted?.id) {
-          setSettings({ ...settings, id: inserted.id, restaurant_id: inserted.restaurant_id });
-        }
+        setSettings((prev) => prev ? { ...prev, id: inserted?.id } : prev);
       }
 
-      toast({ title: 'Notification settings saved' });
-    } catch (e) {
-      console.error('[Notifications] Save failed', e);
       toast({
-        title: 'Failed to save settings',
-        description: 'Please try again.',
+        title: 'Settings saved',
+        description: 'Your notification preferences have been updated.',
+      });
+    } catch (error) {
+      console.error('[Notifications] Failed to save settings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save notification settings. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -265,10 +243,9 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
   };
 
   const testRingtone = async () => {
-    const rt = settings?.ringtone ?? defaultSettings.ringtone;
-    const vol = settings?.volume ?? defaultSettings.volume;
-    console.log('[Notifications] Testing ringtone:', rt, 'at volume:', vol);
-    await playRingtone(rt, vol);
+    if (!settings?.ringtone) return;
+    console.log('[Notifications] Testing ringtone:', settings.ringtone, 'at volume:', settings.volume);
+    await playRingtone(settings.ringtone, (settings.volume || 50) / 100);
   };
 
   return {
@@ -279,7 +256,7 @@ export function useRestaurantNotifications(): UseRestaurantNotificationsReturn {
     isSaving,
     open,
     setOpen,
-    setSettings: (s: NotificationSettings) => setSettings(s),
+    setSettings,
     saveSettings,
     testRingtone,
     markAllAsRead,
