@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -150,23 +150,25 @@ serve(async (req) => {
     let errorMessage = 'Payment initialization failed';
     let statusCode = 400;
     
-    if (error.message.includes('Authentication failed')) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    
+    if (errorMsg.includes('Authentication failed')) {
       errorMessage = 'Invalid payment credentials. Please check your Pesapal settings.';
       statusCode = 401;
-    } else if (error.message.includes('Order submission failed')) {
+    } else if (errorMsg.includes('Order submission failed')) {
       errorMessage = 'Failed to create payment request. Please check your order details.';
-    } else if (error.message.includes('credentials are required')) {
+    } else if (errorMsg.includes('credentials are required')) {
       errorMessage = 'Payment method not properly configured. Please contact the restaurant.';
       statusCode = 422;
-    } else if (error.message) {
-      errorMessage = error.message;
+    } else if (errorMsg) {
+      errorMessage = errorMsg;
     }
     
     return new Response(
       JSON.stringify({
         success: false,
         error: errorMessage,
-        details: error.message, // Include technical details for debugging
+        details: error instanceof Error ? error.message : String(error), // Include technical details for debugging
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
