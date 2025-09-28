@@ -22,29 +22,11 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
       try {
         console.log('🔍 Fetching ordering status for URL param:', urlParamId);
 
-        // Try to get restaurant ID from user_branches first (new model)
-        const { data: userBranchData, error: branchError } = await (supabase as any)
-          .from('user_branches')
-          .select('restaurant_id')
-          .eq('user_id', urlParamId)
-          .eq('is_default', true)
-          .maybeSingle();
-
-        let actualRestaurantId = userBranchData?.restaurant_id;
-        
-        if (!actualRestaurantId) {
-          console.log('⚠️ No restaurant found in user_branches for ordering status, using user ID as fallback');
-          // Fallback to legacy model - there might not be restaurant settings
-          setOrderingEnabled(true);
-          return;
-        }
-
-        console.log('✅ Found restaurant ID for ordering status:', actualRestaurantId);
-
+        // Direct query using user_id (post-migration model)
         const { data, error } = await (supabase as any)
           .from('restaurant_settings')
           .select('ordering_enabled')
-          .eq('restaurant_id', actualRestaurantId)
+          .eq('user_id', urlParamId)
           .maybeSingle();
 
         if (error) {
