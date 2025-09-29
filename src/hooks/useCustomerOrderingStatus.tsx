@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
  * @returns Whether ordering is enabled for the restaurant
  */
 export const useCustomerOrderingStatus = (urlParamId: string) => {
-  const [orderingEnabled, setOrderingEnabled] = useState(true); // Default to enabled for better UX
+  const [orderingEnabled, setOrderingEnabled] = useState(false); // Default to disabled, only enable when explicitly set
   
   useEffect(() => {
     const fetchOrderingStatus = async () => {
