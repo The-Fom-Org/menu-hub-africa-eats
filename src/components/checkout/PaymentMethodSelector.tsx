@@ -25,25 +25,25 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
 }) => {
       const paymentMethods = [
         {
-          id: 'pesapal',
-          name: 'Pesapal',
-          description: 'Pay with credit/debit card or mobile money via Pesapal',
+          id: 'card',
+          name: 'Card Payment',
+          description: 'Pay with credit/debit card via Pesapal',
           icon: <CreditCard className="h-5 w-5" />,
-          enabled: true
+          enabled: availableGateways.some(g => g.type === 'pesapal' && g.enabled)
         },
         {
           id: 'mpesa',
           name: 'M-Pesa',
           description: 'Pay with M-Pesa mobile money',
           icon: <Smartphone className="h-5 w-5" />,
-          enabled: true
+          enabled: availableGateways.some(g => (g.type === 'mpesa_daraja' || g.type === 'mpesa_manual') && g.enabled)
         },
         {
           id: 'bank_transfer',
           name: 'Bank Transfer',
           description: 'Direct bank transfer',
           icon: <Building className="h-5 w-5" />,
-          enabled: true
+          enabled: availableGateways.some(g => g.type === 'bank_transfer' && g.enabled)
         }
       ];
 
