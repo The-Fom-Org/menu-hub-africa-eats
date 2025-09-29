@@ -305,8 +305,8 @@ const CustomerMenu = () => {
           )}
         </div>
 
-        {/* Upsell Section - always render but only show when ordering enabled and has items */}
-        {cart && cart.hasItems() && (
+        {/* Upsell Section - only show when ordering enabled and has cart items */}
+        {orderingEnabled && cart && cart.hasItems() && (
           <UpsellSection
             restaurantId={actualRestaurantId || urlUserId || ""}
             currentCartItems={cart.cartItems}

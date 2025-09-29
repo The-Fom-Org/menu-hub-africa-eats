@@ -34,8 +34,8 @@ export const UpsellSection = ({ restaurantId, allItems, currentCartItems, orderi
     );
   }).slice(0, 3); // Show max 3 items
 
-  // Don't render if no items or ordering disabled
-  if (upsellItems.length === 0 || !orderingEnabled) return null;
+  // Don't render if ordering disabled or no items
+  if (!orderingEnabled || upsellItems.length === 0) return null;
 
   const handleAddUpsellItem = (item: CustomerMenuItem) => {
     addToCart({

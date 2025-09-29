@@ -18,9 +18,15 @@ import { useToast } from '@/hooks/use-toast';
 
 interface CartDrawerProps {
   restaurantId: string;
+  orderingEnabled?: boolean;
 }
 
-export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
+export const CartDrawer = ({ restaurantId, orderingEnabled = true }: CartDrawerProps) => {
+  
+  // Don't render if ordering is disabled
+  if (!orderingEnabled) {
+    return null;
+  }
   const cart = useCart(restaurantId);
   const navigate = useNavigate();
   const { toast } = useToast();
