@@ -41,7 +41,11 @@ export const useRestaurantSettings = (userId: string) => {
           .eq('setting_key', 'default_ordering_enabled')
           .maybeSingle();
 
-        const defaultEnabled = adminSettings?.setting_value?.enabled ?? true;
+        const defaultEnabled = adminSettings?.setting_value && 
+          typeof adminSettings.setting_value === 'object' && 
+          'enabled' in adminSettings.setting_value 
+            ? (adminSettings.setting_value as { enabled: boolean }).enabled 
+            : true;
 
         // Create default settings if none exist using admin default
         const { data: newSettings, error: createError } = await (supabase as any)
@@ -97,7 +101,11 @@ export const useRestaurantSettings = (userId: string) => {
           .eq('setting_key', 'default_ordering_enabled')
           .maybeSingle();
 
-        const defaultEnabled = adminSettings?.setting_value?.enabled ?? true;
+        const defaultEnabled = adminSettings?.setting_value && 
+          typeof adminSettings.setting_value === 'object' && 
+          'enabled' in adminSettings.setting_value 
+            ? (adminSettings.setting_value as { enabled: boolean }).enabled 
+            : true;
 
         // Insert new settings with admin default
         result = await (supabase as any)

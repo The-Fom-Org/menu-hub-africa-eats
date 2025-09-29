@@ -125,16 +125,25 @@ export default function AdminDashboard() {
   const fetchAdminSettings = async () => {
     try {
       setLoadingSettings(true);
+      console.log('🔧 Fetching admin settings...');
       const { data, error } = await supabase
         .from('admin_settings')
         .select('setting_value')
         .eq('setting_key', 'default_ordering_enabled')
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching admin settings:', error);
+        throw error;
+      }
       
-      if (data?.setting_value?.enabled !== undefined) {
-        setDefaultOrderingEnabled(data.setting_value.enabled);
+      console.log('📊 Admin settings data:', data);
+      if (data?.setting_value && typeof data.setting_value === 'object' && 'enabled' in data.setting_value) {
+        const enabled = (data.setting_value as { enabled: boolean }).enabled;
+        setDefaultOrderingEnabled(enabled);
+        console.log('✅ Default ordering enabled set to:', enabled);
+      } else {
+        console.log('⚠️ No admin settings found, using default true');
       }
     } catch (error) {
       console.error('Error fetching admin settings:', error);
@@ -458,7 +467,7 @@ export default function AdminDashboard() {
       const { error } = await supabase
         .from('admin_settings')
         .update({
-          setting_value: { enabled },
+          setting_value: { enabled } as any,
           updated_at: new Date().toISOString()
         })
         .eq('setting_key', 'default_ordering_enabled');
