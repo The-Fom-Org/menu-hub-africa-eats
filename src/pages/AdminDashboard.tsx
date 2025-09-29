@@ -69,10 +69,9 @@ export default function AdminDashboard() {
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
   const [activatingSubscription, setActivatingSubscription] = useState<string | null>(null);
 
-  // Admin settings state
-  const [defaultOrderingEnabled, setDefaultOrderingEnabled] = useState(true);
-  const [loadingSettings, setLoadingSettings] = useState(true);
-  const [savingSettings, setSavingSettings] = useState(false);
+  // Restaurant ordering status management
+  const [orderingStatuses, setOrderingStatuses] = useState<Record<string, boolean>>({});
+  const [loadingOrderingStatus, setLoadingOrderingStatus] = useState<Record<string, boolean>>({});
 
   // New record creation form
   const [newEmail, setNewEmail] = useState("");
@@ -122,44 +121,60 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchAdminSettings = async () => {
+  const fetchOrderingStatuses = async () => {
     try {
-      setLoadingSettings(true);
-      console.log('🔧 Fetching admin settings...');
       const { data, error } = await supabase
-        .from('admin_settings')
-        .select('setting_value')
-        .eq('setting_key', 'default_ordering_enabled')
-        .maybeSingle();
+        .from('restaurant_settings')
+        .select('user_id, ordering_enabled');
 
-      if (error) {
-        console.error('❌ Error fetching admin settings:', error);
-        throw error;
-      }
-      
-      console.log('📊 Admin settings data:', data);
-      if (data?.setting_value && typeof data.setting_value === 'object' && 'enabled' in data.setting_value) {
-        const enabled = (data.setting_value as { enabled: boolean }).enabled;
-        setDefaultOrderingEnabled(enabled);
-        console.log('✅ Default ordering enabled set to:', enabled);
-      } else {
-        console.log('⚠️ No admin settings found, using default true');
-      }
+      if (error) throw error;
+
+      const statusMap: Record<string, boolean> = {};
+      data?.forEach(setting => {
+        statusMap[setting.user_id] = setting.ordering_enabled;
+      });
+      setOrderingStatuses(statusMap);
     } catch (error) {
-      console.error('Error fetching admin settings:', error);
+      console.error('Error fetching ordering statuses:', error);
+    }
+  };
+
+  const updateRestaurantOrderingStatus = async (restaurantId: string, enabled: boolean) => {
+    try {
+      setLoadingOrderingStatus(prev => ({ ...prev, [restaurantId]: true }));
+      
+      const { error } = await supabase
+        .from('restaurant_settings')
+        .upsert({
+          user_id: restaurantId,
+          ordering_enabled: enabled,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
+
+      setOrderingStatuses(prev => ({ ...prev, [restaurantId]: enabled }));
       toast({
-        title: "Error loading settings",
-        description: "Failed to load admin settings. Using defaults.",
+        title: "Ordering status updated",
+        description: `Ordering ${enabled ? 'enabled' : 'disabled'} for restaurant.`,
+      });
+    } catch (error) {
+      console.error('Error updating ordering status:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update ordering status. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setLoadingSettings(false);
+      setLoadingOrderingStatus(prev => ({ ...prev, [restaurantId]: false }));
     }
   };
 
   useEffect(() => {
     fetchSubscribers();
-    fetchAdminSettings();
+    fetchOrderingStatuses();
   }, []);
 
   const handleEdit = (subscriber: Subscriber) => {
@@ -461,36 +476,6 @@ export default function AdminDashboard() {
     setNewNotes("");
   };
 
-  const updateDefaultOrderingEnabled = async (enabled: boolean) => {
-    try {
-      setSavingSettings(true);
-      const { error } = await supabase
-        .from('admin_settings')
-        .update({
-          setting_value: { enabled } as any,
-          updated_at: new Date().toISOString()
-        })
-        .eq('setting_key', 'default_ordering_enabled');
-
-      if (error) throw error;
-
-      setDefaultOrderingEnabled(enabled);
-      toast({
-        title: "Settings updated",
-        description: `Default ordering system ${enabled ? 'enabled' : 'disabled'} for new restaurants.`,
-      });
-    } catch (error) {
-      console.error('Error updating admin settings:', error);
-      toast({
-        title: "Update failed",
-        description: "Failed to update admin settings. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSavingSettings(false);
-    }
-  };
-
   const handleCancel = () => {
     setEditingId(null);
     setEditForm({});
@@ -543,38 +528,6 @@ export default function AdminDashboard() {
               </Button>
             </div>
           </div>
-
-          {/* Admin Settings Card */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Global Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Default Ordering System Status</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Controls whether ordering is enabled by default for new restaurants
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {defaultOrderingEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                    <Switch
-                      checked={defaultOrderingEnabled}
-                      onCheckedChange={updateDefaultOrderingEnabled}
-                      disabled={savingSettings || loadingSettings}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Stats Cards */}
           <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -909,14 +862,28 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(subscriber)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(subscriber)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+                            
+                            {/* Ordering Status Control */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                Ordering: {orderingStatuses[subscriber.restaurant_id] ? 'On' : 'Off'}
+                              </span>
+                              <Switch
+                                checked={orderingStatuses[subscriber.restaurant_id] || false}
+                                onCheckedChange={(enabled) => updateRestaurantOrderingStatus(subscriber.restaurant_id, enabled)}
+                                disabled={loadingOrderingStatus[subscriber.restaurant_id]}
+                              />
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
