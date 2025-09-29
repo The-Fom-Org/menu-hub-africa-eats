@@ -55,6 +55,14 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
   }, [restaurantId]);
 
   const fetchPaymentSettings = async () => {
+    if (!restaurantId) {
+      console.log('⚠️ No restaurantId provided for payment settings');
+      setLoading(false);
+      return;
+    }
+
+    console.log('🔍 Fetching payment settings for restaurant ID:', restaurantId);
+    
     try {
       setLoading(true);
       setError(null);
@@ -63,15 +71,18 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
         .from('restaurant_payment_settings')
         .select('*')
         .eq('restaurant_id', restaurantId)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
+        console.error('❌ Error fetching payment settings:', fetchError);
         throw fetchError;
       }
 
+      console.log('✅ Payment settings loaded:', data ? 'Found settings' : 'No settings found');
+      console.log('📄 Payment methods:', data?.payment_methods);
       setSettings(data as PaymentSettings);
     } catch (err) {
-      console.error('Error fetching payment settings:', err);
+      console.error('❌ Exception in fetchPaymentSettings:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch payment settings');
     } finally {
       setLoading(false);
@@ -108,6 +119,12 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
   };
 
   const getAvailableGateways = () => {
+    console.log('🔍 getAvailableGateways called:', {
+      hasSettings: !!settings,
+      paymentMethods: settings?.payment_methods,
+      restaurantId
+    });
+    
     if (!settings?.payment_methods) {
       console.log('⚠️ No payment methods configured for restaurant');
       return [];
@@ -116,7 +133,7 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
     const gateways = [];
     const methods = settings.payment_methods;
     
-    console.log('🔍 Checking available gateways:', methods);
+    console.log('🔍 Checking available gateways for restaurant:', restaurantId, methods);
     
     if (methods.pesapal?.enabled && methods.pesapal.consumer_key && methods.pesapal.consumer_secret) {
       console.log('✅ Pesapal gateway available');

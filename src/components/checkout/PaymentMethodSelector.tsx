@@ -23,7 +23,13 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   availableGateways,
   excludeCash = false
 }) => {
-  console.log('🔍 PaymentMethodSelector - Available gateways:', availableGateways);
+  console.log('🔍 PaymentMethodSelector - Render state:', { 
+    paymentMethod,
+    availableGateways,
+    excludeCash,
+    gatewaysLength: availableGateways.length,
+    gatewaysTypes: availableGateways
+  });
   
   const allPaymentMethods = [
     {

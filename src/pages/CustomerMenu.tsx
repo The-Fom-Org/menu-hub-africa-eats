@@ -25,13 +25,28 @@ const CustomerMenu = () => {
   const { restaurantId: urlUserId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(urlUserId || "");
   const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(urlUserId || "");
+  
+  console.log('🍽️ CustomerMenu Debug - Ordering Status:', {
+    urlUserId,
+    orderingEnabled,
+    orderingLoading,
+    loading,
+    error: !!error,
+    restaurantInfo: !!restaurantInfo
+  });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   
   // Wait for ordering status to load before initializing cart
-  console.log('🔍 CustomerMenu Debug:', { orderingEnabled, orderingLoading, urlUserId, shouldInitCart: orderingEnabled && !orderingLoading });
-  const cart = useCart(orderingEnabled && !orderingLoading ? urlUserId : null);
+  console.log('🔍 CustomerMenu Cart Initialization:', { 
+    orderingEnabled, 
+    orderingLoading, 
+    urlUserId, 
+    shouldInitCart: orderingEnabled && !orderingLoading,
+    willCreateCart: !!(orderingEnabled && !orderingLoading && urlUserId)
+  });
+  const cart = useCart(orderingEnabled && !orderingLoading && urlUserId ? urlUserId : null);
   const [showVideoSplash, setShowVideoSplash] = useState(true);
 
   // Get actual restaurant ID from restaurant info

@@ -30,13 +30,24 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Use the URL parameter directly as the user ID
-  const restaurantId = paramRestaurantId;
+  console.log('🛒 Checkout - URL Parameters:', { paramRestaurantId });
   
-  // Only initialize cart and fetch data if we have a restaurant ID
-  const cart = useCart(restaurantId || '');
-  const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
-  const { settings: paymentSettings, loading: paymentSettingsLoading, getAvailableGateways } = useRestaurantPaymentSettings(restaurantId || '');
+  // Use the URL parameter as user ID and fetch the actual restaurant ID
+  const userId = paramRestaurantId;
+  const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(userId || '');
+  
+  // Get the actual restaurant ID from the restaurant info
+  const actualRestaurantId = restaurantInfo?.id;
+  
+  console.log('🛒 Checkout - ID Mapping:', { 
+    userId, 
+    actualRestaurantId, 
+    restaurantInfo: !!restaurantInfo 
+  });
+  
+  // Only initialize cart and fetch payment settings if we have IDs
+  const cart = useCart(userId || '');
+  const { settings: paymentSettings, loading: paymentSettingsLoading, getAvailableGateways } = useRestaurantPaymentSettings(actualRestaurantId || '');
   const { toast } = useToast();
 
   const [customerName, setCustomerName] = useState('');
@@ -47,11 +58,14 @@ const Checkout = () => {
   const [isCartInitialized, setIsCartInitialized] = useState(false);
 
   console.log('🛒 Checkout page state:', {
-    restaurantId,
+    userId,
+    actualRestaurantId,
     cartItemsLength: cart.cartItems.length,
     isCartInitialized,
     paymentSettingsLoading,
-    availableGateways: paymentSettings ? getAvailableGateways() : [],
+    paymentSettings: paymentSettings ? 'loaded' : 'null',
+    paymentMethods: paymentSettings?.payment_methods,
+    availableGateways: paymentSettings && actualRestaurantId ? getAvailableGateways() : [],
     cartItems: cart.cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
   });
 
@@ -77,7 +91,7 @@ const Checkout = () => {
 
   // Only redirect if cart is initialized AND empty
   useEffect(() => {
-    if (!restaurantId) {
+    if (!userId) {
       navigate('/');
       return;
     }
@@ -106,10 +120,10 @@ const Checkout = () => {
         description: "Your cart is empty. Please add items before checkout.",
         variant: "destructive",
       });
-      navigate(`/menu/${paramRestaurantId || restaurantId}`);
+      navigate(`/menu/${userId}`);
       return;
     }
-  }, [cart, restaurantId, navigate, toast, isCartInitialized]);
+  }, [cart, userId, navigate, toast, isCartInitialized]);
 
   const validateForm = () => {
     if (cart.orderType === 'later') {
@@ -159,13 +173,13 @@ const Checkout = () => {
   };
 
   // Show loading until both restaurant data, cart, and payment settings are loaded
-  if (dataLoading || paymentSettingsLoading || !isCartInitialized) {
+  if (dataLoading || (actualRestaurantId && paymentSettingsLoading) || !isCartInitialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">
-            {dataLoading ? 'Loading restaurant...' : paymentSettingsLoading ? 'Loading payment methods...' : 'Loading cart...'}
+            {dataLoading ? 'Loading restaurant...' : (actualRestaurantId && paymentSettingsLoading) ? 'Loading payment methods...' : 'Loading cart...'}
           </p>
         </div>
       </div>
@@ -194,8 +208,8 @@ const Checkout = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => navigate(`/menu/${paramRestaurantId}`)}
-                    className="text-xs sm:text-sm"
+                     onClick={() => navigate(`/menu/${userId}`)}
+                     className="text-xs sm:text-sm"
                   >
                     <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Back to Menu
@@ -389,12 +403,12 @@ const Checkout = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <PaymentMethodSelector
-                      paymentMethod={paymentMethod}
-                      setPaymentMethod={setPaymentMethod}
-                      availableGateways={paymentSettings ? getAvailableGateways() : []}
-                      excludeCash={cart.orderType === 'later'}
-                    />
+                     <PaymentMethodSelector
+                       paymentMethod={paymentMethod}
+                       setPaymentMethod={setPaymentMethod}
+                       availableGateways={paymentSettings && actualRestaurantId ? getAvailableGateways() : []}
+                       excludeCash={cart.orderType === 'later'}
+                     />
                   </CardContent>
                 </Card>
 
@@ -402,12 +416,12 @@ const Checkout = () => {
                   onClick={async () => {
                     if (!validateForm()) return;
 
-                    await createOrder({
-                      restaurantId: restaurantId!,
-                      customerName: customerName || null,
-                      customerPhone: customerPhone || null,
-                      tableNumber: tableNumber || null,
-                      orderType: cart.orderType,
+                     await createOrder({
+                       restaurantId: userId!,
+                       customerName: customerName || null,
+                       customerPhone: customerPhone || null,
+                       tableNumber: tableNumber || null,
+                       orderType: cart.orderType,
                       paymentMethod: paymentMethod || 'cash',
                       scheduledTime: cart.orderType === 'later' ? new Date(scheduledTime).toISOString() : null,
                     });
