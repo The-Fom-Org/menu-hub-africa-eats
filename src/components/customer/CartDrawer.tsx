@@ -21,7 +21,7 @@ interface CartDrawerProps {
   orderingEnabled?: boolean;
 }
 
-export const CartDrawer = ({ restaurantId, orderingEnabled = false }: CartDrawerProps) => {
+export const CartDrawer = ({ restaurantId, orderingEnabled = true }: CartDrawerProps) => {
   
   // Don't render if ordering is disabled
   if (!orderingEnabled) {

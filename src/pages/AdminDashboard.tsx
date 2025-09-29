@@ -69,10 +69,6 @@ export default function AdminDashboard() {
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
   const [activatingSubscription, setActivatingSubscription] = useState<string | null>(null);
 
-  // Restaurant ordering status management
-  const [orderingStatuses, setOrderingStatuses] = useState<Record<string, boolean>>({});
-  const [loadingOrderingStatus, setLoadingOrderingStatus] = useState<Record<string, boolean>>({});
-
   // New record creation form
   const [newEmail, setNewEmail] = useState("");
   const [newRestaurantId, setNewRestaurantId] = useState("");
@@ -121,60 +117,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchOrderingStatuses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('restaurant_settings')
-        .select('user_id, ordering_enabled');
-
-      if (error) throw error;
-
-      const statusMap: Record<string, boolean> = {};
-      data?.forEach(setting => {
-        statusMap[setting.user_id] = setting.ordering_enabled;
-      });
-      setOrderingStatuses(statusMap);
-    } catch (error) {
-      console.error('Error fetching ordering statuses:', error);
-    }
-  };
-
-  const updateRestaurantOrderingStatus = async (restaurantId: string, enabled: boolean) => {
-    try {
-      setLoadingOrderingStatus(prev => ({ ...prev, [restaurantId]: true }));
-      
-      const { error } = await supabase
-        .from('restaurant_settings')
-        .upsert({
-          user_id: restaurantId,
-          ordering_enabled: enabled,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (error) throw error;
-
-      setOrderingStatuses(prev => ({ ...prev, [restaurantId]: enabled }));
-      toast({
-        title: "Ordering status updated",
-        description: `Ordering ${enabled ? 'enabled' : 'disabled'} for restaurant.`,
-      });
-    } catch (error) {
-      console.error('Error updating ordering status:', error);
-      toast({
-        title: "Update failed",
-        description: "Failed to update ordering status. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingOrderingStatus(prev => ({ ...prev, [restaurantId]: false }));
-    }
-  };
-
   useEffect(() => {
     fetchSubscribers();
-    fetchOrderingStatuses();
   }, []);
 
   const handleEdit = (subscriber: Subscriber) => {
@@ -862,28 +806,14 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(subscriber)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Button>
-                            
-                            {/* Ordering Status Control */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                Ordering: {orderingStatuses[subscriber.restaurant_id] ? 'On' : 'Off'}
-                              </span>
-                              <Switch
-                                checked={orderingStatuses[subscriber.restaurant_id] || false}
-                                onCheckedChange={(enabled) => updateRestaurantOrderingStatus(subscriber.restaurant_id, enabled)}
-                                disabled={loadingOrderingStatus[subscriber.restaurant_id]}
-                              />
-                            </div>
-                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(subscriber)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
                         </div>
                       )}
                     </div>

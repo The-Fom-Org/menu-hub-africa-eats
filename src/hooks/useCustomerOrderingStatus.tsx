@@ -9,12 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
  * @returns Whether ordering is enabled for the restaurant
  */
 export const useCustomerOrderingStatus = (urlParamId: string) => {
-  const [orderingEnabled, setOrderingEnabled] = useState(false); // Default to disabled until we know the actual status
+  const [orderingEnabled, setOrderingEnabled] = useState(true); // Default to enabled for better UX
   
   useEffect(() => {
     const fetchOrderingStatus = async () => {
       if (!urlParamId) {
-        console.log('⚠️ No urlParamId provided, keeping default disabled');
+        console.log('⚠️ No urlParamId provided, keeping default enabled');
         return;
       }
 
@@ -30,16 +30,16 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
 
         if (error) {
           console.error('❌ Error fetching ordering status:', error);
-          console.log('⚠️ Keeping default ordering disabled due to error');
+          console.log('⚠️ Keeping default ordering enabled due to error');
         } else {
-          // If no settings found, default to disabled (restaurant must explicitly enable)
-          const enabled = data?.ordering_enabled ?? false;
+          // If no settings found, default to enabled for new restaurants
+          const enabled = data?.ordering_enabled ?? true;
           setOrderingEnabled(enabled);
           console.log('✅ Ordering status loaded:', { enabled, hasData: !!data });
         }
       } catch (error) {
         console.error('❌ Error in fetchOrderingStatus:', error);
-        console.log('⚠️ Keeping default ordering disabled due to exception');
+        console.log('⚠️ Keeping default ordering enabled due to exception');
       }
     };
 
@@ -58,16 +58,12 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
         },
         (payload) => {
           console.log('🔄 Real-time ordering status update:', payload);
-          if (payload.new && typeof payload.new === 'object' && 'ordering_enabled' in payload.new) {
-            const newEnabled = payload.new.ordering_enabled as boolean;
-            setOrderingEnabled(newEnabled);
-            console.log('🔄 Ordering status updated via real-time:', newEnabled);
+          if (payload.new && 'ordering_enabled' in payload.new && typeof payload.new.ordering_enabled === 'boolean') {
+            setOrderingEnabled(payload.new.ordering_enabled);
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Real-time subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
