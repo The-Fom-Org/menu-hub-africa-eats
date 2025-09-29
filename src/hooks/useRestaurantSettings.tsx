@@ -34,12 +34,21 @@ export const useRestaurantSettings = (userId: string) => {
       if (data) {
         setSettings(data);
       } else {
-        // Create default settings if none exist
+        // Get admin default before creating settings
+        const { data: adminSettings } = await (supabase as any)
+          .from('admin_settings')
+          .select('setting_value')
+          .eq('setting_key', 'default_ordering_enabled')
+          .maybeSingle();
+
+        const defaultEnabled = adminSettings?.setting_value?.enabled ?? true;
+
+        // Create default settings if none exist using admin default
         const { data: newSettings, error: createError } = await (supabase as any)
           .from('restaurant_settings')
           .insert({
             user_id: userId,
-            ordering_enabled: true
+            ordering_enabled: defaultEnabled
           })
           .select()
           .single();
@@ -81,7 +90,16 @@ export const useRestaurantSettings = (userId: string) => {
           .select()
           .single();
       } else {
-        // Insert new settings
+        // Get admin default before creating new settings
+        const { data: adminSettings } = await (supabase as any)
+          .from('admin_settings')
+          .select('setting_value')
+          .eq('setting_key', 'default_ordering_enabled')
+          .maybeSingle();
+
+        const defaultEnabled = adminSettings?.setting_value?.enabled ?? true;
+
+        // Insert new settings with admin default
         result = await (supabase as any)
           .from('restaurant_settings')
           .insert({

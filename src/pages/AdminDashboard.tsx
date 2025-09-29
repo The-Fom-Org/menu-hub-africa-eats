@@ -69,6 +69,11 @@ export default function AdminDashboard() {
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
   const [activatingSubscription, setActivatingSubscription] = useState<string | null>(null);
 
+  // Admin settings state
+  const [defaultOrderingEnabled, setDefaultOrderingEnabled] = useState(true);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // New record creation form
   const [newEmail, setNewEmail] = useState("");
   const [newRestaurantId, setNewRestaurantId] = useState("");
@@ -117,8 +122,35 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchAdminSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('setting_value')
+        .eq('setting_key', 'default_ordering_enabled')
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data?.setting_value?.enabled !== undefined) {
+        setDefaultOrderingEnabled(data.setting_value.enabled);
+      }
+    } catch (error) {
+      console.error('Error fetching admin settings:', error);
+      toast({
+        title: "Error loading settings",
+        description: "Failed to load admin settings. Using defaults.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
   useEffect(() => {
     fetchSubscribers();
+    fetchAdminSettings();
   }, []);
 
   const handleEdit = (subscriber: Subscriber) => {
@@ -420,6 +452,36 @@ export default function AdminDashboard() {
     setNewNotes("");
   };
 
+  const updateDefaultOrderingEnabled = async (enabled: boolean) => {
+    try {
+      setSavingSettings(true);
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({
+          setting_value: { enabled },
+          updated_at: new Date().toISOString()
+        })
+        .eq('setting_key', 'default_ordering_enabled');
+
+      if (error) throw error;
+
+      setDefaultOrderingEnabled(enabled);
+      toast({
+        title: "Settings updated",
+        description: `Default ordering system ${enabled ? 'enabled' : 'disabled'} for new restaurants.`,
+      });
+    } catch (error) {
+      console.error('Error updating admin settings:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update admin settings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const handleCancel = () => {
     setEditingId(null);
     setEditForm({});
@@ -472,6 +534,38 @@ export default function AdminDashboard() {
               </Button>
             </div>
           </div>
+
+          {/* Admin Settings Card */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Global Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Default Ordering System Status</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Controls whether ordering is enabled by default for new restaurants
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {defaultOrderingEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                    <Switch
+                      checked={defaultOrderingEnabled}
+                      onCheckedChange={updateDefaultOrderingEnabled}
+                      disabled={savingSettings || loadingSettings}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Stats Cards */}
           <div className="grid md:grid-cols-4 gap-6 mb-8">

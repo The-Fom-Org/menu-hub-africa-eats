@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string
@@ -180,6 +207,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mpesa_callbacks: {
+        Row: {
+          amount: number | null
+          callback_data: Json | null
+          checkout_request_id: string
+          created_at: string
+          id: string
+          merchant_request_id: string | null
+          mpesa_receipt_number: string | null
+          phone_number: string | null
+          result_code: number | null
+          result_desc: string | null
+          success: boolean | null
+          transaction_date: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          callback_data?: Json | null
+          checkout_request_id: string
+          created_at?: string
+          id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          phone_number?: string | null
+          result_code?: number | null
+          result_desc?: string | null
+          success?: boolean | null
+          transaction_date?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          callback_data?: Json | null
+          checkout_request_id?: string
+          created_at?: string
+          id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          phone_number?: string | null
+          result_code?: number | null
+          result_desc?: string | null
+          success?: boolean | null
+          transaction_date?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       order_items: {
         Row: {
