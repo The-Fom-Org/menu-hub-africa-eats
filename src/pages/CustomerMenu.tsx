@@ -30,6 +30,7 @@ const CustomerMenu = () => {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   
   // Wait for ordering status to load before initializing cart
+  console.log('🔍 CustomerMenu Debug:', { orderingEnabled, orderingLoading, urlUserId, shouldInitCart: orderingEnabled && !orderingLoading });
   const cart = useCart(orderingEnabled && !orderingLoading ? urlUserId : null);
   const [showVideoSplash, setShowVideoSplash] = useState(true);
 

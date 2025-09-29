@@ -15,6 +15,7 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
   useEffect(() => {
     const fetchOrderingStatus = async () => {
       if (!urlParamId) {
+        console.log('⚠️ No urlParamId provided, setting loading to false');
         setLoading(false);
         return;
       }
