@@ -134,12 +134,12 @@ export const StickyHeader = ({
               Contact Restaurant
             </Button>
             
-            {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
+            {orderingEnabled && <CartDrawer restaurantId={restaurantId} orderingEnabled={orderingEnabled} />}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            {orderingEnabled && <CartDrawer restaurantId={restaurantId} />}
+            {orderingEnabled && <CartDrawer restaurantId={restaurantId} orderingEnabled={orderingEnabled} />}
             <Button
               variant="ghost"
               size="sm"

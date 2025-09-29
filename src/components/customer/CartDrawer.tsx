@@ -18,9 +18,10 @@ import { useToast } from '@/hooks/use-toast';
 
 interface CartDrawerProps {
   restaurantId: string;
+  orderingEnabled?: boolean;
 }
 
-export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
+export const CartDrawer = ({ restaurantId, orderingEnabled = true }: CartDrawerProps) => {
   const cart = useCart(restaurantId);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -65,6 +66,16 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   }, [cart, toast]);
 
   const handleCheckout = useCallback(() => {
+    if (!orderingEnabled) {
+      toast({
+        title: "Ordering Unavailable", 
+        description: "This restaurant is not currently accepting orders",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
     console.log('💳 ===== CHECKOUT PROCESS START =====');
     console.log('💳 React state before validation:', {
       cartItemsLength: cart.cartItems.length,
@@ -291,14 +302,19 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button 
-          variant={!isEmpty ? "default" : "outline"} 
-          size="sm" 
-          className="relative"
+        <Button
+          variant={!isEmpty ? "default" : "outline"}
+          size="sm"
+          disabled={!orderingEnabled}
+          className={`relative ${
+            orderingEnabled 
+              ? "" 
+              : "opacity-50 cursor-not-allowed"
+          }`}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
           Cart
-          {totalCount > 0 && (
+          {totalCount > 0 && orderingEnabled && (
             <Badge variant="secondary" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
               {totalCount}
             </Badge>
@@ -312,7 +328,12 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
             <div>
               <SheetTitle>Your Order</SheetTitle>
               <SheetDescription>
-                {isEmpty ? 'Your cart is empty' : 'Review your items before checkout'}
+                {!orderingEnabled 
+                  ? 'Ordering is currently disabled' 
+                  : isEmpty 
+                  ? 'Your cart is empty' 
+                  : 'Review your items before checkout'
+                }
               </SheetDescription>
             </div>
             <div className="flex gap-1">
@@ -418,9 +439,11 @@ export const CartDrawer = ({ restaurantId }: CartDrawerProps) => {
                 onClick={handleCheckout}
                 className="w-full"
                 size="lg"
-                disabled={isEmpty || isProcessing}
+                disabled={isEmpty || isProcessing || !orderingEnabled}
               >
-                {isProcessing ? 'Processing...' : `Proceed to Checkout (${totalCount} items)`}
+                {isProcessing ? 'Processing...' : 
+                 !orderingEnabled ? 'Ordering Disabled' :
+                 `Proceed to Checkout (${totalCount} items)`}
               </Button>
             </div>
           </>

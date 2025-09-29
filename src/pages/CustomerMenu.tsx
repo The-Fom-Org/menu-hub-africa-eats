@@ -29,9 +29,9 @@ const CustomerMenu = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   
-  // Wait for ordering status to load before initializing cart
-  console.log('🔍 CustomerMenu Debug:', { orderingEnabled, orderingLoading, urlUserId, shouldInitCart: orderingEnabled && !orderingLoading });
-  const cart = useCart(orderingEnabled && !orderingLoading ? urlUserId : null);
+  // Initialize cart - always available but functionality depends on orderingEnabled
+  console.log('🔍 CustomerMenu Debug:', { orderingEnabled, orderingLoading, urlUserId });
+  const cart = useCart(urlUserId);
   const [showVideoSplash, setShowVideoSplash] = useState(true);
 
   // Get actual restaurant ID from restaurant info
@@ -188,6 +188,20 @@ const CustomerMenu = () => {
       {/* Lead Capture Integration */}
       {urlUserId && <LeadCaptureIntegration restaurantId={actualRestaurantId || urlUserId} />}
 
+      {/* Ordering Status Banner */}
+      <div className="bg-card border-b border-border/50 p-3 text-center">
+        {orderingEnabled ? (
+          <div className="flex items-center justify-center gap-2 text-primary">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="font-medium text-sm">Ordering Available</span>
+          </div>
+        ) : (
+          <div className="text-muted-foreground">
+            <span className="text-sm">Browse Menu Only • Ordering Currently Unavailable</span>
+          </div>
+        )}
+      </div>
+
       {/* Sticky Header */}
       <StickyHeader
         restaurantName={restaurantInfo.name}
@@ -197,6 +211,12 @@ const CustomerMenu = () => {
         onChefsSpecial={handleChefsSpecial}
         onContactRestaurant={handleContactRestaurant}
         orderingEnabled={orderingEnabled}
+      />
+
+      {/* Cart Drawer - Always render but functionality depends on orderingEnabled */}
+      <CartDrawer 
+        restaurantId={actualRestaurantId || urlUserId || ""} 
+        orderingEnabled={orderingEnabled} 
       />
 
       {/* Hero Section */}
