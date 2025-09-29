@@ -9,14 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
  * @returns Whether ordering is enabled for the restaurant
  */
 export const useCustomerOrderingStatus = (urlParamId: string) => {
-  const [orderingEnabled, setOrderingEnabled] = useState(false); // Default to disabled to prevent race condition
-  const [loading, setLoading] = useState(true);
-
+  const [orderingEnabled, setOrderingEnabled] = useState(true); // Default to enabled for better UX
+  
   useEffect(() => {
     const fetchOrderingStatus = async () => {
       if (!urlParamId) {
-        console.log('⚠️ No urlParamId provided, setting loading to false');
-        setLoading(false);
+        console.log('⚠️ No urlParamId provided, keeping default enabled');
         return;
       }
 
@@ -32,9 +30,7 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
 
         if (error) {
           console.error('❌ Error fetching ordering status:', error);
-          // Default to enabled on error to maintain functionality
-          setOrderingEnabled(true);
-          console.log('⚠️ Using default ordering enabled due to error');
+          console.log('⚠️ Keeping default ordering enabled due to error');
         } else {
           // If no settings found, default to enabled for new restaurants
           const enabled = data?.ordering_enabled ?? true;
@@ -43,20 +39,36 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
         }
       } catch (error) {
         console.error('❌ Error in fetchOrderingStatus:', error);
-        // Default to enabled on exception to maintain functionality
-        setOrderingEnabled(true);
-        console.log('⚠️ Using default ordering enabled due to exception');
-      } finally {
-        setLoading(false);
-        console.log('🏁 Ordering status loading completed');
+        console.log('⚠️ Keeping default ordering enabled due to exception');
       }
     };
 
     fetchOrderingStatus();
 
-    // Note: Real-time subscription would need the actual restaurant ID
-    // For now, we'll skip it to avoid complexity, but it can be added later
+    // Set up real-time subscription for instant updates
+    const channel = supabase
+      .channel(`restaurant-settings-${urlParamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'restaurant_settings',
+          filter: `user_id=eq.${urlParamId}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time ordering status update:', payload);
+          if (payload.new && 'ordering_enabled' in payload.new && typeof payload.new.ordering_enabled === 'boolean') {
+            setOrderingEnabled(payload.new.ordering_enabled);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [urlParamId]);
 
-  return { orderingEnabled, loading };
+  return { orderingEnabled };
 };

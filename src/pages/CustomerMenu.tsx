@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const CustomerMenu = () => {
   const { restaurantId: urlUserId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(urlUserId || "");
-  const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(urlUserId || "");
+  const { orderingEnabled } = useCustomerOrderingStatus(urlUserId || "");
   
   // Debug restaurant info
   console.log('🍽️ Restaurant Info:', restaurantInfo);
@@ -33,9 +33,9 @@ const CustomerMenu = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   
-  // Wait for ordering status to load before initializing cart
-  console.log('🔍 CustomerMenu Debug:', { orderingEnabled, orderingLoading, urlUserId, shouldInitCart: orderingEnabled && !orderingLoading });
-  const cart = useCart(orderingEnabled && !orderingLoading ? urlUserId : null);
+  // Always initialize cart - ordering status only affects interactions
+  console.log('🔍 CustomerMenu Debug:', { orderingEnabled, urlUserId });
+  const cart = useCart(urlUserId || "");
   const [showVideoSplash, setShowVideoSplash] = useState(true);
 
   // Get actual restaurant ID from restaurant info
@@ -57,7 +57,7 @@ const CustomerMenu = () => {
   }, []);
 
   // Show loading splash screen with food video
-  if (loading || orderingLoading || showVideoSplash) {
+  if (loading || showVideoSplash) {
     console.log('🎬 Showing video splash screen', { loading, showVideoSplash });
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -305,8 +305,8 @@ const CustomerMenu = () => {
           )}
         </div>
 
-        {/* Upsell Section */}
-        {orderingEnabled && cart && cart.hasItems() && (
+        {/* Upsell Section - always render but only show when ordering enabled and has items */}
+        {cart && cart.hasItems() && (
           <UpsellSection
             restaurantId={actualRestaurantId || urlUserId || ""}
             currentCartItems={cart.cartItems}
@@ -316,17 +316,15 @@ const CustomerMenu = () => {
         )}
       </div>
 
-      {/* Sticky Bottom Bar - only show when ordering is enabled */}
-      {orderingEnabled && (
-        <StickyBottomBar 
-          restaurantId={actualRestaurantId || urlUserId || ""}
-          onChefsSpecial={handleChefsSpecial}
-          orderingEnabled={orderingEnabled}
-        />
-      )}
+      {/* Sticky Bottom Bar - always render but conditionally display */}
+      <StickyBottomBar 
+        restaurantId={actualRestaurantId || urlUserId || ""}
+        onChefsSpecial={handleChefsSpecial}
+        orderingEnabled={orderingEnabled}
+      />
 
-      {/* Add bottom padding to prevent content from being hidden behind sticky bar - only when ordering is enabled */}
-      {orderingEnabled && <div className="h-20"></div>}
+      {/* Add bottom padding to prevent content from being hidden behind sticky bar */}
+      <div className="h-20"></div>
     </div>
   );
 };

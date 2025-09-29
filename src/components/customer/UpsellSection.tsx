@@ -18,9 +18,6 @@ export const UpsellSection = ({ restaurantId, allItems, currentCartItems, orderi
   const { addToCart } = useCart(restaurantId);
   const { toast } = useToast();
 
-  // Don't show upsell if ordering is disabled
-  if (!orderingEnabled) return null;
-
   // Filter items for upsell - drinks, desserts, and high-margin items
   const upsellItems = allItems.filter(item => {
     const category = item.category_name?.toLowerCase() || '';
@@ -37,7 +34,8 @@ export const UpsellSection = ({ restaurantId, allItems, currentCartItems, orderi
     );
   }).slice(0, 3); // Show max 3 items
 
-  if (upsellItems.length === 0) return null;
+  // Don't render if no items or ordering disabled
+  if (upsellItems.length === 0 || !orderingEnabled) return null;
 
   const handleAddUpsellItem = (item: CustomerMenuItem) => {
     addToCart({

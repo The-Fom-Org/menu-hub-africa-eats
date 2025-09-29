@@ -9,10 +9,10 @@ interface StickyBottomBarProps {
 }
 
 export const StickyBottomBar = ({ restaurantId, onChefsSpecial, orderingEnabled = true }: StickyBottomBarProps) => {
-  // Don't show bottom bar if ordering is disabled
-  if (!orderingEnabled) return null;
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border/50 shadow-lg">
+    <div className={`fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border/50 shadow-lg transition-transform duration-300 ${
+      orderingEnabled ? 'translate-y-0' : 'translate-y-full'
+    }`}>
       <div className="container mx-auto px-2 py-3">
         <div className="flex justify-between items-center gap-2">
           <CallWaiterDialog restaurantId={restaurantId}>
