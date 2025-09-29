@@ -37,6 +37,7 @@ export const StickyHeader = ({
   onContactRestaurant,
   orderingEnabled = true
 }: StickyHeaderProps) => {
+  console.log('🏠 StickyHeader render:', { restaurantId, orderingEnabled });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { setOrderType } = useCart(restaurantId);
