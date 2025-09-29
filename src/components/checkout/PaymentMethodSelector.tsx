@@ -13,7 +13,7 @@ interface PaymentGateway {
 interface PaymentMethodSelectorProps {
   paymentMethod: string;
   setPaymentMethod: (method: string) => void;
-  availableGateways: PaymentGateway[];
+  availableGateways: (string | PaymentGateway)[];
   excludeCash?: boolean;
 }
 
@@ -64,12 +64,19 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
 
   // Filter methods based on what's actually available in restaurant settings
   const enabledMethods = allPaymentMethods.filter(method => {
-    const isAvailable = availableGateways.some(gateway => 
-      (typeof gateway === 'string' ? gateway : gateway.type) === method.id
-    );
-    console.log(`🔍 Method ${method.id} available:`, isAvailable);
+    const isAvailable = availableGateways.some(gateway => {
+      const gatewayType = typeof gateway === 'string' ? gateway : gateway.type;
+      return gatewayType === method.id;
+    });
+    console.log(`🔍 Method ${method.id} available:`, isAvailable, 'Available gateways:', availableGateways);
     return isAvailable;
   });
+
+  // Auto-select first payment method if none selected
+  if (enabledMethods.length > 0 && !paymentMethod) {
+    console.log('🎯 Auto-selecting first payment method:', enabledMethods[0].id);
+    setPaymentMethod(enabledMethods[0].id);
+  }
 
   if (enabledMethods.length === 0) {
     return (

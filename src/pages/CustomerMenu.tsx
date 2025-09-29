@@ -188,7 +188,7 @@ const CustomerMenu = () => {
       {/* Lead Capture Integration */}
       {urlUserId && <LeadCaptureIntegration restaurantId={actualRestaurantId || urlUserId} />}
 
-      {/* Sticky Header */}
+      {/* Sticky Header - CartDrawer is conditionally rendered inside */}
       <StickyHeader
         restaurantName={restaurantInfo.name}
         restaurantId={actualRestaurantId || urlUserId || ""}
