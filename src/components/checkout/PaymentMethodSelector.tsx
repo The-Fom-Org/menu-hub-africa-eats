@@ -23,41 +23,53 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   availableGateways,
   excludeCash = false
 }) => {
-      const paymentMethods = [
-        {
-          id: 'pesapal',
-          name: 'Pesapal',
-          description: 'Pay with credit/debit card or mobile money via Pesapal',
-          icon: <CreditCard className="h-5 w-5" />,
-          enabled: true
-        },
-        {
-          id: 'mpesa',
-          name: 'M-Pesa',
-          description: 'Pay with M-Pesa mobile money',
-          icon: <Smartphone className="h-5 w-5" />,
-          enabled: true
-        },
-        {
-          id: 'bank_transfer',
-          name: 'Bank Transfer',
-          description: 'Direct bank transfer',
-          icon: <Building className="h-5 w-5" />,
-          enabled: true
-        }
-      ];
+  console.log('🔍 PaymentMethodSelector - Available gateways:', availableGateways);
+  
+  const allPaymentMethods = [
+    {
+      id: 'pesapal',
+      name: 'Pesapal',
+      description: 'Pay with credit/debit card or mobile money via Pesapal',
+      icon: <CreditCard className="h-5 w-5" />,
+    },
+    {
+      id: 'mpesa_daraja',
+      name: 'M-Pesa (Instant)',
+      description: 'Pay instantly with M-Pesa STK Push',
+      icon: <Smartphone className="h-5 w-5" />,
+    },
+    {
+      id: 'mpesa_manual',
+      name: 'M-Pesa (Manual)',
+      description: 'Pay with M-Pesa using till/paybill number',
+      icon: <Smartphone className="h-5 w-5" />,
+    },
+    {
+      id: 'bank_transfer',
+      name: 'Bank Transfer',
+      description: 'Direct bank transfer',
+      icon: <Building className="h-5 w-5" />,
+    }
+  ];
 
+  // Add cash if not excluded
   if (!excludeCash) {
-    paymentMethods.push({
+    allPaymentMethods.push({
       id: 'cash',
       name: 'Cash',
       description: 'Pay with cash on delivery/pickup',
       icon: <Banknote className="h-5 w-5" />,
-      enabled: true
     });
   }
 
-  const enabledMethods = paymentMethods.filter(method => method.enabled);
+  // Filter methods based on what's actually available in restaurant settings
+  const enabledMethods = allPaymentMethods.filter(method => {
+    const isAvailable = availableGateways.some(gateway => 
+      (typeof gateway === 'string' ? gateway : gateway.type) === method.id
+    );
+    console.log(`🔍 Method ${method.id} available:`, isAvailable);
+    return isAvailable;
+  });
 
   if (enabledMethods.length === 0) {
     return (

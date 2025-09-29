@@ -359,7 +359,7 @@ const Checkout = () => {
                       <PaymentMethodSelector
                         paymentMethod={paymentMethod}
                         setPaymentMethod={setPaymentMethod}
-                        availableGateways={[]}
+                        availableGateways={[]} // This will be populated by restaurant settings
                         excludeCash={true}
                       />
                     </CardContent>

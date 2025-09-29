@@ -12,6 +12,14 @@ export interface PaymentSettings {
       consumer_secret?: string;
       ipn_id?: string;
     };
+    mpesa_daraja?: {
+      enabled: boolean;
+      business_short_code?: string;
+      consumer_key?: string;
+      consumer_secret?: string;
+      passkey?: string;
+      environment?: 'sandbox' | 'production';
+    };
     mpesa_manual?: {
       enabled: boolean;
       till_number?: string;
@@ -119,6 +127,19 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
       });
     }
     
+    if (methods.mpesa_daraja?.enabled && methods.mpesa_daraja.business_short_code && methods.mpesa_daraja.consumer_key && methods.mpesa_daraja.consumer_secret && methods.mpesa_daraja.passkey) {
+      console.log('✅ M-Pesa Daraja gateway available');
+      gateways.push('mpesa_daraja');
+    } else {
+      console.log('❌ M-Pesa Daraja gateway not available:', {
+        enabled: methods.mpesa_daraja?.enabled,
+        hasShortCode: !!methods.mpesa_daraja?.business_short_code,
+        hasConsumerKey: !!methods.mpesa_daraja?.consumer_key,
+        hasConsumerSecret: !!methods.mpesa_daraja?.consumer_secret,
+        hasPasskey: !!methods.mpesa_daraja?.passkey
+      });
+    }
+    
     if (methods.mpesa_manual?.enabled && (methods.mpesa_manual.till_number || methods.mpesa_manual.paybill_number)) {
       console.log('✅ M-Pesa manual gateway available');
       gateways.push('mpesa_manual');
@@ -173,6 +194,21 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
         validationResults.errors.push('Pesapal Consumer Key is missing');
       } else if (!methods.pesapal.consumer_secret) {
         validationResults.errors.push('Pesapal Consumer Secret is missing');
+      } else {
+        hasValidMethod = true;
+      }
+    }
+
+    // Validate M-Pesa Daraja
+    if (methods.mpesa_daraja?.enabled) {
+      if (!methods.mpesa_daraja.business_short_code) {
+        validationResults.errors.push('M-Pesa Daraja Business Short Code is missing');
+      } else if (!methods.mpesa_daraja.consumer_key) {
+        validationResults.errors.push('M-Pesa Daraja Consumer Key is missing');
+      } else if (!methods.mpesa_daraja.consumer_secret) {
+        validationResults.errors.push('M-Pesa Daraja Consumer Secret is missing');
+      } else if (!methods.mpesa_daraja.passkey) {
+        validationResults.errors.push('M-Pesa Daraja Passkey is missing');
       } else {
         hasValidMethod = true;
       }
