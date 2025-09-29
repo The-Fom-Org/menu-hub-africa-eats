@@ -381,24 +381,22 @@ const Checkout = () => {
                   </CardContent>
                 </Card>
 
-                {cart.orderType === 'later' && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                        <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span>Payment Method</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <PaymentMethodSelector
-                        paymentMethod={paymentMethod}
-                        setPaymentMethod={setPaymentMethod}
-                        availableGateways={paymentSettings ? getAvailableGateways() : []}
-                        excludeCash={true}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                      <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span>Payment Method</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PaymentMethodSelector
+                      paymentMethod={paymentMethod}
+                      setPaymentMethod={setPaymentMethod}
+                      availableGateways={paymentSettings ? getAvailableGateways() : []}
+                      excludeCash={cart.orderType === 'later'}
+                    />
+                  </CardContent>
+                </Card>
 
                 <Button
                   onClick={async () => {
@@ -410,7 +408,7 @@ const Checkout = () => {
                       customerPhone: customerPhone || null,
                       tableNumber: tableNumber || null,
                       orderType: cart.orderType,
-                      paymentMethod: cart.orderType === 'now' ? 'cash' : paymentMethod,
+                      paymentMethod: paymentMethod || 'cash',
                       scheduledTime: cart.orderType === 'later' ? new Date(scheduledTime).toISOString() : null,
                     });
                   }}

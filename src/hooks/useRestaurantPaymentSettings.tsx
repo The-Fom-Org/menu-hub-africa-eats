@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscriptionLimits } from './useSubscriptionLimits';
 import { useToast } from '@/hooks/use-toast';
 
 export interface PaymentSettings {
@@ -45,6 +46,7 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { allowedPaymentMethods } = useSubscriptionLimits(restaurantId);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -169,8 +171,13 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
       console.log('❌ Cash payment not available:', { enabled: methods.cash?.enabled });
     }
     
-    console.log('📋 Available payment gateways:', gateways);
-    return gateways;
+    console.log('📋 Available payment gateways (before subscription filter):', gateways);
+    
+    // Filter by subscription limits
+    const filteredGateways = gateways.filter(gateway => allowedPaymentMethods.includes(gateway));
+    console.log('📋 Available payment gateways (after subscription filter):', filteredGateways, 'Allowed by subscription:', allowedPaymentMethods);
+    
+    return filteredGateways;
   };
 
   const validatePaymentSetup = () => {
