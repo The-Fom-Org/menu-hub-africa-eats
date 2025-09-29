@@ -1,7 +1,7 @@
 // Payment Gateway Types and Interfaces
 
 export interface PaymentGatewayConfig {
-  type: 'pesapal' | 'mpesa_manual' | 'bank_transfer' | 'cash';
+  type: 'pesapal' | 'mpesa_daraja' | 'mpesa_manual' | 'bank_transfer' | 'cash';
   credentials?: Record<string, string>;
   settings?: Record<string, any>;
 }
@@ -55,6 +55,14 @@ export interface RestaurantPaymentSettings {
       enabled: boolean;
       consumer_key?: string;
       consumer_secret?: string;
+    };
+    mpesa_daraja?: {
+      enabled: boolean;
+      business_short_code?: string;
+      consumer_key?: string;
+      consumer_secret?: string;
+      passkey?: string;
+      environment?: 'sandbox' | 'production';
     };
     mpesa_manual?: {
       enabled: boolean;

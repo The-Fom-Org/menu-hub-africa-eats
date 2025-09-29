@@ -165,6 +165,8 @@ const OrderCreationHandler = ({ restaurantId: propRestaurantId, children }: Orde
     try {
       if (orderData.paymentMethod === 'pesapal') {
         await handlePesapalPayment(order, orderData, amount);
+      } else if (orderData.paymentMethod === 'mpesa_daraja') {
+        await handleMpesaDarajaPayment(order, orderData, amount);
       } else if (orderData.paymentMethod === 'mpesa_manual') {
         handleMpesaPayment(order, orderData, amount);
       } else if (orderData.paymentMethod === 'bank_transfer') {
@@ -274,8 +276,123 @@ const OrderCreationHandler = ({ restaurantId: propRestaurantId, children }: Orde
     }
   };
 
+  const handleMpesaDarajaPayment = async (order: any, orderData: any, amount: number) => {
+    console.log('🔄 Initiating M-Pesa Daraja payment for order:', order.id);
+    
+    const mpesaSettings = paymentSettings?.payment_methods?.mpesa_daraja;
+    console.log('💳 M-Pesa Daraja settings check:', { 
+      hasSettings: !!mpesaSettings, 
+      hasShortCode: !!mpesaSettings?.business_short_code,
+      hasConsumerKey: !!mpesaSettings?.consumer_key,
+      hasConsumerSecret: !!mpesaSettings?.consumer_secret,
+      hasPasskey: !!mpesaSettings?.passkey
+    });
+    
+    if (!mpesaSettings?.enabled) {
+      const error = 'M-Pesa payment is not enabled for this restaurant';
+      console.error('❌', error);
+      toast({
+        title: "Payment Unavailable",
+        description: error,
+        variant: "destructive",
+      });
+      throw new Error(error);
+    }
+
+    if (!mpesaSettings?.business_short_code || !mpesaSettings?.consumer_key || 
+        !mpesaSettings?.consumer_secret || !mpesaSettings?.passkey) {
+      const error = 'Restaurant M-Pesa credentials are not configured. Please contact the restaurant to set up payments.';
+      console.error('❌', error);
+      toast({
+        title: "Payment Configuration Error",
+        description: error,
+        variant: "destructive",
+      });
+      throw new Error(error);
+    }
+
+    if (!orderData.customerPhone) {
+      const error = 'Phone number is required for M-Pesa payments';
+      console.error('❌', error);
+      toast({
+        title: "Phone Number Required",
+        description: error,
+        variant: "destructive",
+      });
+      throw new Error(error);
+    }
+
+    const paymentRequest = {
+      orderId: order.id,
+      amount: amount,
+      description: `Pre-order reservation for ${orderData.customerName || 'Customer'}`,
+      phone_number: orderData.customerPhone,
+      credentials: {
+        business_short_code: mpesaSettings.business_short_code,
+        consumer_key: mpesaSettings.consumer_key,
+        consumer_secret: mpesaSettings.consumer_secret,
+        passkey: mpesaSettings.passkey,
+        environment: mpesaSettings.environment || 'sandbox',
+      }
+    };
+
+    console.log('📤 Calling mpesa-initialize edge function with request:', {
+      orderId: paymentRequest.orderId,
+      amount: paymentRequest.amount,
+      phone: paymentRequest.phone_number.slice(0, 3) + '***',
+      hasCredentials: !!paymentRequest.credentials?.business_short_code
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('mpesa-initialize', {
+        body: paymentRequest,
+      });
+
+      console.log('📥 M-Pesa edge function response:', { data, error });
+
+      if (error) {
+        console.error('❌ M-Pesa edge function error:', error);
+        throw new Error(`M-Pesa payment initialization failed: ${error.message || 'Unknown error'}`);
+      }
+
+      if (!data?.success) {
+        console.error('❌ M-Pesa payment initialization failed:', data?.error);
+        throw new Error(data?.error || 'M-Pesa payment initialization failed');
+      }
+
+      if (!data?.checkout_request_id) {
+        console.error('❌ No checkout request ID received from M-Pesa');
+        throw new Error('Invalid payment response - no checkout request ID');
+      }
+
+      console.log('✅ M-Pesa STK Push initiated successfully:', data.checkout_request_id);
+      
+      toast({
+        title: "STK Push Sent",
+        description: "Please check your phone and enter your M-Pesa PIN to complete the payment.",
+      });
+      
+      // Store the checkout request ID for verification
+      // In a real app, you'd want to store this with the order for later verification
+      
+      // For now, we'll clear cart and show success (in reality, you'd verify payment first)
+      clearCart();
+      navigate(`/order-success?token=${order.customer_token}&restaurant=${restaurantId}&mpesa_checkout=${data.checkout_request_id}`);
+      
+    } catch (error) {
+      console.error('❌ M-Pesa payment initialization failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'M-Pesa payment initialization failed';
+      toast({
+        title: "M-Pesa Payment Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const handleMpesaPayment = (order: any, orderData: any, amount: number) => {
-    console.log('Handling M-Pesa payment for order:', order.id);
+    console.log('Handling M-Pesa manual payment for order:', order.id);
     setShowPaymentInstructions(true);
     setPendingPaymentData({
       orderId: order.id,

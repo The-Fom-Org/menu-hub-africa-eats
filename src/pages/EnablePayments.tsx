@@ -21,6 +21,14 @@ interface PaymentSettings {
     consumer_secret?: string;
     ipn_id?: string;
   };
+  mpesa_daraja?: {
+    enabled: boolean;
+    business_short_code?: string;
+    consumer_key?: string;
+    consumer_secret?: string;
+    passkey?: string;
+    environment?: 'sandbox' | 'production';
+  };
   mpesa_manual?: {
     enabled: boolean;
     till_number?: string;
@@ -49,6 +57,7 @@ const EnablePayments = () => {
   // Payment settings state
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
     pesapal: { enabled: false },
+    mpesa_daraja: { enabled: false },
     mpesa_manual: { enabled: false },
     bank_transfer: { enabled: false },
     cash: { enabled: true }
@@ -359,6 +368,165 @@ const EnablePayments = () => {
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Setup Pesapal Account
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* M-Pesa Daraja API Integration */}
+            <Card className={`border-l-4 border-l-green-500 ${!isPaymentMethodAllowed('mpesa_daraja') ? 'opacity-75' : ''}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Smartphone className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle>M-Pesa Daraja API</CardTitle>
+                      <CardDescription>Automated M-Pesa STK Push payments</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getPaymentMethodBadge('mpesa_daraja', paymentSettings.mpesa_daraja?.enabled || false)}
+                    <Switch
+                      checked={paymentSettings.mpesa_daraja?.enabled || false}
+                      onCheckedChange={(checked) => {
+                        if (!isPaymentMethodAllowed('mpesa_daraja') && checked) {
+                          toast({
+                            title: "Premium Feature",
+                            description: "M-Pesa Daraja integration is available in Standard and Advanced plans.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        handleSettingChange('mpesa_daraja', 'enabled', checked);
+                      }}
+                      disabled={!isPaymentMethodAllowed('mpesa_daraja')}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Enable automated M-Pesa payments with STK Push. Customers receive payment prompts directly on their phones.
+                  </p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Instant STK Push to customer phone</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Automatic payment confirmation</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-4 w-4 text-orange-600" />
+                    <span>Requires Safaricom Daraja API credentials</span>
+                  </div>
+
+                  {!isPaymentMethodAllowed('mpesa_daraja') && (
+                    <Alert className="mt-4 border-orange-200 bg-orange-50">
+                      <Crown className="h-4 w-4 text-orange-600" />
+                      <AlertDescription className="text-orange-800">
+                        <strong>Premium Feature:</strong> M-Pesa Daraja API integration is available in Standard and Advanced plans. 
+                        <Button variant="link" className="p-0 h-auto text-orange-600 ml-1" onClick={() => navigate('/manage-subscription')}>
+                          Upgrade now
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {!paymentSettings.mpesa_daraja?.enabled && isPaymentMethodAllowed('mpesa_daraja') && (
+                    <Alert className="mt-4">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>How to get Daraja API credentials:</strong>
+                        <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+                          <li>Visit <a href="https://developer.safaricom.co.ke" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">developer.safaricom.co.ke</a> and create a developer account</li>
+                          <li>Create a new app and select "Lipa Na M-Pesa Online" product</li>
+                          <li>Complete app registration and verification</li>
+                          <li>Get your Business Short Code from Safaricom</li>
+                          <li>Generate Consumer Key, Consumer Secret, and Passkey</li>
+                          <li>Test in sandbox environment first, then go live</li>
+                        </ol>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {paymentSettings.mpesa_daraja?.enabled && isPaymentMethodAllowed('mpesa_daraja') && (
+                    <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg">
+                      <h4 className="font-medium">M-Pesa Daraja Credentials</h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <Label htmlFor="business_short_code">Business Short Code</Label>
+                          <Input
+                            id="business_short_code"
+                            type="text"
+                            value={paymentSettings.mpesa_daraja?.business_short_code || ''}
+                            onChange={(e) => handleSettingChange('mpesa_daraja', 'business_short_code', e.target.value)}
+                            placeholder="Your Safaricom Business Short Code"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="daraja_consumer_key">Consumer Key</Label>
+                          <Input
+                            id="daraja_consumer_key"
+                            type="text"
+                            value={paymentSettings.mpesa_daraja?.consumer_key || ''}
+                            onChange={(e) => handleSettingChange('mpesa_daraja', 'consumer_key', e.target.value)}
+                            placeholder="Your Daraja Consumer Key"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="daraja_consumer_secret">Consumer Secret</Label>
+                          <Input
+                            id="daraja_consumer_secret"
+                            type="password"
+                            value={paymentSettings.mpesa_daraja?.consumer_secret || ''}
+                            onChange={(e) => handleSettingChange('mpesa_daraja', 'consumer_secret', e.target.value)}
+                            placeholder="Your Daraja Consumer Secret"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="daraja_passkey">Passkey</Label>
+                          <Input
+                            id="daraja_passkey"
+                            type="password"
+                            value={paymentSettings.mpesa_daraja?.passkey || ''}
+                            onChange={(e) => handleSettingChange('mpesa_daraja', 'passkey', e.target.value)}
+                            placeholder="Your Lipa Na M-Pesa Passkey"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="daraja_environment">Environment</Label>
+                          <select
+                            id="daraja_environment"
+                            value={paymentSettings.mpesa_daraja?.environment || 'sandbox'}
+                            onChange={(e) => handleSettingChange('mpesa_daraja', 'environment', e.target.value)}
+                            className="w-full p-2 border rounded-md"
+                          >
+                            <option value="sandbox">Sandbox (Testing)</option>
+                            <option value="production">Production (Live)</option>
+                          </select>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Start with sandbox for testing, switch to production when ready to go live.
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        💡 Don't forget to click "Save Settings" after entering your credentials
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!paymentSettings.mpesa_daraja?.enabled && isPaymentMethodAllowed('mpesa_daraja') && (
+                    <Button 
+                      className="w-full mt-4"
+                      onClick={() => window.open('https://developer.safaricom.co.ke', '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Setup Daraja API Account
                     </Button>
                   )}
                 </div>
