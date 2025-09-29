@@ -24,9 +24,11 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
         // Direct query using user_id (post-migration model)
         const { data, error } = await (supabase as any)
           .from('restaurant_settings')
-          .select('ordering_enabled')
+          .select('ordering_enabled, user_id')
           .eq('user_id', urlParamId)
           .maybeSingle();
+
+        console.log('🗃️ Database response:', { data, error, searchedUserId: urlParamId });
 
         if (error) {
           console.error('❌ Error fetching ordering status:', error);
