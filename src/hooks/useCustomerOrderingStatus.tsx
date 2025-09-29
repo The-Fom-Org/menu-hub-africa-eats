@@ -14,7 +14,7 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
   useEffect(() => {
     const fetchOrderingStatus = async () => {
       if (!urlParamId) {
-        console.log('⚠️ No urlParamId provided, keeping default enabled');
+        console.log('⚠️ No urlParamId provided, keeping default disabled');
         return;
       }
 
@@ -30,16 +30,16 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
 
         if (error) {
           console.error('❌ Error fetching ordering status:', error);
-          console.log('⚠️ Keeping default ordering enabled due to error');
+          console.log('⚠️ Keeping default ordering disabled due to error');
         } else {
-          // If no settings found, default to enabled for new restaurants
-          const enabled = data?.ordering_enabled ?? true;
+          // If no settings found, default to disabled for new restaurants
+          const enabled = data?.ordering_enabled ?? false;
           setOrderingEnabled(enabled);
           console.log('✅ Ordering status loaded:', { enabled, hasData: !!data });
         }
       } catch (error) {
         console.error('❌ Error in fetchOrderingStatus:', error);
-        console.log('⚠️ Keeping default ordering enabled due to exception');
+        console.log('⚠️ Keeping default ordering disabled due to exception');
       }
     };
 
