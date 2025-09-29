@@ -9,12 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
  * @returns Whether ordering is enabled for the restaurant
  */
 export const useCustomerOrderingStatus = (urlParamId: string) => {
-  const [orderingEnabled, setOrderingEnabled] = useState(false); // Default to disabled, only enable when explicitly set
+  const [orderingEnabled, setOrderingEnabled] = useState(true); // Default to enabled for better UX
   
   useEffect(() => {
     const fetchOrderingStatus = async () => {
       if (!urlParamId) {
-        console.log('⚠️ No urlParamId provided, keeping default disabled');
+        console.log('⚠️ No urlParamId provided, keeping default enabled');
         return;
       }
 
@@ -24,24 +24,22 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
         // Direct query using user_id (post-migration model)
         const { data, error } = await (supabase as any)
           .from('restaurant_settings')
-          .select('ordering_enabled, user_id')
+          .select('ordering_enabled')
           .eq('user_id', urlParamId)
           .maybeSingle();
 
-        console.log('🗃️ Database response:', { data, error, searchedUserId: urlParamId });
-
         if (error) {
           console.error('❌ Error fetching ordering status:', error);
-          console.log('⚠️ Keeping default ordering disabled due to error');
+          console.log('⚠️ Keeping default ordering enabled due to error');
         } else {
-          // If no settings found, default to disabled for new restaurants
-          const enabled = data?.ordering_enabled ?? false;
+          // If no settings found, default to enabled for new restaurants
+          const enabled = data?.ordering_enabled ?? true;
           setOrderingEnabled(enabled);
           console.log('✅ Ordering status loaded:', { enabled, hasData: !!data });
         }
       } catch (error) {
         console.error('❌ Error in fetchOrderingStatus:', error);
-        console.log('⚠️ Keeping default ordering disabled due to exception');
+        console.log('⚠️ Keeping default ordering enabled due to exception');
       }
     };
 

@@ -305,13 +305,15 @@ const CustomerMenu = () => {
           )}
         </div>
 
-        {/* Upsell Section - show when ordering enabled, regardless of cart items */}
-        <UpsellSection
-          restaurantId={actualRestaurantId || urlUserId || ""}
-          currentCartItems={cart?.cartItems || []}
-          allItems={allMenuItems}
-          orderingEnabled={orderingEnabled}
-        />
+        {/* Upsell Section - always render but only show when ordering enabled and has items */}
+        {cart && cart.hasItems() && (
+          <UpsellSection
+            restaurantId={actualRestaurantId || urlUserId || ""}
+            currentCartItems={cart.cartItems}
+            allItems={allMenuItems}
+            orderingEnabled={orderingEnabled}
+          />
+        )}
       </div>
 
       {/* Sticky Bottom Bar - always render but conditionally display */}
