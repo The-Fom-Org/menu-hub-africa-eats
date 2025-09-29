@@ -39,8 +39,7 @@ export const StickyHeader = ({
 }: StickyHeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const cart = useCart(orderingEnabled ? restaurantId : null);
-  const { setOrderType } = cart || { setOrderType: null };
+  const { setOrderType } = useCart(orderingEnabled ? restaurantId : null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [customerFlow, setCustomerFlow] = useState<'qr' | 'direct'>('direct');
   const [searchParams] = useSearchParams();
@@ -61,7 +60,7 @@ export const StickyHeader = ({
     setIsMobileMenuOpen(false);
   };
   useEffect(() => {
-    // Only set order type if ordering is enabled and cart is available
+    // Only set order type if ordering is enabled
     if (!orderingEnabled || !setOrderType) return;
     
     // Detect customer flow based on URL parameters or referrer

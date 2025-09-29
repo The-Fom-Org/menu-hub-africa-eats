@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useSubscriptionLimits } from './useSubscriptionLimits';
 import { useToast } from '@/hooks/use-toast';
 
 export interface PaymentSettings {
@@ -12,14 +11,6 @@ export interface PaymentSettings {
       consumer_key?: string;
       consumer_secret?: string;
       ipn_id?: string;
-    };
-    mpesa_daraja?: {
-      enabled: boolean;
-      business_short_code?: string;
-      consumer_key?: string;
-      consumer_secret?: string;
-      passkey?: string;
-      environment?: 'sandbox' | 'production';
     };
     mpesa_manual?: {
       enabled: boolean;
@@ -46,7 +37,6 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { allowedPaymentMethods } = useSubscriptionLimits(restaurantId);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -55,14 +45,6 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
   }, [restaurantId]);
 
   const fetchPaymentSettings = async () => {
-    if (!restaurantId) {
-      console.log('⚠️ No restaurantId provided for payment settings');
-      setLoading(false);
-      return;
-    }
-
-    console.log('🔍 Fetching payment settings for restaurant ID:', restaurantId);
-    
     try {
       setLoading(true);
       setError(null);
@@ -71,18 +53,15 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
         .from('restaurant_payment_settings')
         .select('*')
         .eq('restaurant_id', restaurantId)
-        .maybeSingle();
+        .single();
 
-      if (fetchError) {
-        console.error('❌ Error fetching payment settings:', fetchError);
+      if (fetchError && fetchError.code !== 'PGRST116') {
         throw fetchError;
       }
 
-      console.log('✅ Payment settings loaded:', data ? 'Found settings' : 'No settings found');
-      console.log('📄 Payment methods:', data?.payment_methods);
       setSettings(data as PaymentSettings);
     } catch (err) {
-      console.error('❌ Exception in fetchPaymentSettings:', err);
+      console.error('Error fetching payment settings:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch payment settings');
     } finally {
       setLoading(false);
@@ -119,12 +98,6 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
   };
 
   const getAvailableGateways = () => {
-    console.log('🔍 getAvailableGateways called:', {
-      hasSettings: !!settings,
-      paymentMethods: settings?.payment_methods,
-      restaurantId
-    });
-    
     if (!settings?.payment_methods) {
       console.log('⚠️ No payment methods configured for restaurant');
       return [];
@@ -133,7 +106,7 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
     const gateways = [];
     const methods = settings.payment_methods;
     
-    console.log('🔍 Checking available gateways for restaurant:', restaurantId, methods);
+    console.log('🔍 Checking available gateways:', methods);
     
     if (methods.pesapal?.enabled && methods.pesapal.consumer_key && methods.pesapal.consumer_secret) {
       console.log('✅ Pesapal gateway available');
@@ -143,19 +116,6 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
         enabled: methods.pesapal?.enabled,
         hasConsumerKey: !!methods.pesapal?.consumer_key,
         hasConsumerSecret: !!methods.pesapal?.consumer_secret
-      });
-    }
-    
-    if (methods.mpesa_daraja?.enabled && methods.mpesa_daraja.business_short_code && methods.mpesa_daraja.consumer_key && methods.mpesa_daraja.consumer_secret && methods.mpesa_daraja.passkey) {
-      console.log('✅ M-Pesa Daraja gateway available');
-      gateways.push('mpesa_daraja');
-    } else {
-      console.log('❌ M-Pesa Daraja gateway not available:', {
-        enabled: methods.mpesa_daraja?.enabled,
-        hasShortCode: !!methods.mpesa_daraja?.business_short_code,
-        hasConsumerKey: !!methods.mpesa_daraja?.consumer_key,
-        hasConsumerSecret: !!methods.mpesa_daraja?.consumer_secret,
-        hasPasskey: !!methods.mpesa_daraja?.passkey
       });
     }
     
@@ -188,13 +148,8 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
       console.log('❌ Cash payment not available:', { enabled: methods.cash?.enabled });
     }
     
-    console.log('📋 Available payment gateways (before subscription filter):', gateways);
-    
-    // Filter by subscription limits
-    const filteredGateways = gateways.filter(gateway => allowedPaymentMethods.includes(gateway));
-    console.log('📋 Available payment gateways (after subscription filter):', filteredGateways, 'Allowed by subscription:', allowedPaymentMethods);
-    
-    return filteredGateways;
+    console.log('📋 Available payment gateways:', gateways);
+    return gateways;
   };
 
   const validatePaymentSetup = () => {
@@ -218,21 +173,6 @@ export const useRestaurantPaymentSettings = (restaurantId: string) => {
         validationResults.errors.push('Pesapal Consumer Key is missing');
       } else if (!methods.pesapal.consumer_secret) {
         validationResults.errors.push('Pesapal Consumer Secret is missing');
-      } else {
-        hasValidMethod = true;
-      }
-    }
-
-    // Validate M-Pesa Daraja
-    if (methods.mpesa_daraja?.enabled) {
-      if (!methods.mpesa_daraja.business_short_code) {
-        validationResults.errors.push('M-Pesa Daraja Business Short Code is missing');
-      } else if (!methods.mpesa_daraja.consumer_key) {
-        validationResults.errors.push('M-Pesa Daraja Consumer Key is missing');
-      } else if (!methods.mpesa_daraja.consumer_secret) {
-        validationResults.errors.push('M-Pesa Daraja Consumer Secret is missing');
-      } else if (!methods.mpesa_daraja.passkey) {
-        validationResults.errors.push('M-Pesa Daraja Passkey is missing');
       } else {
         hasValidMethod = true;
       }

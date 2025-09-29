@@ -54,31 +54,8 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
 
     fetchOrderingStatus();
 
-    // Set up real-time subscription for ordering status changes
-    console.log('🔔 Setting up real-time subscription for ordering status');
-    const channel = supabase
-      .channel('restaurant-settings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'restaurant_settings',
-          filter: `user_id=eq.${urlParamId}`
-        },
-        (payload) => {
-          console.log('🔔 Real-time ordering status update:', payload);
-          const newEnabled = payload.new?.ordering_enabled ?? true;
-          setOrderingEnabled(newEnabled);
-          console.log('🔔 Updated ordering status via real-time:', newEnabled);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('🔔 Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
-    };
+    // Note: Real-time subscription would need the actual restaurant ID
+    // For now, we'll skip it to avoid complexity, but it can be added later
   }, [urlParamId]);
 
   return { orderingEnabled, loading };

@@ -181,54 +181,6 @@ export type Database = {
           },
         ]
       }
-      mpesa_callbacks: {
-        Row: {
-          amount: number | null
-          callback_data: Json | null
-          checkout_request_id: string
-          created_at: string
-          id: string
-          merchant_request_id: string | null
-          mpesa_receipt_number: string | null
-          phone_number: string | null
-          result_code: number | null
-          result_desc: string | null
-          success: boolean | null
-          transaction_date: number | null
-          updated_at: string
-        }
-        Insert: {
-          amount?: number | null
-          callback_data?: Json | null
-          checkout_request_id: string
-          created_at?: string
-          id?: string
-          merchant_request_id?: string | null
-          mpesa_receipt_number?: string | null
-          phone_number?: string | null
-          result_code?: number | null
-          result_desc?: string | null
-          success?: boolean | null
-          transaction_date?: number | null
-          updated_at?: string
-        }
-        Update: {
-          amount?: number | null
-          callback_data?: Json | null
-          checkout_request_id?: string
-          created_at?: string
-          id?: string
-          merchant_request_id?: string | null
-          mpesa_receipt_number?: string | null
-          phone_number?: string | null
-          result_code?: number | null
-          result_desc?: string | null
-          success?: boolean | null
-          transaction_date?: number | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       order_items: {
         Row: {
           created_at: string

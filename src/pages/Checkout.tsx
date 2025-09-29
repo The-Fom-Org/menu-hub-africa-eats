@@ -4,7 +4,6 @@ import { useCart } from '@/hooks/useCart';
 import { useCustomerMenuData } from '@/hooks/useCustomerMenuData';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useRestaurantPaymentSettings } from '@/hooks/useRestaurantPaymentSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,24 +29,12 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  console.log('🛒 Checkout - URL Parameters:', { paramRestaurantId });
+  // Use the URL parameter directly as the user ID
+  const restaurantId = paramRestaurantId;
   
-  // Use the URL parameter as user ID and fetch the actual restaurant ID
-  const userId = paramRestaurantId;
-  const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(userId || '');
-  
-  // Get the actual restaurant ID from the restaurant info
-  const actualRestaurantId = restaurantInfo?.id;
-  
-  console.log('🛒 Checkout - ID Mapping:', { 
-    userId, 
-    actualRestaurantId, 
-    restaurantInfo: !!restaurantInfo 
-  });
-  
-  // Only initialize cart and fetch payment settings if we have IDs
-  const cart = useCart(userId || '');
-  const { settings: paymentSettings, loading: paymentSettingsLoading, getAvailableGateways } = useRestaurantPaymentSettings(actualRestaurantId || '');
+  // Only initialize cart and fetch data if we have a restaurant ID
+  const cart = useCart(restaurantId || '');
+  const { restaurantInfo, loading: dataLoading } = useCustomerMenuData(restaurantId || '');
   const { toast } = useToast();
 
   const [customerName, setCustomerName] = useState('');
@@ -57,15 +44,11 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isCartInitialized, setIsCartInitialized] = useState(false);
 
-  console.log('🛒 Checkout page state:', {
-    userId,
-    actualRestaurantId,
+  console.log('🛒 Checkout page cart state:', {
+    restaurantId,
     cartItemsLength: cart.cartItems.length,
     isCartInitialized,
-    paymentSettingsLoading,
-    paymentSettings: paymentSettings ? 'loaded' : 'null',
-    paymentMethods: paymentSettings?.payment_methods,
-    availableGateways: paymentSettings && actualRestaurantId ? getAvailableGateways() : [],
+    lastSyncTime: cart.lastSyncTime,
     cartItems: cart.cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
   });
 
@@ -91,7 +74,7 @@ const Checkout = () => {
 
   // Only redirect if cart is initialized AND empty
   useEffect(() => {
-    if (!userId) {
+    if (!restaurantId) {
       navigate('/');
       return;
     }
@@ -120,10 +103,10 @@ const Checkout = () => {
         description: "Your cart is empty. Please add items before checkout.",
         variant: "destructive",
       });
-      navigate(`/menu/${userId}`);
+      navigate(`/menu/${paramRestaurantId || restaurantId}`);
       return;
     }
-  }, [cart, userId, navigate, toast, isCartInitialized]);
+  }, [cart, restaurantId, navigate, toast, isCartInitialized]);
 
   const validateForm = () => {
     if (cart.orderType === 'later') {
@@ -144,42 +127,19 @@ const Checkout = () => {
         });
         return false;
       }
-
-      // Validate phone number for M-Pesa payments
-      if (paymentMethod === 'mpesa_daraja' && !customerPhone) {
-        toast({
-          title: "Phone number required",
-          description: "Please enter your phone number for M-Pesa payments.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      // Validate phone number format for M-Pesa
-      if (paymentMethod === 'mpesa_daraja' && customerPhone) {
-        const phoneRegex = /^(\+254|254|0)[7-9]\d{8}$/;
-        if (!phoneRegex.test(customerPhone.replace(/\s/g, ''))) {
-          toast({
-            title: "Invalid phone number",
-            description: "Please enter a valid Kenyan mobile number (e.g., 0712345678).",
-            variant: "destructive",
-          });
-          return false;
-        }
-      }
     }
 
     return true;
   };
 
-  // Show loading until both restaurant data, cart, and payment settings are loaded
-  if (dataLoading || (actualRestaurantId && paymentSettingsLoading) || !isCartInitialized) {
+  // Show loading until both restaurant data and cart are loaded
+  if (dataLoading || !isCartInitialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">
-            {dataLoading ? 'Loading restaurant...' : (actualRestaurantId && paymentSettingsLoading) ? 'Loading payment methods...' : 'Loading cart...'}
+            {dataLoading ? 'Loading restaurant...' : 'Loading cart...'}
           </p>
         </div>
       </div>
@@ -208,8 +168,8 @@ const Checkout = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                     onClick={() => navigate(`/menu/${userId}`)}
-                     className="text-xs sm:text-sm"
+                    onClick={() => navigate(`/menu/${paramRestaurantId}`)}
+                    className="text-xs sm:text-sm"
                   >
                     <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Back to Menu
@@ -328,23 +288,15 @@ const Checkout = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="customerPhone" className="text-xs sm:text-sm">
-                        Phone Number {paymentMethod === 'mpesa_daraja' ? '(Required for M-Pesa)' : '(Optional)'}
-                      </Label>
+                      <Label htmlFor="customerPhone" className="text-xs sm:text-sm">Phone Number (Optional)</Label>
                       <Input
                         id="customerPhone"
                         type="tel"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="Enter your phone number (e.g., 0712345678)"
+                        placeholder="Enter your phone number"
                         className="text-sm"
-                        required={paymentMethod === 'mpesa_daraja'}
                       />
-                      {paymentMethod === 'mpesa_daraja' && (
-                        <p className="text-xs text-muted-foreground">
-                          Required for M-Pesa STK Push payment
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -395,34 +347,36 @@ const Checkout = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                      <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span>Payment Method</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                     <PaymentMethodSelector
-                       paymentMethod={paymentMethod}
-                       setPaymentMethod={setPaymentMethod}
-                       availableGateways={paymentSettings && actualRestaurantId ? getAvailableGateways() : []}
-                       excludeCash={cart.orderType === 'later'}
-                     />
-                  </CardContent>
-                </Card>
+                {cart.orderType === 'later' && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                        <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <span>Payment Method</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <PaymentMethodSelector
+                        paymentMethod={paymentMethod}
+                        setPaymentMethod={setPaymentMethod}
+                        availableGateways={[]}
+                        excludeCash={true}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Button
                   onClick={async () => {
                     if (!validateForm()) return;
 
-                     await createOrder({
-                       restaurantId: userId!,
-                       customerName: customerName || null,
-                       customerPhone: customerPhone || null,
-                       tableNumber: tableNumber || null,
-                       orderType: cart.orderType,
-                      paymentMethod: paymentMethod || 'cash',
+                    await createOrder({
+                      restaurantId: restaurantId!,
+                      customerName: customerName || null,
+                      customerPhone: customerPhone || null,
+                      tableNumber: tableNumber || null,
+                      orderType: cart.orderType,
+                      paymentMethod: cart.orderType === 'now' ? 'cash' : paymentMethod,
                       scheduledTime: cart.orderType === 'later' ? new Date(scheduledTime).toISOString() : null,
                     });
                   }}

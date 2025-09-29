@@ -78,15 +78,15 @@ export const useSubscriptionLimits = (restaurantId?: string): SubscriptionLimits
   const planLimits = {
     free: {
       maxMenuItems: 15,
-      allowedPaymentMethods: ['mpesa_daraja', 'mpesa_manual', 'cash']
+      allowedPaymentMethods: ['mpesa_manual', 'cash']
     },
     standard: {
       maxMenuItems: null, // unlimited
-      allowedPaymentMethods: ['pesapal', 'mpesa_daraja', 'mpesa_manual', 'bank_transfer', 'cash']
+      allowedPaymentMethods: ['pesapal', 'mpesa_manual', 'bank_transfer', 'cash']
     },
     advanced: {
       maxMenuItems: null, // unlimited
-      allowedPaymentMethods: ['pesapal', 'mpesa_daraja', 'mpesa_manual', 'bank_transfer', 'cash']
+      allowedPaymentMethods: ['pesapal', 'mpesa_manual', 'bank_transfer', 'cash']
     }
   };
 

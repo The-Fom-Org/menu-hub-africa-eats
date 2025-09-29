@@ -13,7 +13,7 @@ interface PaymentGateway {
 interface PaymentMethodSelectorProps {
   paymentMethod: string;
   setPaymentMethod: (method: string) => void;
-  availableGateways: (string | PaymentGateway)[];
+  availableGateways: PaymentGateway[];
   excludeCash?: boolean;
 }
 
@@ -23,66 +23,41 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   availableGateways,
   excludeCash = false
 }) => {
-  console.log('🔍 PaymentMethodSelector - Render state:', { 
-    paymentMethod,
-    availableGateways,
-    excludeCash,
-    gatewaysLength: availableGateways.length,
-    gatewaysTypes: availableGateways
-  });
-  
-  const allPaymentMethods = [
-    {
-      id: 'pesapal',
-      name: 'Pesapal',
-      description: 'Pay with credit/debit card or mobile money via Pesapal',
-      icon: <CreditCard className="h-5 w-5" />,
-    },
-    {
-      id: 'mpesa_daraja',
-      name: 'M-Pesa (Instant)',
-      description: 'Pay instantly with M-Pesa STK Push',
-      icon: <Smartphone className="h-5 w-5" />,
-    },
-    {
-      id: 'mpesa_manual',
-      name: 'M-Pesa (Manual)',
-      description: 'Pay with M-Pesa using till/paybill number',
-      icon: <Smartphone className="h-5 w-5" />,
-    },
-    {
-      id: 'bank_transfer',
-      name: 'Bank Transfer',
-      description: 'Direct bank transfer',
-      icon: <Building className="h-5 w-5" />,
-    }
-  ];
+      const paymentMethods = [
+        {
+          id: 'pesapal',
+          name: 'Pesapal',
+          description: 'Pay with credit/debit card or mobile money via Pesapal',
+          icon: <CreditCard className="h-5 w-5" />,
+          enabled: true
+        },
+        {
+          id: 'mpesa',
+          name: 'M-Pesa',
+          description: 'Pay with M-Pesa mobile money',
+          icon: <Smartphone className="h-5 w-5" />,
+          enabled: true
+        },
+        {
+          id: 'bank_transfer',
+          name: 'Bank Transfer',
+          description: 'Direct bank transfer',
+          icon: <Building className="h-5 w-5" />,
+          enabled: true
+        }
+      ];
 
-  // Add cash if not excluded
   if (!excludeCash) {
-    allPaymentMethods.push({
+    paymentMethods.push({
       id: 'cash',
       name: 'Cash',
       description: 'Pay with cash on delivery/pickup',
       icon: <Banknote className="h-5 w-5" />,
+      enabled: true
     });
   }
 
-  // Filter methods based on what's actually available in restaurant settings
-  const enabledMethods = allPaymentMethods.filter(method => {
-    const isAvailable = availableGateways.some(gateway => {
-      const gatewayType = typeof gateway === 'string' ? gateway : gateway.type;
-      return gatewayType === method.id;
-    });
-    console.log(`🔍 Method ${method.id} available:`, isAvailable, 'Available gateways:', availableGateways);
-    return isAvailable;
-  });
-
-  // Auto-select first payment method if none selected
-  if (enabledMethods.length > 0 && !paymentMethod) {
-    console.log('🎯 Auto-selecting first payment method:', enabledMethods[0].id);
-    setPaymentMethod(enabledMethods[0].id);
-  }
+  const enabledMethods = paymentMethods.filter(method => method.enabled);
 
   if (enabledMethods.length === 0) {
     return (
