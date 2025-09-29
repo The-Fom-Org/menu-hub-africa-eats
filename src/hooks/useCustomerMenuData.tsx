@@ -56,6 +56,7 @@ export const useCustomerMenuData = (urlParamId: string) => {
       setError(null);
 
       console.log('🔍 Fetching menu data for URL param:', urlParamId);
+      console.log('🔍 Current window location:', window.location.href);
 
       // Try to get restaurant ID from user_branches first (new model)
       const { data: userBranchData, error: branchError } = await (supabase as any)
@@ -151,6 +152,7 @@ export const useCustomerMenuData = (urlParamId: string) => {
           .maybeSingle();
 
         if (restaurantData && !restaurantError) {
+          console.log('✅ Found restaurant data:', restaurantData);
           setRestaurantInfo({
             id: actualRestaurantId,
             name: restaurantData.name || "MenuHub Restaurant",
@@ -172,6 +174,7 @@ export const useCustomerMenuData = (urlParamId: string) => {
             .maybeSingle();
 
           if (profileData) {
+            console.log('✅ Found profile data:', profileData);
             setRestaurantInfo({
               id: actualRestaurantId,
               name: profileData.restaurant_name || "MenuHub Restaurant",

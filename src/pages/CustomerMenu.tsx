@@ -25,6 +25,10 @@ const CustomerMenu = () => {
   const { restaurantId: urlUserId } = useParams<{ restaurantId: string }>();
   const { categories, restaurantInfo, loading, error } = useCustomerMenuData(urlUserId || "");
   const { orderingEnabled, loading: orderingLoading } = useCustomerOrderingStatus(urlUserId || "");
+  
+  // Debug restaurant info
+  console.log('🍽️ Restaurant Info:', restaurantInfo);
+  console.log('🏪 Restaurant Name being displayed:', restaurantInfo?.name);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
