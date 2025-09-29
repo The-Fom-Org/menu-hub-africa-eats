@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
  * @returns Whether ordering is enabled for the restaurant
  */
 export const useCustomerOrderingStatus = (urlParamId: string) => {
-  const [orderingEnabled, setOrderingEnabled] = useState(true); // Default to enabled for better UX
+  const [orderingEnabled, setOrderingEnabled] = useState(false); // Default to disabled until we know the actual status
   
   useEffect(() => {
     const fetchOrderingStatus = async () => {
@@ -32,8 +32,8 @@ export const useCustomerOrderingStatus = (urlParamId: string) => {
           console.error('❌ Error fetching ordering status:', error);
           console.log('⚠️ Keeping default ordering enabled due to error');
         } else {
-          // If no settings found, default to enabled for new restaurants
-          const enabled = data?.ordering_enabled ?? true;
+          // If no settings found, default to disabled (restaurant must explicitly enable)
+          const enabled = data?.ordering_enabled ?? false;
           setOrderingEnabled(enabled);
           console.log('✅ Ordering status loaded:', { enabled, hasData: !!data });
         }
