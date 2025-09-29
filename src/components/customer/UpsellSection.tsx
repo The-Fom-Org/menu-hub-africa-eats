@@ -14,7 +14,7 @@ interface UpsellSectionProps {
   orderingEnabled?: boolean;
 }
 
-export const UpsellSection = ({ restaurantId, allItems, currentCartItems, orderingEnabled = true }: UpsellSectionProps) => {
+export const UpsellSection = ({ restaurantId, allItems, currentCartItems, orderingEnabled = false }: UpsellSectionProps) => {
   const { addToCart } = useCart(restaurantId);
   const { toast } = useToast();
 

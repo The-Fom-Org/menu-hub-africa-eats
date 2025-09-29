@@ -35,7 +35,7 @@ export const StickyHeader = ({
   onSearch,
   onChefsSpecial,
   onContactRestaurant,
-  orderingEnabled = true
+  orderingEnabled = false
 }: StickyHeaderProps) => {
   console.log('🏠 StickyHeader render:', { restaurantId, orderingEnabled });
   const [isSearchOpen, setIsSearchOpen] = useState(false);

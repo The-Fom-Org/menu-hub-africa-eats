@@ -8,7 +8,7 @@ interface StickyBottomBarProps {
   orderingEnabled?: boolean;
 }
 
-export const StickyBottomBar = ({ restaurantId, onChefsSpecial, orderingEnabled = true }: StickyBottomBarProps) => {
+export const StickyBottomBar = ({ restaurantId, onChefsSpecial, orderingEnabled = false }: StickyBottomBarProps) => {
   console.log('📱 StickyBottomBar render:', { restaurantId, orderingEnabled });
   
   if (!orderingEnabled) {

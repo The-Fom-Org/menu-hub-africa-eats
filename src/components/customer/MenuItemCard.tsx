@@ -47,7 +47,7 @@ const getBadgeText = (badge: string) => {
   }
 };
 
-export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: MenuItemCardProps) => {
+export const MenuItemCard = ({ item, restaurantId, orderingEnabled = false }: MenuItemCardProps) => {
   console.log('🍽️ MenuItemCard render:', { itemName: item.name, restaurantId, orderingEnabled });
   const cart = useCart(restaurantId);
   const { toast } = useToast();
