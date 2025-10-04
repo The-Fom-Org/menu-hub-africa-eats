@@ -163,16 +163,10 @@ const OrderCreationHandler = ({ restaurantId: propRestaurantId, children }: Orde
 
   const handlePayment = async (order: any, orderData: any, amount: number) => {
     try {
-      if (orderData.paymentMethod === 'card') {
+      if (orderData.paymentMethod === 'pesapal') {
         await handlePesapalPayment(order, orderData, amount);
-      } else if (orderData.paymentMethod === 'mpesa') {
-        // Check if M-Pesa Daraja is enabled, otherwise use manual
-        const mpesaDaraja = paymentSettings?.payment_methods?.mpesa_daraja;
-        if (mpesaDaraja?.enabled && mpesaDaraja.consumer_key) {
-          await handleMpesaSTKPush(order, orderData, amount);
-        } else {
-          handleMpesaPayment(order, orderData, amount);
-        }
+      } else if (orderData.paymentMethod === 'mpesa_manual') {
+        handleMpesaPayment(order, orderData, amount);
       } else if (orderData.paymentMethod === 'bank_transfer') {
         handleBankTransferPayment(order, orderData, amount);
       }
@@ -280,73 +274,8 @@ const OrderCreationHandler = ({ restaurantId: propRestaurantId, children }: Orde
     }
   };
 
-  const handleMpesaSTKPush = async (order: any, orderData: any, amount: number) => {
-    console.log('🔄 Initiating M-Pesa STK Push for order:', order.id);
-    
-    if (!orderData.customerPhone) {
-      const error = 'Phone number is required for M-Pesa payment';
-      console.error('❌', error);
-      toast({
-        title: "Phone Number Required",
-        description: error,
-        variant: "destructive",
-      });
-      throw new Error(error);
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('mpesa-stk-push', {
-        body: {
-          restaurantId: restaurantId,
-          orderTrackingId: order.customer_token,
-          amount: amount,
-          phoneNumber: orderData.customerPhone,
-          description: `Payment for order ${order.customer_token.slice(0, 8).toUpperCase()}`
-        }
-      });
-
-      console.log('📥 STK Push response:', { data, error });
-
-      if (error) {
-        console.error('❌ STK Push edge function error:', error);
-        throw new Error(`STK Push failed: ${error.message || 'Unknown error'}`);
-      }
-
-      if (!data?.success) {
-        console.error('❌ STK Push failed:', data?.error);
-        throw new Error(data?.error || 'STK Push failed');
-      }
-
-      console.log('✅ STK Push sent successfully');
-      
-      toast({
-        title: "STK Push Sent!",
-        description: "Please check your phone and enter your M-Pesa PIN to complete the payment.",
-      });
-
-      // Clear cart and navigate to success page
-      clearCart();
-      navigate(`/payment-success?token=${order.customer_token}&restaurantId=${restaurantId}`);
-      setIsCreatingOrder(false);
-
-    } catch (error) {
-      console.error('❌ M-Pesa STK Push error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'STK Push failed';
-      toast({
-        title: "Payment Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      
-      // Navigate to failure page
-      navigate(`/payment-failure?token=${order.customer_token}&restaurantId=${restaurantId}&error=${encodeURIComponent(errorMessage)}`);
-      setIsCreatingOrder(false);
-      throw error;
-    }
-  };
-
   const handleMpesaPayment = (order: any, orderData: any, amount: number) => {
-    console.log('Handling M-Pesa manual payment for order:', order.id);
+    console.log('Handling M-Pesa payment for order:', order.id);
     setShowPaymentInstructions(true);
     setPendingPaymentData({
       orderId: order.id,

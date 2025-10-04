@@ -21,14 +21,6 @@ interface PaymentSettings {
     consumer_secret?: string;
     ipn_id?: string;
   };
-  mpesa_daraja?: {
-    enabled: boolean;
-    consumer_key?: string;
-    consumer_secret?: string;
-    business_short_code?: string;
-    passkey?: string;
-    callback_url?: string;
-  };
   mpesa_manual?: {
     enabled: boolean;
     till_number?: string;
@@ -57,7 +49,6 @@ const EnablePayments = () => {
   // Payment settings state
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
     pesapal: { enabled: false },
-    mpesa_daraja: { enabled: false },
     mpesa_manual: { enabled: false },
     bank_transfer: { enabled: false },
     cash: { enabled: true }
@@ -243,11 +234,11 @@ const EnablePayments = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">
-                      <CreditCard className="h-6 w-6 text-primary" />
+                      <Smartphone className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle>Card Payments (Pesapal)</CardTitle>
-                      <CardDescription>Accept credit/debit cards via Pesapal</CardDescription>
+                      <CardTitle>Pesapal Integration</CardTitle>
+                      <CardDescription>Accept M-Pesa, cards & bank payments</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -273,7 +264,7 @@ const EnablePayments = () => {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-muted-foreground">
-                    Enable card payments through Pesapal. Accept credit/debit cards with instant confirmation.
+                    Enable automated payments through Pesapal. Accept M-Pesa, cards, and bank transfers with instant confirmation.
                   </p>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -281,7 +272,7 @@ const EnablePayments = () => {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Credit & debit cards</span>
+                    <span>M-Pesa, Cards & Bank transfers</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <AlertCircle className="h-4 w-4 text-orange-600" />
@@ -368,140 +359,6 @@ const EnablePayments = () => {
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Setup Pesapal Account
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* M-Pesa Daraja */}
-            <Card className="border-l-4 border-l-green-500">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-500/10 rounded-lg">
-                      <Smartphone className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div>
-                      <CardTitle>M-Pesa STK Push</CardTitle>
-                      <CardDescription>Automated M-Pesa payments with STK push</CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getPaymentMethodBadge('mpesa_daraja', paymentSettings.mpesa_daraja?.enabled || false)}
-                    <Switch
-                      checked={paymentSettings.mpesa_daraja?.enabled || false}
-                      onCheckedChange={(checked) => handleSettingChange('mpesa_daraja', 'enabled', checked)}
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">
-                    Enable automated M-Pesa payments with STK push. Customers receive a payment prompt directly on their phone.
-                  </p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Instant STK push to customer phone</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Automatic payment confirmation</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <AlertCircle className="h-4 w-4 text-orange-600" />
-                    <span>Requires M-Pesa Business API credentials</span>
-                  </div>
-                  
-                  {!paymentSettings.mpesa_daraja?.enabled && (
-                    <Alert className="mt-4">
-                      <Info className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>How to get M-Pesa Daraja credentials:</strong>
-                        <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
-                          <li>Visit <a href="https://developer.safaricom.co.ke" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Safaricom Developer Portal</a></li>
-                          <li>Create an account and verify your business</li>
-                          <li>Create a new app and select "M-Pesa" APIs</li>
-                          <li>Get your Consumer Key, Consumer Secret, and Business Short Code</li>
-                          <li>Generate your Lipa Na M-Pesa Online Passkey</li>
-                          <li>Copy these credentials and paste them below</li>
-                        </ol>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  {paymentSettings.mpesa_daraja?.enabled && (
-                    <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg">
-                      <h4 className="font-medium">M-Pesa Daraja Credentials</h4>
-                      <div className="grid grid-cols-1 gap-3">
-                        <div>
-                          <Label htmlFor="mpesa_consumer_key">Consumer Key</Label>
-                          <Input
-                            id="mpesa_consumer_key"
-                            type="text"
-                            value={paymentSettings.mpesa_daraja?.consumer_key || ''}
-                            onChange={(e) => handleSettingChange('mpesa_daraja', 'consumer_key', e.target.value)}
-                            placeholder="Your M-Pesa Consumer Key"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="mpesa_consumer_secret">Consumer Secret</Label>
-                          <Input
-                            id="mpesa_consumer_secret"
-                            type="password"
-                            value={paymentSettings.mpesa_daraja?.consumer_secret || ''}
-                            onChange={(e) => handleSettingChange('mpesa_daraja', 'consumer_secret', e.target.value)}
-                            placeholder="Your M-Pesa Consumer Secret"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="business_short_code">Business Short Code</Label>
-                          <Input
-                            id="business_short_code"
-                            type="text"
-                            value={paymentSettings.mpesa_daraja?.business_short_code || ''}
-                            onChange={(e) => handleSettingChange('mpesa_daraja', 'business_short_code', e.target.value)}
-                            placeholder="Your Business Short Code"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="mpesa_passkey">Lipa Na M-Pesa Passkey</Label>
-                          <Input
-                            id="mpesa_passkey"
-                            type="password"
-                            value={paymentSettings.mpesa_daraja?.passkey || ''}
-                            onChange={(e) => handleSettingChange('mpesa_daraja', 'passkey', e.target.value)}
-                            placeholder="Your Lipa Na M-Pesa Passkey"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="callback_url">Callback URL (Optional)</Label>
-                          <Input
-                            id="callback_url"
-                            type="url"
-                            value={paymentSettings.mpesa_daraja?.callback_url || ''}
-                            onChange={(e) => handleSettingChange('mpesa_daraja', 'callback_url', e.target.value)}
-                            placeholder="https://yourwebsite.com/mpesa/callback"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Leave blank to use default callback handling
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        💡 Don't forget to click "Save Settings" after entering your credentials
-                      </p>
-                    </div>
-                  )}
-                  
-                  {!paymentSettings.mpesa_daraja?.enabled && (
-                    <Button 
-                      className="w-full mt-4"
-                      onClick={() => window.open('https://developer.safaricom.co.ke', '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Setup M-Pesa Daraja
                     </Button>
                   )}
                 </div>

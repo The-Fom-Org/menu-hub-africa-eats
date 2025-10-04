@@ -359,12 +359,7 @@ const Checkout = () => {
                       <PaymentMethodSelector
                         paymentMethod={paymentMethod}
                         setPaymentMethod={setPaymentMethod}
-                        availableGateways={[
-                          { type: 'pesapal', enabled: true },
-                          { type: 'mpesa_daraja', enabled: true },
-                          { type: 'mpesa_manual', enabled: true },
-                          { type: 'bank_transfer', enabled: true }
-                        ]}
+                        availableGateways={[]}
                         excludeCash={true}
                       />
                     </CardContent>
