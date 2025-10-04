@@ -12,6 +12,14 @@ export interface PaymentSettings {
       consumer_secret?: string;
       ipn_id?: string;
     };
+    mpesa_daraja?: {
+      enabled: boolean;
+      consumer_key?: string;
+      consumer_secret?: string;
+      business_short_code?: string;
+      passkey?: string;
+      callback_url?: string;
+    };
     mpesa_manual?: {
       enabled: boolean;
       till_number?: string;
