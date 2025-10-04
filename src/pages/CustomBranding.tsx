@@ -60,27 +60,46 @@ const CustomBranding = () => {
 
   const loadExistingBranding = async (userId: string) => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
+      // Get the user's default restaurant
+      const { data: userBranch, error: branchError } = await supabase
+        .from('user_branches')
+        .select('restaurant_id')
         .eq('user_id', userId)
+        .eq('is_default', true)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error loading profile:', error);
+      if (branchError) {
+        console.error('Error loading user branch:', branchError);
         return;
       }
 
-      if (profile) {
+      if (!userBranch) {
+        console.error('No default restaurant found for user');
+        return;
+      }
+
+      // Get the restaurant data
+      const { data: restaurant, error: restaurantError } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('id', userBranch.restaurant_id)
+        .single();
+
+      if (restaurantError) {
+        console.error('Error loading restaurant:', restaurantError);
+        return;
+      }
+
+      if (restaurant) {
         setBranding({
-          restaurantName: profile.restaurant_name || "",
-          tagline: profile.tagline || "",
-          description: profile.description || "",
-          primaryColor: profile.primary_color || "#059669",
-          secondaryColor: profile.secondary_color || "#dc2626",
-          logoUrl: profile.logo_url || "",
-          coverImageUrl: profile.cover_image_url || "",
-          phoneNumber: profile.phone_number || ""
+          restaurantName: restaurant.name || "",
+          tagline: restaurant.tagline || "",
+          description: restaurant.description || "",
+          primaryColor: restaurant.primary_color || "#059669",
+          secondaryColor: restaurant.secondary_color || "#dc2626",
+          logoUrl: restaurant.logo_url || "",
+          coverImageUrl: restaurant.cover_image_url || "",
+          phoneNumber: restaurant.phone_number || ""
         });
       }
     } catch (error) {
@@ -93,11 +112,22 @@ const CustomBranding = () => {
 
     setIsSaving(true);
     try {
+      // Get the user's default restaurant ID
+      const { data: userBranch, error: branchError } = await supabase
+        .from('user_branches')
+        .select('restaurant_id')
+        .eq('user_id', user.id)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (branchError) throw branchError;
+      if (!userBranch) throw new Error('No default restaurant found');
+
+      // Update the restaurant data
       const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          restaurant_name: branding.restaurantName,
+        .from('restaurants')
+        .update({
+          name: branding.restaurantName,
           tagline: branding.tagline,
           description: branding.description,
           primary_color: branding.primaryColor,
@@ -105,9 +135,8 @@ const CustomBranding = () => {
           logo_url: branding.logoUrl,
           cover_image_url: branding.coverImageUrl,
           phone_number: branding.phoneNumber
-        }, {
-          onConflict: 'user_id'
-        });
+        })
+        .eq('id', userBranch.restaurant_id);
 
       if (error) throw error;
 
