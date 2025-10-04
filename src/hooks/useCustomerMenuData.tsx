@@ -237,53 +237,6 @@ export const useCustomerMenuData = (urlParamId: string) => {
     }
   }, [urlParamId]);
 
-  // Set up realtime subscriptions for menu changes
-  useEffect(() => {
-    if (!urlParamId) return;
-
-    console.log('🔴 Setting up realtime subscriptions for menu updates');
-
-    // Subscribe to menu_items changes
-    const itemsChannel = supabase
-      .channel('menu-items-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'menu_items'
-        },
-        (payload) => {
-          console.log('🔴 Menu item changed:', payload);
-          fetchMenuData();
-        }
-      )
-      .subscribe();
-
-    // Subscribe to menu_categories changes
-    const categoriesChannel = supabase
-      .channel('menu-categories-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'menu_categories'
-        },
-        (payload) => {
-          console.log('🔴 Menu category changed:', payload);
-          fetchMenuData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('🔴 Cleaning up realtime subscriptions');
-      supabase.removeChannel(itemsChannel);
-      supabase.removeChannel(categoriesChannel);
-    };
-  }, [urlParamId]);
-
   return {
     categories,
     restaurantInfo,
