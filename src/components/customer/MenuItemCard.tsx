@@ -128,7 +128,10 @@ export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: Men
     }
   }, [currentQuantity, cart, item, toast, isProcessing]);
 
-  const imageSrc = item.image_url || null;
+  // Add cache-busting parameter to force fresh image loads after publishing
+  const imageSrc = item.image_url 
+    ? `${item.image_url}${item.image_url.includes('?') ? '&' : '?'}v=${new Date().toISOString().split('T')[0]}`
+    : null;
 
   return (
     <>
