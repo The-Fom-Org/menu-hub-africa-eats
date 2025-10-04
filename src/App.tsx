@@ -33,8 +33,6 @@ import AdminLogin from "./pages/AdminLogin";
 import LeadFunnel from "./pages/LeadFunnel";
 import CustomerLeads from "./pages/CustomerLeads";
 import PaymentManagement from "./pages/PaymentManagement";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import PaymentFailure from "./pages/PaymentFailure";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,8 +52,7 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<CustomerMenu />} />
-            <Route path="/home" element={<Index />} />
+            <Route path="/" element={<Index />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/features" element={<Features />} />
@@ -77,8 +74,6 @@ function App() {
             <Route path="/menu/:restaurantId" element={<CustomerMenu />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />
-            <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/payment-failure" element={<PaymentFailure />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/cookies" element={<Cookies />} />

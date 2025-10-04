@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import { useCustomerMenuData } from "@/hooks/useCustomerMenuData";
 import { useCustomerOrderingStatus } from "@/hooks/useCustomerOrderingStatus";
 import { useCart } from "@/hooks/useCart";
-import { useAuth } from "@/hooks/useAuth";
 import { CartDrawer } from "@/components/customer/CartDrawer";
 import { CategoryEmojis } from "@/components/customer/CategoryEmojis";
 import { MenuItemCard } from "@/components/customer/MenuItemCard";
@@ -24,13 +23,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const CustomerMenu = () => {
   const { restaurantId: urlUserId } = useParams<{ restaurantId: string }>();
-  const { user } = useAuth();
-  
-  // Use URL param if available, otherwise use logged-in user's ID, or fetch from first restaurant
-  const effectiveRestaurantId = urlUserId || user?.id || "";
-  
-  const { categories, restaurantInfo, loading, error, refetch } = useCustomerMenuData(effectiveRestaurantId);
-  const { orderingEnabled } = useCustomerOrderingStatus(effectiveRestaurantId);
+  const { categories, restaurantInfo, loading, error, refetch } = useCustomerMenuData(urlUserId || "");
+  const { orderingEnabled } = useCustomerOrderingStatus(urlUserId || "");
   
   // Debug restaurant info
   console.log('🍽️ Restaurant Info:', restaurantInfo);
@@ -40,8 +34,8 @@ const CustomerMenu = () => {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   
   // Always initialize cart - ordering status only affects interactions
-  console.log('🔍 CustomerMenu Debug:', { orderingEnabled, effectiveRestaurantId });
-  const cart = useCart(effectiveRestaurantId);
+  console.log('🔍 CustomerMenu Debug:', { orderingEnabled, urlUserId });
+  const cart = useCart(urlUserId || "");
   const [showVideoSplash, setShowVideoSplash] = useState(true);
 
   // Get actual restaurant ID from restaurant info
@@ -208,12 +202,12 @@ const CustomerMenu = () => {
       />
 
       {/* Lead Capture Integration */}
-      {effectiveRestaurantId && <LeadCaptureIntegration restaurantId={actualRestaurantId || effectiveRestaurantId} />}
+      {urlUserId && <LeadCaptureIntegration restaurantId={actualRestaurantId || urlUserId} />}
 
       {/* Sticky Header */}
       <StickyHeader
         restaurantName={restaurantInfo.name}
-        restaurantId={actualRestaurantId || effectiveRestaurantId}
+        restaurantId={actualRestaurantId || urlUserId || ""}
         logoUrl={restaurantInfo.logo_url}
         onSearch={handlesSearch}
         onChefsSpecial={handleChefsSpecial}
@@ -313,7 +307,7 @@ const CustomerMenu = () => {
                     <MenuItemCard
                       key={item.id}
                       item={item}
-                      restaurantId={actualRestaurantId || effectiveRestaurantId}
+                      restaurantId={actualRestaurantId || urlUserId || ""}
                       orderingEnabled={orderingEnabled}
                     />
                   ))}
@@ -326,7 +320,7 @@ const CustomerMenu = () => {
         {/* Upsell Section - only show when ordering enabled and has cart items */}
         {orderingEnabled && cart && cart.hasItems() && (
           <UpsellSection
-            restaurantId={actualRestaurantId || effectiveRestaurantId}
+            restaurantId={actualRestaurantId || urlUserId || ""}
             currentCartItems={cart.cartItems}
             allItems={allMenuItems}
             orderingEnabled={orderingEnabled}
@@ -336,7 +330,7 @@ const CustomerMenu = () => {
 
       {/* Sticky Bottom Bar - always render but conditionally display */}
       <StickyBottomBar 
-        restaurantId={actualRestaurantId || effectiveRestaurantId}
+        restaurantId={actualRestaurantId || urlUserId || ""}
         onChefsSpecial={handleChefsSpecial}
         orderingEnabled={orderingEnabled}
       />
