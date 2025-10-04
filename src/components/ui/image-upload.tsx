@@ -50,11 +50,11 @@ export const ImageUpload = ({
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${path}${Date.now()}.${fileExt}`;
 
-      // Upload file to Supabase Storage
+      // Upload file to Supabase Storage with no-cache to prevent CDN caching issues
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(fileName, file, {
-          cacheControl: '3600',
+          cacheControl: 'no-cache',
           upsert: false
         });
 

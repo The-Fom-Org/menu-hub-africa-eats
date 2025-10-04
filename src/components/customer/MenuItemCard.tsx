@@ -128,9 +128,14 @@ export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: Men
     }
   }, [currentQuantity, cart, item, toast, isProcessing]);
 
-  // Add cache-busting parameter to force fresh image loads after publishing
+  // Extract timestamp from image URL and use it for cache-busting to ensure fresh images
   const imageSrc = item.image_url 
-    ? `${item.image_url}${item.image_url.includes('?') ? '&' : '?'}v=${new Date().toISOString().split('T')[0]}`
+    ? (() => {
+        // Extract the timestamp from the filename (e.g., 1759568486726.jpg)
+        const timestampMatch = item.image_url.match(/\/(\d{13})\./);
+        const timestamp = timestampMatch ? timestampMatch[1] : Date.now().toString();
+        return `${item.image_url}${item.image_url.includes('?') ? '&' : '?'}t=${timestamp}`;
+      })()
     : null;
 
   return (
