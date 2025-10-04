@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const CustomerMenu = () => {
   const { restaurantId: urlUserId } = useParams<{ restaurantId: string }>();
-  const { categories, restaurantInfo, loading, error } = useCustomerMenuData(urlUserId || "");
+  const { categories, restaurantInfo, loading, error, refetch } = useCustomerMenuData(urlUserId || "");
   const { orderingEnabled } = useCustomerOrderingStatus(urlUserId || "");
   
   // Debug restaurant info
@@ -40,6 +40,18 @@ const CustomerMenu = () => {
 
   // Get actual restaurant ID from restaurant info
   const actualRestaurantId = restaurantInfo?.id;
+
+  // Refetch menu data when page becomes visible (handles stale image URLs)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refetch]);
 
   // Call waiter functionality is now handled by CallWaiterDialog component
   useEffect(() => {
