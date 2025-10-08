@@ -128,10 +128,7 @@ export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: Men
     }
   }, [currentQuantity, cart, item, toast, isProcessing]);
 
-  // Add cache-busting parameter to force fresh images in production
-  const imageSrc = item.image_url 
-    ? `${item.image_url}${item.image_url.includes('?') ? '&' : '?'}t=${Date.now()}`
-    : null;
+  const imageSrc = item.image_url || null;
 
   return (
     <>
@@ -141,11 +138,12 @@ export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: Men
         style={{ borderColor: "#00000010" }}
       >
         {/* Image */}
-        <div className="relative h-40 sm:h-48 overflow-hidden">
+        <div className="relative h-40 sm:h-48 overflow-hidden bg-muted">
           {imageSrc ? (
             <img
               src={imageSrc}
               alt={item.name}
+              loading="lazy"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               onError={(e) => {
                 e.currentTarget.style.display = "none";
@@ -153,14 +151,14 @@ export const MenuItemCard = ({ item, restaurantId, orderingEnabled = true }: Men
                 if (parent && !parent.querySelector(".fallback-emoji")) {
                   const fallback = document.createElement("div");
                   fallback.className =
-                    "fallback-emoji w-full h-full flex items-center justify-center text-xl sm:text-2xl";
+                    "fallback-emoji w-full h-full flex items-center justify-center text-xl sm:text-2xl bg-muted";
                   fallback.textContent = "🍽️";
                   parent.appendChild(fallback);
                 }
               }}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-2xl">
+            <div className="w-full h-full flex items-center justify-center text-2xl bg-muted">
               🍽️
             </div>
           )}
