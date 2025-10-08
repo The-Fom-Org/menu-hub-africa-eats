@@ -54,7 +54,7 @@ export const ImageUpload = ({
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(fileName, file, {
-          cacheControl: '3600',
+          cacheControl: 'no-cache',
           upsert: false
         });
 
