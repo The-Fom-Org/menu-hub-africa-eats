@@ -27,19 +27,31 @@ export interface MenuCategory {
 export const useMenuData = () => {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const { user } = useAuth();
 
   const fetchMenuData = async () => {
     if (!user) return;
 
     try {
+      // Get restaurant ID from user_branches
+      const { data: branchData } = await supabase
+        .from('user_branches')
+        .select('restaurant_id')
+        .eq('user_id', user.id)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      const targetId = branchData?.restaurant_id || user.id;
+      setRestaurantId(targetId);
+
       const { data: categoriesData, error } = await (supabase as any)
         .from('menu_categories')
         .select(`
           *,
           menu_items (*)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', targetId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -57,7 +69,7 @@ export const useMenuData = () => {
   }, [user]);
 
   const addCategory = async (name: string, description: string = '') => {
-    if (!user) return null;
+    if (!user || !restaurantId) return null;
 
     try {
       const { data, error } = await (supabase as any)
@@ -65,7 +77,7 @@ export const useMenuData = () => {
         .insert({
           name,
           description,
-          user_id: user.id,
+          user_id: restaurantId,
         })
         .select()
         .single();
